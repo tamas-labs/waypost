@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>B – PIN-belépés</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{t.bg}}; color: {{t.text}}; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 56px 28px 28px; gap: 24px">
+  <div style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 999px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; font-size: 13px; font-weight: 600; color: {{t.text2}}">
+    <span style="width: 8px; height: 8px; border-radius: 50%; background: {{t.ok}}"></span>
+    Szinkronizálva
+  </div>
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center">
+    <span style="font-size: 15px; font-weight: 600; color: {{t.text2}}">Ipari park, B épület</span>
+    <span style="font-size: 30px; font-weight: 800; letter-spacing: -0.01em">Jó estét!</span>
+    <span style="font-size: 16px; color: {{t.text2}}">A műszak 20:00-kor kezdődik</span>
+  </div>
+
+  <div style="display: flex; gap: 14px; padding: 18px 26px; border-radius: 24px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}" aria-label="3 számjegy megadva a 6-ból">
+    <span style="width: 18px; height: 18px; border-radius: 50%; background: {{t.accent}}"></span>
+    <span style="width: 18px; height: 18px; border-radius: 50%; background: {{t.accent}}"></span>
+    <span style="width: 18px; height: 18px; border-radius: 50%; background: {{t.accent}}"></span>
+    <span style="width: 18px; height: 18px; border-radius: 50%; background: {{t.dotEmpty}}"></span>
+    <span style="width: 18px; height: 18px; border-radius: 50%; background: {{t.dotEmpty}}"></span>
+    <span style="width: 18px; height: 18px; border-radius: 50%; background: {{t.dotEmpty}}"></span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 24px; margin-top: auto; width: 100%; justify-items: center">
+    <sc-for list="{{keys}}" as="k" hint-placeholder-count="9">
+      <button style="width: 80px; height: 80px; border-radius: 50%; border: 1px solid {{t.cardBorder}}; background: {{t.surface}}; color: {{t.text}}; font-family: inherit; font-size: 30px; font-weight: 700">{{k}}</button>
+    </sc-for>
+    <a href="B-Login.dc.html" aria-label="Supervisor mód" style="width: 80px; height: 80px; border-radius: 50%; color: {{t.text2}}; display: flex; align-items: center; justify-content: center">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6l8-3z"/></svg>
+    </a>
+    <button style="width: 80px; height: 80px; border-radius: 50%; border: 1px solid {{t.cardBorder}}; background: {{t.surface}}; color: {{t.text}}; font-family: inherit; font-size: 30px; font-weight: 700">0</button>
+    <button aria-label="Törlés" style="width: 80px; height: 80px; border-radius: 50%; border: none; background: transparent; color: {{t.text2}}; display: flex; align-items: center; justify-content: center">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h11v14H9l-6-7 6-7z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></svg>
+    </button>
+  </div>
+
+  <button style="width: 100%; height: 64px; border-radius: 999px; border: none; background: {{t.accent}}; color: {{t.onAccent}}; font-family: inherit; font-size: 19px; font-weight: 800">Műszak kezdése</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["sötét","világos"],"default":"sötét"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = {bg:'#0F1420',surface:'#182033',cardBorder:'transparent',text:'#E8ECF5',text2:'#9AA6BF',accent:'#8AB4FF',onAccent:'#0B1630',ok:'#6EE7A8',dotEmpty:'#2C3650'};
+    const light = {bg:'#EEF2F8',surface:'#FFFFFF',cardBorder:'#DCE3EE',text:'#0F1726',text2:'#4F5B73',accent:'#2F6BDB',onAccent:'#FFFFFF',ok:'#157F4A',dotEmpty:'#D3DBE8'};
+    return { t: (this.props.theme ?? 'sötét') === 'világos' ? light : dark, keys: ['1','2','3','4','5','6','7','8','9'] };
+  }
+}
+</script>
+</body>
+</html>

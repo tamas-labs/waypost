@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>Kör részletei térképpel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{t.bg}}; color: {{t.text}}; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; padding: 52px 16px 0; gap: 12px; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 12px">
+    <a href="S-Telephely.dc.html" aria-label="Vissza" style="width: 48px; height: 48px; border-radius: 50%; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; color: {{t.text}}; display: flex; align-items: center; justify-content: center; flex: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </a>
+    <div style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+      <span style="font-size: 21px; font-weight: 800">21:00-s kör</span>
+      <span style="font-size: 13px; font-weight: 600; color: {{t.text2}}">okt. 26. · Nagy Péter · indult 21:03 · 17 perc</span>
+    </div>
+    <span style="display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px; background: {{t.warnBg}}; color: {{t.warn}}; font-size: 13px; font-weight: 800; flex: none">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v9M12 19v.01"/></svg>
+      Hiányos
+    </span>
+  </div>
+
+  <div style="position: relative; height: 300px; flex: none; overflow: hidden; border-radius: 24px; border: 1px solid {{t.cardBorder}}; background: {{t.mapBg}}">
+    <svg width="358" height="300" viewBox="0 0 390 440" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A 21:00-s kör útja: 8 pont leolvasva, a Hulladékudvar kimaradt, a Parkoló időgyanús" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; font-family: 'Manrope', sans-serif">
+      <rect width="390" height="440" fill="{{t.mapBg}}"/>
+      <rect x="0" y="348" width="390" height="22" fill="{{t.mapRoad}}"/>
+      <rect x="262" y="0" width="22" height="440" fill="{{t.mapRoad}}"/>
+      <rect x="12" y="12" width="366" height="416" rx="10" fill="none" stroke="{{t.fence}}" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <rect x="24" y="286" width="64" height="44" rx="8" fill="{{t.mapBuild}}"/>
+      <rect x="112" y="212" width="128" height="74" rx="8" fill="{{t.mapBuild}}"/>
+      <text x="176" y="253" text-anchor="middle" font-size="12" font-weight="600" fill="{{t.mapLabel}}">Raktár 1</text>
+      <rect x="140" y="92" width="104" height="78" rx="8" fill="{{t.mapBuild}}"/>
+      <text x="192" y="140" text-anchor="middle" font-size="12" font-weight="600" fill="{{t.mapLabel}}">Raktár 2</text>
+      <rect x="298" y="246" width="62" height="48" rx="8" fill="{{t.mapBuild}}"/>
+      <rect x="30" y="120" width="76" height="60" rx="8" fill="{{t.mapBuild}}"/>
+
+      <polyline points="50,378 98,314 180,298 150,122 252,138 356,34 326,240 340,388" fill="none" stroke="{{t.accent}}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+      <circle cx="56" cy="66" r="16" fill="{{t.missBg}}" stroke="{{t.miss}}" stroke-width="2.5" stroke-dasharray="4 3"/>
+      <path d="M50 60l12 12M62 60l-12 12" stroke="{{t.miss}}" stroke-width="2.8" stroke-linecap="round"/>
+
+      <sc-for list="{{marks}}" as="m" hint-placeholder-count="8">
+        <circle cx="{{m.x}}" cy="{{m.y}}" r="14" fill="{{m.fill}}" stroke="{{t.mapBg}}" stroke-width="3"/>
+        <text x="{{m.x}}" y="{{m.ty}}" text-anchor="middle" font-size="12" font-weight="800" fill="{{t.markText}}">{{m.n}}</text>
+      </sc-for>
+    </svg>
+    <div style="position: absolute; left: 10px; bottom: 10px; display: flex; gap: 12px; padding: 8px 12px; border-radius: 999px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; font-size: 12px; font-weight: 700; color: {{t.text2}}">
+      <span style="display: flex; align-items: center; gap: 5px"><span style="width: 10px; height: 10px; border-radius: 50%; background: {{t.ok}}"></span>Rendben</span>
+      <span style="display: flex; align-items: center; gap: 5px"><span style="width: 10px; height: 10px; border-radius: 50%; background: {{t.time}}"></span>Időgyanús</span>
+      <span style="display: flex; align-items: center; gap: 5px"><span style="width: 10px; height: 10px; box-sizing: border-box; border-radius: 50%; border: 2px solid {{t.miss}}"></span>Hiányzik</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; align-items: center; gap: 14px; min-height: 62px; padding: 0 16px; border-radius: 18px; background: {{t.missBg}}">
+      <span style="width: 32px; height: 32px; border-radius: 50%; background: {{t.miss}}; color: {{t.bg}}; display: flex; align-items: center; justify-content: center; flex: none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
+      <span style="display: flex; flex-direction: column; flex: 1">
+        <span style="font-size: 16px; font-weight: 800">9 · Hulladékudvar</span>
+        <span style="font-size: 13px; font-weight: 700; color: {{t.miss}}">Hiányzik</span>
+      </span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 14px; min-height: 62px; padding: 0 16px; border-radius: 18px; background: {{t.card}}; border: 1px solid {{t.cardBorder}}">
+      <span style="width: 32px; height: 32px; border-radius: 50%; background: {{t.timeBg}}; color: {{t.time}}; display: flex; align-items: center; justify-content: center; flex: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span>
+      <span style="display: flex; flex-direction: column; flex: 1">
+        <span style="font-size: 16px; font-weight: 800">7 · Parkoló – sorompó</span>
+        <span style="font-size: 13px; font-weight: 700; color: {{t.time}}">21:20 · NFC · időgyanús: túl gyors (40 mp, mért 3:10)</span>
+      </span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 14px; min-height: 62px; padding: 0 16px; border-radius: 18px; background: {{t.card}}; border: 1px solid {{t.cardBorder}}">
+      <span style="width: 32px; height: 32px; border-radius: 50%; background: {{t.okBg}}; color: {{t.ok}}; display: flex; align-items: center; justify-content: center; flex: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></span>
+      <span style="display: flex; flex-direction: column; flex: 1">
+        <span style="font-size: 16px; font-weight: 800">4 · Kazánház</span>
+        <span style="font-size: 13px; font-weight: 600; color: {{t.text2}}">21:19 · NFC</span>
+      </span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 14px; min-height: 62px; padding: 0 16px; border-radius: 18px; background: {{t.card}}; border: 1px solid {{t.cardBorder}}">
+      <span style="width: 32px; height: 32px; border-radius: 50%; background: {{t.okBg}}; color: {{t.ok}}; display: flex; align-items: center; justify-content: center; flex: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></span>
+      <span style="display: flex; flex-direction: column; flex: 1">
+        <span style="font-size: 16px; font-weight: 800">8 · Kerítés, ÉK sarok</span>
+        <span style="font-size: 13px; font-weight: 600; color: {{t.text2}}">21:16 · QR</span>
+      </span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["sötét","világos"],"default":"sötét"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const D={bg:'#0F1420',surface:'#182033',card:'#141B2B',field:'#0F1420',cardBorder:'transparent',line:'#2C3650',track:'#2C3650',dash:'#2C3650',text:'#E8ECF5',text2:'#9AA6BF',accent:'#8AB4FF',onAccent:'#0B1630',ok:'#6EE7A8',okBg:'#1E3A2E',run:'#8AB4FF',runBg:'#1D2B4A',warn:'#FFB38A',warnBg:'#3A2418',miss:'#FF8A8A',missBg:'#3D1C22',manual:'#C9B8FF',manualBg:'#2E2747',time:'#F5D06B',timeBg:'#3A3216',offBg:'#2A2414',offFg:'#FFCF7A',pending:'#5A6788',
+      mapBg:'#121A2A',mapRoad:'#1B2438',mapBuild:'#222D45',mapLabel:'#8E9BB6',fence:'#3A4664',markText:'#0B1630'};
+    const L={bg:'#EEF2F8',surface:'#FFFFFF',card:'#FFFFFF',field:'#EEF2F8',cardBorder:'#DCE3EE',line:'#DCE3EE',track:'#DCE3EE',dash:'#BAC6D8',text:'#0F1726',text2:'#4F5B73',accent:'#2F6BDB',onAccent:'#FFFFFF',ok:'#157F4A',okBg:'#D7F2E3',run:'#2F6BDB',runBg:'#DCE7FB',warn:'#B4470F',warnBg:'#FDE6D8',miss:'#C0262D',missBg:'#FBE0E1',manual:'#6B46C1',manualBg:'#ECE5FB',time:'#8A6100',timeBg:'#FBF0C9',offBg:'#FDF0D5',offFg:'#8A5300',pending:'#8592AD',
+      mapBg:'#E6ECF4',mapRoad:'#FFFFFF',mapBuild:'#D2DBE8',mapLabel:'#4F5B73',fence:'#9AA6BF',markText:'#FFFFFF'};
+    const t = (this.props.theme ?? 'sötét') === 'világos' ? L : D;
+    const pts = [[1,50,378],[2,98,314],[3,180,298],[6,150,122],[5,252,138],[8,356,34],[4,326,240],[7,340,388]];
+    const marks = pts.map(([n, x, y]) => ({ n, x, y, ty: y + 4.5, fill: n === 7 ? t.time : t.ok }));
+    return { t, marks };
+  }
+}
+</script>
+</body>
+</html>

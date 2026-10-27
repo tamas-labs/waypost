@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>Betanítás – bejárás</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{t.bg}}; color: {{t.text}}; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; padding-top: 52px">
+  <div style="display: flex; align-items: center; gap: 12px; padding: 0 16px 12px">
+    <a href="S-Telephely.dc.html" aria-label="Betanítás megszakítása" style="width: 48px; height: 48px; border-radius: 50%; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; color: {{t.text}}; display: flex; align-items: center; justify-content: center; flex: none">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </a>
+    <div style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+      <span style="font-size: 13px; font-weight: 700; color: {{t.run}}">Betanítás · supervisor</span>
+      <span style="font-size: 20px; font-weight: 800">Hétvégi kör</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 999px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; font-size: 13px; font-weight: 600; color: {{t.text2}}">
+      <span style="width: 8px; height: 8px; border-radius: 50%; background: {{t.ok}}"></span>
+      Online
+    </div>
+  </div>
+
+  <div style="margin: 0 16px; padding: 18px 20px; border-radius: 24px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; display: flex; justify-content: space-between; align-items: center; gap: 12px">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 14px; font-weight: 600; color: {{t.text2}}">Eltelt idő</span>
+      <span style="font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">06:42</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px">
+      <span style="font-size: 14px; font-weight: 600; color: {{t.text2}}">Rögzített pont</span>
+      <span style="font-size: 32px; font-weight: 800; line-height: 1">4</span>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin: 12px 16px 0; padding: 4px; border-radius: 999px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}" role="radiogroup" aria-label="Sorrend">
+    <button role="radio" aria-checked="false" style="height: 40px; border-radius: 999px; border: none; background: transparent; color: {{t.text2}}; font-family: inherit; font-size: 15px; font-weight: 700">Szabad sorrend</button>
+    <button role="radio" aria-checked="true" style="height: 40px; border-radius: 999px; border: none; background: {{t.accent}}; color: {{t.onAccent}}; font-family: inherit; font-size: 15px; font-weight: 800">Kötött sorrend</button>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 0">
+    <sc-for list="{{pts}}" as="p" hint-placeholder-count="4">
+      <div style="display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 0 16px; border-radius: 18px; background: {{t.card}}; border: 1px solid {{t.cardBorder}}">
+        <span style="width: 32px; height: 32px; border-radius: 50%; background: {{t.runBg}}; color: {{t.run}}; display: flex; align-items: center; justify-content: center; flex: none; font-size: 14px; font-weight: 800">{{p.n}}</span>
+        <span style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+          <span style="font-size: 16px; font-weight: 800">{{p.name}}</span>
+          <span style="font-size: 13px; font-weight: 600; color: {{t.text2}}">{{p.meta}}</span>
+        </span>
+        <span style="font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; color: {{t.text2}}">{{p.walk}}</span>
+      </div>
+    </sc-for>
+    <div style="display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 0 16px; border-radius: 18px; border: 2px dashed {{t.dash}}; color: {{t.text2}}">
+      <span style="width: 32px; height: 32px; border-radius: 50%; box-sizing: border-box; border: 2.5px solid {{t.pending}}; display: flex; align-items: center; justify-content: center; flex: none; font-size: 14px; font-weight: 800">5</span>
+      <span style="font-size: 15px; font-weight: 700">Menj a következő ponthoz…</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 30px">
+    <a href="S-PontAdatai.dc.html" style="height: 72px; border-radius: 999px; background: {{t.accent}}; color: {{t.onAccent}}; text-decoration: none; font-size: 20px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 8.5a5 5 0 010 7"/><path d="M11 6a9 9 0 010 12"/><path d="M15 3.5a13 13 0 010 17"/></svg>
+      Pont leolvasása
+    </a>
+    <button style="height: 56px; border-radius: 999px; border: 1px solid {{t.cardBorder}}; background: {{t.surface}}; color: {{t.text}}; font-family: inherit; font-size: 16px; font-weight: 800">Bejárás befejezése</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["sötét","világos"],"default":"sötét"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const D={bg:'#0F1420',surface:'#182033',card:'#141B2B',field:'#0F1420',cardBorder:'transparent',line:'#2C3650',track:'#2C3650',dash:'#2C3650',text:'#E8ECF5',text2:'#9AA6BF',accent:'#8AB4FF',onAccent:'#0B1630',ok:'#6EE7A8',okBg:'#1E3A2E',run:'#8AB4FF',runBg:'#1D2B4A',warn:'#FFB38A',warnBg:'#3A2418',miss:'#FF8A8A',missBg:'#3D1C22',manual:'#C9B8FF',manualBg:'#2E2747',time:'#F5D06B',timeBg:'#3A3216',offBg:'#2A2414',offFg:'#FFCF7A',pending:'#5A6788'};
+    const L={bg:'#EEF2F8',surface:'#FFFFFF',card:'#FFFFFF',field:'#EEF2F8',cardBorder:'#DCE3EE',line:'#DCE3EE',track:'#DCE3EE',dash:'#BAC6D8',text:'#0F1726',text2:'#4F5B73',accent:'#2F6BDB',onAccent:'#FFFFFF',ok:'#157F4A',okBg:'#D7F2E3',run:'#2F6BDB',runBg:'#DCE7FB',warn:'#B4470F',warnBg:'#FDE6D8',miss:'#C0262D',missBg:'#FBE0E1',manual:'#6B46C1',manualBg:'#ECE5FB',time:'#8A6100',timeBg:'#FBF0C9',offBg:'#FDF0D5',offFg:'#8A5300',pending:'#8592AD'};
+    return {
+      t: (this.props.theme ?? 'sötét') === 'világos' ? L : D,
+      pts: [
+        { n: 1, name: 'Főbejárat', meta: 'NFC · fotó · GPS ±4 m', walk: 'start' },
+        { n: 2, name: 'Portaépület hátsó ajtó', meta: 'NFC · fotó · utasítás', walk: '+0:48' },
+        { n: 3, name: 'Raktár 1 – rakodókapu', meta: 'QR · fotó · GPS ±7 m', walk: '+1:35' },
+        { n: 4, name: 'Kazánház', meta: 'NFC · utasítás · GPS ±5 m', walk: '+2:10' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

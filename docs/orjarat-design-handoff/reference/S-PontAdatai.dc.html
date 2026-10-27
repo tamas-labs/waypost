@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>Betanítás – pont adatai</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{t.bg}}; color: {{t.text}}; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; padding: 52px 16px 30px; gap: 14px">
+  <div style="display: flex; align-items: center; gap: 12px">
+    <a href="S-Betanitas.dc.html" aria-label="Vissza" style="width: 48px; height: 48px; border-radius: 50%; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; color: {{t.text}}; display: flex; align-items: center; justify-content: center; flex: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </a>
+    <div style="display: flex; flex-direction: column; flex: 1">
+      <span style="font-size: 13px; font-weight: 700; color: {{t.run}}">Betanítás · 5. pont</span>
+      <span style="font-size: 20px; font-weight: 800">Új pont adatai</span>
+    </div>
+    <span style="font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; color: {{t.text2}}">07:31</span>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 18px; background: {{t.okBg}}">
+    <span style="width: 32px; height: 32px; border-radius: 50%; background: {{t.ok}}; color: {{t.bg}}; display: flex; align-items: center; justify-content: center; flex: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></span>
+    <span style="display: flex; flex-direction: column">
+      <span style="font-size: 15px; font-weight: 800">Címke leolvasva · NFC</span>
+      <span style="font-size: 13px; font-weight: 600; color: {{t.text2}}; font-variant-numeric: tabular-nums">04:7F:21:9A:C4:12:80 · GPS ±5 m</span>
+    </span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <label for="p-nev" style="font-size: 14px; font-weight: 800; padding-left: 4px">Pont neve</label>
+    <input id="p-nev" type="text" value="Raktár 2 – vészkijárat" style="height: 58px; box-sizing: border-box; padding: 0 18px; border-radius: 18px; border: 2px solid {{t.accent}}; background: {{t.surface}}; color: {{t.text}}; font-family: inherit; font-size: 17px; font-weight: 700">
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <label for="p-utas" style="font-size: 14px; font-weight: 800; padding-left: 4px">Utasítás az őrnek <span style="color: {{t.text2}}; font-weight: 600">· nem kötelező</span></label>
+    <textarea id="p-utas" rows="2" style="box-sizing: border-box; padding: 14px 18px; border-radius: 18px; border: 1px solid {{t.cardBorder}}; background: {{t.surface}}; color: {{t.text}}; font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.45; resize: none">Ellenőrizd, hogy a vészkijárat zárva van, és a pánikzár nincs kitámasztva.</textarea>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <span style="font-size: 14px; font-weight: 800; padding-left: 4px">Fotó a pontról <span style="color: {{t.text2}}; font-weight: 600">· segít megtalálni</span></span>
+    <div style="display: flex; gap: 8px">
+      <div role="img" aria-label="Fotó helye: a vészkijárat a címkével" style="flex: 1; height: 132px; border-radius: 18px; background: {{t.field}}; border: 1px solid {{t.line}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: {{t.text2}}; font-size: 13px; font-weight: 700">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>
+        [Fotó: vészkijárat a címkével]
+      </div>
+      <button aria-label="Új fotó" style="width: 84px; height: 132px; border-radius: 18px; border: 2px dashed {{t.dash}}; background: transparent; color: {{t.accent}}; font-family: inherit; font-size: 13px; font-weight: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        Újra
+      </button>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto">
+    <a href="S-Betanitas.dc.html" style="height: 68px; border-radius: 999px; background: {{t.accent}}; color: {{t.onAccent}}; text-decoration: none; font-size: 19px; font-weight: 800; display: flex; align-items: center; justify-content: center">Mentés, jöhet a következő</a>
+    <button style="height: 52px; border-radius: 999px; border: none; background: transparent; color: {{t.miss}}; font-family: inherit; font-size: 15px; font-weight: 800">Pont elvetése</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["sötét","világos"],"default":"sötét"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const D={bg:'#0F1420',surface:'#182033',card:'#141B2B',field:'#0F1420',cardBorder:'transparent',line:'#2C3650',track:'#2C3650',dash:'#2C3650',text:'#E8ECF5',text2:'#9AA6BF',accent:'#8AB4FF',onAccent:'#0B1630',ok:'#6EE7A8',okBg:'#1E3A2E',run:'#8AB4FF',runBg:'#1D2B4A',warn:'#FFB38A',warnBg:'#3A2418',miss:'#FF8A8A',missBg:'#3D1C22',manual:'#C9B8FF',manualBg:'#2E2747',time:'#F5D06B',timeBg:'#3A3216',offBg:'#2A2414',offFg:'#FFCF7A',pending:'#5A6788'};
+    const L={bg:'#EEF2F8',surface:'#FFFFFF',card:'#FFFFFF',field:'#EEF2F8',cardBorder:'#DCE3EE',line:'#DCE3EE',track:'#DCE3EE',dash:'#BAC6D8',text:'#0F1726',text2:'#4F5B73',accent:'#2F6BDB',onAccent:'#FFFFFF',ok:'#157F4A',okBg:'#D7F2E3',run:'#2F6BDB',runBg:'#DCE7FB',warn:'#B4470F',warnBg:'#FDE6D8',miss:'#C0262D',missBg:'#FBE0E1',manual:'#6B46C1',manualBg:'#ECE5FB',time:'#8A6100',timeBg:'#FBF0C9',offBg:'#FDF0D5',offFg:'#8A5300',pending:'#8592AD'};
+    return { t: (this.props.theme ?? 'sötét') === 'világos' ? L : D };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>Hiba – rossz sorrend</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{t.bg}}; color: {{t.text}}; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 52px 20px 30px; gap: 18px">
+  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%">
+    <span style="font-size: 16px; font-weight: 800">Hétvégi kör · kötött sorrend</span>
+    <div style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 999px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; font-size: 13px; font-weight: 600; color: {{t.text2}}">
+      <span style="width: 8px; height: 8px; border-radius: 50%; background: {{t.ok}}"></span>
+      Online
+    </div>
+  </div>
+
+  <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; width: 100%">
+    <div style="width: 196px; height: 196px; border-radius: 50%; background: {{t.warnBg}}; display: flex; align-items: center; justify-content: center">
+      <div style="width: 132px; height: 132px; border-radius: 50%; background: {{t.warn}}; color: {{t.bg}}; display: flex; align-items: center; justify-content: center">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/></svg>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center">
+      <span style="font-size: 16px; font-weight: 700; color: {{t.warn}}">Rögzítve, jelöléssel</span>
+      <span style="font-size: 34px; font-weight: 800; line-height: 1.12; letter-spacing: -0.01em">Rossz sorrend</span>
+    </div>
+    <div style="display: flex; flex-direction: column; width: 100%; box-sizing: border-box; border-radius: 24px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 0 16px; border-bottom: 1px solid {{t.line}}">
+        <span style="width: 32px; height: 32px; border-radius: 50%; background: {{t.warnBg}}; color: {{t.warn}}; display: flex; align-items: center; justify-content: center; flex: none; font-size: 14px; font-weight: 800">5</span>
+        <div style="display: flex; flex-direction: column; flex: 1">
+          <span style="font-size: 13px; font-weight: 700; color: {{t.text2}}">Leolvastad</span>
+          <span style="font-size: 17px; font-weight: 800">Raktár 2 – vészkijárat</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 0 16px">
+        <span style="width: 32px; height: 32px; border-radius: 50%; box-sizing: border-box; border: 2.5px solid {{t.accent}}; color: {{t.accent}}; display: flex; align-items: center; justify-content: center; flex: none; font-size: 14px; font-weight: 800">4</span>
+        <div style="display: flex; flex-direction: column; flex: 1">
+          <span style="font-size: 13px; font-weight: 700; color: {{t.text2}}">Következő lett volna</span>
+          <span style="font-size: 17px; font-weight: 800">Kazánház</span>
+        </div>
+      </div>
+    </div>
+    <span style="font-size: 15px; line-height: 1.45; color: {{t.text2}}; text-align: center">A Kazánházat ettől még leolvashatod. A jelentésben a sorrendeltérés látszani fog.</span>
+  </div>
+
+  <a href="B-Kor.dc.html" style="width: 100%; height: 72px; border-radius: 999px; background: {{t.accent}}; color: {{t.onAccent}}; text-decoration: none; font-size: 20px; font-weight: 800; display: flex; align-items: center; justify-content: center">Értem, tovább</a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["sötét","világos"],"default":"sötét"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const D={bg:'#0F1420',surface:'#182033',card:'#141B2B',field:'#0F1420',cardBorder:'transparent',line:'#2C3650',track:'#2C3650',dash:'#2C3650',text:'#E8ECF5',text2:'#9AA6BF',accent:'#8AB4FF',onAccent:'#0B1630',ok:'#6EE7A8',okBg:'#1E3A2E',run:'#8AB4FF',runBg:'#1D2B4A',warn:'#FFB38A',warnBg:'#3A2418',miss:'#FF8A8A',missBg:'#3D1C22',manual:'#C9B8FF',manualBg:'#2E2747',time:'#F5D06B',timeBg:'#3A3216',offBg:'#2A2414',offFg:'#FFCF7A',pending:'#5A6788'};
+    const L={bg:'#EEF2F8',surface:'#FFFFFF',card:'#FFFFFF',field:'#EEF2F8',cardBorder:'#DCE3EE',line:'#DCE3EE',track:'#DCE3EE',dash:'#BAC6D8',text:'#0F1726',text2:'#4F5B73',accent:'#2F6BDB',onAccent:'#FFFFFF',ok:'#157F4A',okBg:'#D7F2E3',run:'#2F6BDB',runBg:'#DCE7FB',warn:'#B4470F',warnBg:'#FDE6D8',miss:'#C0262D',missBg:'#FBE0E1',manual:'#6B46C1',manualBg:'#ECE5FB',time:'#8A6100',timeBg:'#FBF0C9',offBg:'#FDF0D5',offFg:'#8A5300',pending:'#8592AD'};
+    return { t: (this.props.theme ?? 'sötét') === 'világos' ? L : D };
+  }
+}
+</script>
+</body>
+</html>

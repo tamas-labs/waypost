@@ -1,0 +1,59 @@
+# waypost
+
+A Waypost mobilapp (Expo / React Native, TypeScript): az őrök a telephelyi telefonon PIN-nel lépnek be, járőrköröket teljesítenek NFC-, QR- vagy kézi leolvasással, eseményt rögzítenek; a supervisorok a saját telefonjukon kezelik a telephelyeket, útvonalakat és menetrendeket. Offline működik, az adatot láncolt naplóba írja és szinkronizálja a `laravel-waypost` backenddel.
+
+## Mérvadó dokumentumok
+
+- Fejlesztői specifikáció: [`docs/Waypost – fejlesztői specifikáció (1. lépcső).md`](docs/Waypost%20–%20fejlesztői%20specifikáció%20(1.%20lépcső).md) – minden viselkedés, szabály és képernyő forrása. Ennek a repónak a fő szakaszai: *Repo és technológiai stack*, *Szinkron protokoll*, *Láncolt napló*, *Állapotgépek és üzleti szabályok*, *Mobilapp*.
+- Feladatlista: [`docs/tasks.md`](docs/tasks.md) – ennek a repónak az M1, M3 és M5 mérföldkő, az M4 app-oldali feladatai és az M7 próbaidőszak szólnak. A nyitott kérdések (`Q#`) a fájl végén.
+- Döntések: [`docs/decisions.md`](docs/decisions.md) – ami a specifikációban nincs eldöntve, ide kerül (dátum, kérdés, döntés, indok, érintett).
+- Design: [`docs/orjarat-design-handoff/DESIGN_HANDOFF.md`](docs/orjarat-design-handoff/DESIGN_HANDOFF.md) – képernyők, témák, tokenek (`src/theme/tokens.ts` forrása); a `reference/` HTML-fájlok a képernyők mintái.
+- A közös szerződés: `../waypost-schema` (`@waypost/schema`, `file:../waypost-schema`) – JSON Schemák, TS típusok, lánc- és menetrend-tesztvektorok. Ha az API vagy a lánc formátuma változik, **előbb ott** kell módosítani, új verzióval.
+
+## Expo
+
+- Expo SDK 58 (React Native 0.88, React 19.3). Az Expo minden SDK-val törő változásokat hoz: Expo- vagy RN-API használata előtt nézd meg a verziózott dokumentációt (`https://docs.expo.dev/versions/v58.0.0/`), ill. a `https://docs.expo.dev/llms.txt` indexet – ne emlékezetből dolgozz.
+- Csomagot `npx expo install <csomag>` paranccsal telepíts (SDK-kompatibilis verziót választ); fejlesztői függőséget `npx expo install <csomag> -- --save-dev`-vel, és ellenőrizd, hogy a `devDependencies`-be került-e.
+- Continuous Native Generation: az `android/` és `ios/` mappa generált (gitignore), kézzel nem szerkesztjük; a natív beállítás az `app.json`-ban és config pluginekben van.
+- Expo Go nem elég (NFC, saját natív modul): development build kell (`eas.json` → `development` profil).
+- Azonosítók: név „Waypost”, bundle ID / package name `com.tamaslabs.waypost`, URL-séma `waypost`. Csak iOS és Android (nincs web).
+
+## Szerkezet
+
+```text
+src/
+  app/        # expo-router képernyők – csak route-fájl lehet benne (teszt, segéd nem)
+  db/         # expo-sqlite + Drizzle: séma, migrációk
+  domain/     # üzleti szabályok (menetrend → körök, műszak, kör, leolvasás) – UI és I/O nélkül
+  sync/       # pull, push, outbox, média
+  chain/      # láncbejegyzés: kanonikus JSON, HMAC
+  nfc/ qr/ alarms/ location/
+  theme/      # tokens.ts: minden szín és méret (M1-02)
+modules/      # saját Expo-modulok (M1-03: waypost-clock)
+__tests__/    # képernyőtesztek; a modulok tesztjei a modul mellett: src/<modul>/*.test.ts
+assets/       # ikon, splash (egyelőre az Expo sablon helyőrzői)
+```
+
+Importban a `@/…` alias a `src/…`-ra mutat.
+
+## Szabályok
+
+- A specifikáció *Alapszabályok* pontjai érvényesek, különösen:
+  - A felület minden szövege magyar, a kód, az azonosítók, a kommentek és a commitüzenetek angolok.
+  - Szín és méret csak a `src/theme/tokens.ts`-ből, felirat csak a `src/i18n/hu.json`-ból (M1-02-től) – beégetett szín és szöveg nincs.
+  - Az eszközön létrejött adat a szinkron előtt soha nem módosul és nem törlődik.
+  - A 2. lépcső funkcióit nem építjük meg, csak nem zárjuk ki.
+- TypeScript `strict` és `noUncheckedIndexedAccess`; `any` helyett pontos típus vagy `unknown`.
+- A hálózati és a lánc-adatok típusai a `@waypost/schema` típusai (`SyncPullResponse`, `ChainEntry`, `UnsignedChainEntry` …); ezeket nem írjuk újra. A lánc és a menetrend-kibontás tesztjei a `@waypost/schema/vectors` közös vektoraival futnak.
+- Időbélyeg: ISO 8601, UTC, ezredmásodperccel; azonosító: UUIDv7; a láncolt adatban nincs lebegőpontos szám.
+- Ha egy feladat lezárul: `npm run typecheck`, `npm run lint` és `npm test` zöld; a `docs/tasks.md`-ben pipa; az eldöntött kérdés a `docs/decisions.md`-be kerül.
+
+## Parancsok
+
+- `npm install` – függőségek (Node ≥ 22). A `@waypost/schema` symlink a `../waypost-schema`-ra; ott előbb `npm install` sem kell (nincs futásidejű függősége).
+- `npm start` – Metro dev szerver a development buildhez.
+- `npm run typecheck` – `tsc --noEmit`.
+- `npm run lint` – `expo lint` (ESLint, `eslint-config-expo`).
+- `npm test` – Jest (`jest-expo` preset). A `jest.modulePaths` azért kell, mert a symlinkelt `@waypost/schema` fájljait a Jest a valódi útvonalukon fordítja, és a Babel-segédeket innen kell feloldani.
+- `npx expo-doctor` – függőségek és konfiguráció ellenőrzése.
+- Development build (Expo-fiók kell): `npx eas-cli@latest build --profile development --platform android` (ill. `ios`; ahhoz Apple Developer fiók és regisztrált eszköz kell).

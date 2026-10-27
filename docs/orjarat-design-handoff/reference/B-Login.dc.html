@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>B – Supervisor belépés</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{t.bg}}; color: {{t.text}}; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; padding: 56px 24px 28px; gap: 24px">
+  <div style="display: flex; justify-content: center">
+    <div style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 999px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; font-size: 13px; font-weight: 600; color: {{t.text2}}">
+      <span style="width: 8px; height: 8px; border-radius: 50%; background: {{t.ok}}"></span>
+      Online
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding-top: 12px">
+    <span style="width: 72px; height: 72px; border-radius: 24px; background: {{t.accent}}; color: {{t.onAccent}}; display: flex; align-items: center; justify-content: center">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6l8-3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>
+    </span>
+    <span style="font-size: 30px; font-weight: 800; letter-spacing: -0.01em">Supervisor belépés</span>
+    <span style="font-size: 16px; color: {{t.text2}}; line-height: 1.45">Telephelyek, útvonalak és jelentések kezelése</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 24px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="b-email" style="font-size: 14px; font-weight: 700; color: {{t.text2}}; padding-left: 4px">E-mail-cím</label>
+      <input id="b-email" type="email" value="kovacs.anna@pelda.hu" style="height: 58px; box-sizing: border-box; padding: 0 18px; border-radius: 18px; border: 2px solid transparent; background: {{t.field}}; color: {{t.text}}; font-family: inherit; font-size: 17px; font-weight: 600">
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="b-pass" style="font-size: 14px; font-weight: 700; color: {{t.text2}}; padding-left: 4px">Jelszó</label>
+      <div style="display: flex; align-items: center; height: 58px; box-sizing: border-box; border-radius: 18px; border: 2px solid {{t.accent}}; background: {{t.field}}">
+        <input id="b-pass" type="password" value="titkosjelszo" style="flex: 1; min-width: 0; height: 54px; box-sizing: border-box; padding: 0 16px; border: none; background: transparent; color: {{t.text}}; font-family: inherit; font-size: 17px; font-weight: 600">
+        <button aria-label="Jelszó megjelenítése" style="width: 54px; height: 54px; border: none; background: transparent; color: {{t.text2}}; display: flex; align-items: center; justify-content: center">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <a href="#" style="align-self: center; font-size: 15px; font-weight: 700; color: {{t.accentText}}; text-decoration: none; padding: 8px 0 0">Elfelejtett jelszó?</a>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; margin-top: auto">
+    <span style="font-size: 14px; color: {{t.text2}}; text-align: center; line-height: 1.45">Az első belépéshez internet kell, utána a telefonon elég a PIN-kód.</span>
+    <button style="height: 64px; border-radius: 999px; border: none; background: {{t.accent}}; color: {{t.onAccent}}; font-family: inherit; font-size: 19px; font-weight: 800">Belépés</button>
+    <a href="B-PIN.dc.html" style="height: 52px; border-radius: 999px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; color: {{t.text}}; text-decoration: none; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center">Vissza a PIN-belépéshez</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["sötét","világos"],"default":"sötét"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = {bg:'#0F1420',surface:'#182033',field:'#0F1420',cardBorder:'transparent',text:'#E8ECF5',text2:'#9AA6BF',accent:'#8AB4FF',accentText:'#8AB4FF',onAccent:'#0B1630',ok:'#6EE7A8'};
+    const light = {bg:'#EEF2F8',surface:'#FFFFFF',field:'#EEF2F8',cardBorder:'#DCE3EE',text:'#0F1726',text2:'#4F5B73',accent:'#2F6BDB',accentText:'#2F6BDB',onAccent:'#FFFFFF',ok:'#157F4A'};
+    return { t: (this.props.theme ?? 'sötét') === 'világos' ? light : dark };
+  }
+}
+</script>
+</body>
+</html>

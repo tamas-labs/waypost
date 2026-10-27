@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>Telephely részletei</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{t.bg}}; color: {{t.text}}; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; padding: 52px 16px 0; gap: 12px; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 12px">
+    <a href="S-Telephelyek.dc.html" aria-label="Vissza" style="width: 48px; height: 48px; border-radius: 50%; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; color: {{t.text}}; display: flex; align-items: center; justify-content: center; flex: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </a>
+    <div style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+      <span style="font-size: 21px; font-weight: 800">Ipari park, B épület</span>
+      <span style="font-size: 13px; font-weight: 600; color: {{t.text2}}">2 supervisor · Kovács Anna, Szabó Dávid</span>
+    </div>
+  </div>
+
+  <a href="S-KorReszletek.dc.html" style="display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 0 16px; border-radius: 18px; background: {{t.warnBg}}; color: {{t.text}}; text-decoration: none">
+    <span style="width: 32px; height: 32px; border-radius: 50%; background: {{t.warn}}; color: {{t.bg}}; display: flex; align-items: center; justify-content: center; flex: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v9M12 19v.01"/></svg></span>
+    <span style="display: flex; flex-direction: column; flex: 1">
+      <span style="font-size: 16px; font-weight: 800">21:00-s kör hiányos</span>
+      <span style="font-size: 13px; font-weight: 600; color: {{t.text2}}">Kimaradt: Hulladékudvar · 1 időgyanús</span>
+    </span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+  </a>
+
+  <span style="font-size: 14px; font-weight: 800; color: {{t.text2}}; padding: 6px 4px 0">Útvonalak</span>
+  <div style="display: flex; flex-direction: column; border-radius: 24px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; overflow: hidden">
+    <a href="S-Utvonal.dc.html" style="display: flex; align-items: center; gap: 14px; min-height: 66px; padding: 0 16px; border-bottom: 1px solid {{t.line}}; color: {{t.text}}; text-decoration: none">
+      <span style="display: flex; flex-direction: column; flex: 1">
+        <span style="font-size: 16px; font-weight: 800">Éjszakai kör</span>
+        <span style="font-size: 13px; font-weight: 600; color: {{t.text2}}">9 pont · szabad sorrend · v4 · bejárás 16:20</span>
+      </span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{t.text2}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </a>
+    <a href="S-Utvonal.dc.html" style="display: flex; align-items: center; gap: 14px; min-height: 66px; padding: 0 16px; border-bottom: 1px solid {{t.line}}; color: {{t.text}}; text-decoration: none">
+      <span style="display: flex; flex-direction: column; flex: 1">
+        <span style="font-size: 16px; font-weight: 800">Hétvégi kör</span>
+        <span style="font-size: 13px; font-weight: 600; color: {{t.text2}}">7 pont · kötött sorrend · v2 · bejárás 12:05</span>
+      </span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{t.text2}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </a>
+    <a href="S-Betanitas.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 16px; color: {{t.accent}}; text-decoration: none; font-size: 15px; font-weight: 800">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      Új útvonal betanítása
+    </a>
+  </div>
+
+  <span style="font-size: 14px; font-weight: 800; color: {{t.text2}}; padding: 6px 4px 0">Beállítások</span>
+  <div style="display: flex; flex-direction: column; border-radius: 24px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; overflow: hidden">
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+      <a href="{{r.href}}" style="display: flex; align-items: center; gap: 14px; min-height: 66px; padding: 0 16px; border-bottom: 1px solid {{t.line}}; color: {{t.text}}; text-decoration: none">
+        <span style="width: 36px; height: 36px; border-radius: 12px; background: {{t.runBg}}; color: {{t.run}}; display: flex; align-items: center; justify-content: center; flex: none; font-size: 13px; font-weight: 800">{{r.icon}}</span>
+        <span style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+          <span style="font-size: 16px; font-weight: 800">{{r.title}}</span>
+          <span style="font-size: 13px; font-weight: 600; color: {{t.text2}}">{{r.sub}}</span>
+        </span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{t.text2}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </a>
+    </sc-for>
+  </div>
+
+  <span style="font-size: 14px; font-weight: 800; color: {{t.text2}}; padding: 6px 4px 0">Telephelyi telefon</span>
+  <div style="display: flex; align-items: center; gap: 14px; min-height: 72px; padding: 0 16px; border-radius: 24px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}">
+    <span style="width: 36px; height: 36px; border-radius: 12px; background: {{t.okBg}}; color: {{t.ok}}; display: flex; align-items: center; justify-content: center; flex: none">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+    </span>
+    <span style="display: flex; flex-direction: column; flex: 1">
+      <span style="font-size: 16px; font-weight: 800">Porta telefon · Android</span>
+      <span style="font-size: 13px; font-weight: 600; color: {{t.text2}}">Online · szinkron 3 perce · 0 tétel vár</span>
+    </span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["sötét","világos"],"default":"sötét"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const D={bg:'#0F1420',surface:'#182033',card:'#141B2B',field:'#0F1420',cardBorder:'transparent',line:'#2C3650',track:'#2C3650',dash:'#2C3650',text:'#E8ECF5',text2:'#9AA6BF',accent:'#8AB4FF',onAccent:'#0B1630',ok:'#6EE7A8',okBg:'#1E3A2E',run:'#8AB4FF',runBg:'#1D2B4A',warn:'#FFB38A',warnBg:'#3A2418',miss:'#FF8A8A',missBg:'#3D1C22',manual:'#C9B8FF',manualBg:'#2E2747',time:'#F5D06B',timeBg:'#3A3216',offBg:'#2A2414',offFg:'#FFCF7A',pending:'#5A6788'};
+    const L={bg:'#EEF2F8',surface:'#FFFFFF',card:'#FFFFFF',field:'#EEF2F8',cardBorder:'#DCE3EE',line:'#DCE3EE',track:'#DCE3EE',dash:'#BAC6D8',text:'#0F1726',text2:'#4F5B73',accent:'#2F6BDB',onAccent:'#FFFFFF',ok:'#157F4A',okBg:'#D7F2E3',run:'#2F6BDB',runBg:'#DCE7FB',warn:'#B4470F',warnBg:'#FDE6D8',miss:'#C0262D',missBg:'#FBE0E1',manual:'#6B46C1',manualBg:'#ECE5FB',time:'#8A6100',timeBg:'#FBF0C9',offBg:'#FDF0D5',offFg:'#8A5300',pending:'#8592AD'};
+    return {
+      t: (this.props.theme ?? 'sötét') === 'világos' ? L : D,
+      rows: [
+        { icon: 'M', title: 'Menetrend', sub: 'H–P · 20:00–08:00 óránként · 25 perc', href: 'S-Menetrend.dc.html' },
+        { icon: 'Ő', title: 'Őrök és PIN-kódok', sub: '3 őr · Nagy Péter, Kiss Gábor, Tóth Eszter', href: 'S-Orok.dc.html' },
+        { icon: 'J', title: 'Jelentések', sub: 'Műszak és heti · kovacs.anna@pelda.hu', href: 'S-Jelentesek.dc.html' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

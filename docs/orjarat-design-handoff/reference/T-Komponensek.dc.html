@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>Visszatérő komponensek</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1280px; height: 1500px; box-sizing: border-box; background: #FFFFFF; color: #0F1726; font-family: 'Manrope', system-ui, sans-serif; padding: 56px 64px; display: flex; flex-direction: column; gap: 28px">
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <span style="font-size: 14px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #2F6BDB">B · Éjszakai kártya</span>
+    <span style="font-size: 44px; font-weight: 800; letter-spacing: -0.02em">Visszatérő komponensek</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; flex: 1; min-height: 0">
+    <sc-for list="{{panels}}" as="p" hint-placeholder-count="2">
+      <div style="display: flex; flex-direction: column; gap: 18px; padding: 28px; border-radius: 24px; background: {{p.t.bg}}; color: {{p.t.text}}; border: 1px solid {{p.t.cardBorder}}">
+        <span style="font-size: 20px; font-weight: 800">{{p.name}}</span>
+
+        <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: {{p.t.text2}}">Gombok</span>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <span style="height: 68px; border-radius: 999px; background: {{p.t.accent}}; color: {{p.t.onAccent}}; font-size: 20px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 8.5a5 5 0 010 7"/><path d="M11 6a9 9 0 010 12"/><path d="M15 3.5a13 13 0 010 17"/></svg>
+            Elsődleges · Leolvasás
+          </span>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+            <span style="height: 54px; border-radius: 999px; background: {{p.t.surface}}; border: 1px solid {{p.t.cardBorder}}; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center">Másodlagos</span>
+            <span style="height: 54px; border-radius: 999px; border: 2px dashed {{p.t.dash}}; color: {{p.t.accent}}; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center">+ Hozzáadás</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px">
+            <span aria-hidden="true" style="width: 72px; height: 72px; border-radius: 50%; background: {{p.t.surface}}; border: 1px solid {{p.t.cardBorder}}; color: {{p.t.warn}}; display: flex; align-items: center; justify-content: center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4h11l-2 4 2 4H5"/></svg>
+            </span>
+            <span style="font-size: 15px; font-weight: 800; color: {{p.t.miss}}">Veszélyes szöveggomb</span>
+            <span style="margin-left: auto; width: 56px; height: 34px; border-radius: 999px; background: {{p.t.accent}}; padding: 3px; box-sizing: border-box; display: flex; justify-content: flex-end"><span style="width: 28px; height: 28px; border-radius: 50%; background: #FFFFFF"></span></span>
+            <span style="width: 56px; height: 34px; border-radius: 999px; background: {{p.t.track}}; padding: 3px; box-sizing: border-box; display: flex; justify-content: flex-start"><span style="width: 28px; height: 28px; border-radius: 50%; background: #FFFFFF"></span></span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 999px; background: {{p.t.surface}}; border: 1px solid {{p.t.cardBorder}}">
+            <span style="height: 40px; border-radius: 999px; background: {{p.t.accent}}; color: {{p.t.onAccent}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800">Lista</span>
+            <span style="height: 40px; border-radius: 999px; color: {{p.t.text2}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700">Térkép</span>
+          </div>
+        </div>
+
+        <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: {{p.t.text2}}; padding-top: 6px">Állapotjelvények</span>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{p.statuses}}" as="s" hint-placeholder-count="6">
+            <span style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px 0 6px; border-radius: 999px; background: {{s.bg}}; color: {{s.fg}}; font-size: 14px; font-weight: 800">
+              <span style="width: 28px; height: 28px; border-radius: 50%; background: {{s.fg}}; color: {{p.t.bg}}; display: flex; align-items: center; justify-content: center; flex: none">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{s.d}}"/></svg>
+              </span>
+              {{s.label}}
+            </span>
+          </sc-for>
+        </div>
+
+        <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: {{p.t.text2}}; padding-top: 6px">Listaelemek</span>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <sc-for list="{{p.rows}}" as="r" hint-placeholder-count="4">
+            <div style="display: flex; align-items: center; gap: 14px; min-height: 60px; padding: 0 16px; border-radius: 18px; background: {{r.bg}}; border: {{r.border}}">
+              <span style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; background: {{r.ib}}; border: {{r.ring}}; color: {{r.fg}}; display: flex; align-items: center; justify-content: center; flex: none">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{r.d}}"/></svg>
+              </span>
+              <span style="display: flex; flex-direction: column; flex: 1">
+                <span style="font-size: 16px; font-weight: 800">{{r.name}}</span>
+                <span style="font-size: 13px; font-weight: 600; color: {{r.mc}}">{{r.meta}}</span>
+              </span>
+            </div>
+          </sc-for>
+        </div>
+
+        <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: {{p.t.text2}}; padding-top: 6px">Szinkronjelző</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <sc-for list="{{p.syncs}}" as="y" hint-placeholder-count="4">
+            <span style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 999px; background: {{y.bg}}; border: 1px solid {{y.border}}; color: {{y.fg}}; font-size: 13px; font-weight: 700">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: {{y.dot}}"></span>
+              {{y.label}}
+            </span>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const D={bg:'#0F1420',surface:'#182033',card:'#141B2B',field:'#0F1420',cardBorder:'#0F1420',line:'#2C3650',track:'#2C3650',dash:'#2C3650',text:'#E8ECF5',text2:'#9AA6BF',accent:'#8AB4FF',onAccent:'#0B1630',ok:'#6EE7A8',okBg:'#1E3A2E',run:'#8AB4FF',runBg:'#1D2B4A',warn:'#FFB38A',warnBg:'#3A2418',miss:'#FF8A8A',missBg:'#3D1C22',manual:'#C9B8FF',manualBg:'#2E2747',time:'#F5D06B',timeBg:'#3A3216',offBg:'#2A2414',offFg:'#FFCF7A',pending:'#5A6788'};
+    const L={bg:'#EEF2F8',surface:'#FFFFFF',card:'#FFFFFF',field:'#EEF2F8',cardBorder:'#DCE3EE',line:'#DCE3EE',track:'#C7D1E0',dash:'#BAC6D8',text:'#0F1726',text2:'#4F5B73',accent:'#2F6BDB',onAccent:'#FFFFFF',ok:'#157F4A',okBg:'#D7F2E3',run:'#2F6BDB',runBg:'#DCE7FB',warn:'#B4470F',warnBg:'#FDE6D8',miss:'#C0262D',missBg:'#FBE0E1',manual:'#6B46C1',manualBg:'#ECE5FB',time:'#8A6100',timeBg:'#FBF0C9',offBg:'#FDF0D5',offFg:'#8A5300',pending:'#8592AD'};
+    const P = { ok: 'M4.5 12.5l5 5L19.5 7', run: 'M12 3a9 9 0 109 9', warn: 'M12 5v9M12 19v.01', miss: 'M6 6l12 12M18 6L6 18', manual: 'M4 20h4L19 9l-4-4L4 16v4z', time: 'M12 4a8 8 0 100 16 8 8 0 000-16zM12 8v4l3 2' };
+    const panel = (name, t) => ({
+      name, t,
+      statuses: [
+        { label: 'Teljesítve', fg: t.ok, bg: t.okBg, d: P.ok },
+        { label: 'Folyamatban', fg: t.run, bg: t.runBg, d: P.run },
+        { label: 'Hiányos', fg: t.warn, bg: t.warnBg, d: P.warn },
+        { label: 'Elmaradt', fg: t.miss, bg: t.missBg, d: P.miss },
+        { label: 'Nem igazolt', fg: t.manual, bg: t.manualBg, d: P.manual },
+        { label: 'Időgyanús', fg: t.time, bg: t.timeBg, d: P.time }
+      ],
+      rows: [
+        { name: 'Főbejárat', meta: '22:03 · NFC', mc: t.text2, bg: t.card, border: '1px solid ' + t.cardBorder, ib: t.okBg, fg: t.ok, ring: 'none', d: P.ok },
+        { name: 'Kazánház', meta: '22:09 · Kézi – nem igazolt', mc: t.manual, bg: t.card, border: '1px solid ' + t.cardBorder, ib: t.manualBg, fg: t.manual, ring: 'none', d: P.manual },
+        { name: 'Tetőfeljáró', meta: 'Hátravan', mc: t.text2, bg: 'transparent', border: '2px dashed ' + t.dash, ib: 'transparent', fg: 'transparent', ring: '2.5px solid ' + t.pending, d: '' },
+        { name: 'Hulladékudvar', meta: 'Hiányzik', mc: t.miss, bg: t.missBg, border: 'none', ib: t.miss, fg: t.bg, ring: 'none', d: P.miss }
+      ],
+      syncs: [
+        { label: 'Szinkronizálva', bg: t.surface, border: t.cardBorder, fg: t.text2, dot: t.ok },
+        { label: 'Offline · 2 vár', bg: t.offBg, border: t.offBg, fg: t.offFg, dot: t.offFg },
+        { label: 'Feltöltés… 3', bg: t.runBg, border: t.runBg, fg: t.run, dot: t.run },
+        { label: 'Szinkronhiba · újra', bg: t.missBg, border: t.missBg, fg: t.miss, dot: t.miss }
+      ]
+    });
+    return { panels: [panel('Sötét téma', D), panel('Világos téma', L)] };
+  }
+}
+</script>
+</body>
+</html>

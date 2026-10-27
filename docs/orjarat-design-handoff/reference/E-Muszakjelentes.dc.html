@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>Műszakjelentés – HTML e-mail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2F6BDB}a:hover{color:#1F4FA8}
+</style>
+</helmet>
+<div style="width: 680px; height: 2500px; box-sizing: border-box; background: #EEF2F8; color: #0F1726; font-family: 'Manrope', Arial, sans-serif; padding: 32px 40px">
+  <div style="width: 600px; display: flex; flex-direction: column; background: #FFFFFF; border: 1px solid #DCE3EE; border-radius: 16px; overflow: hidden">
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 20px 28px; background: #0F1420; color: #E8ECF5">
+      <span style="width: 36px; height: 36px; border-radius: 12px; background: #8AB4FF; color: #0B1630; display: flex; align-items: center; justify-content: center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6l8-3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>
+      </span>
+      <span style="font-size: 16px; font-weight: 800; flex: 1">Őrjárat</span>
+      <span style="font-size: 13px; font-weight: 700; color: #9AA6BF">Műszakjelentés</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px; padding: 28px 28px 8px">
+      <span style="font-size: 26px; font-weight: 800; line-height: 1.2">Ipari park, B épület</span>
+      <span style="font-size: 15px; color: #4F5B73">2026. október 26–27. · 20:00–07:58 · Őr: Nagy Péter</span>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: flex-start; margin: 14px 28px 0; padding: 12px 14px; border-radius: 12px; background: #FDF0D5; font-size: 14px; line-height: 1.5">
+      <span style="font-weight: 800; color: #8A5300">Később érkezett:</span>
+      <span>a telefon 08:41-kor szinkronizált. A műszakot Kiss Gábor PIN-belépése zárta (átadás).</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 20px 28px 0">
+      <div style="display: flex; flex-direction: column; gap: 2px; padding: 14px; border-radius: 12px; background: #D7F2E3"><span style="font-size: 28px; font-weight: 800; color: #157F4A">11</span><span style="font-size: 13px; font-weight: 700">teljesítve</span></div>
+      <div style="display: flex; flex-direction: column; gap: 2px; padding: 14px; border-radius: 12px; background: #FDE6D8"><span style="font-size: 28px; font-weight: 800; color: #B4470F">1</span><span style="font-size: 13px; font-weight: 700">hiányos</span></div>
+      <div style="display: flex; flex-direction: column; gap: 2px; padding: 14px; border-radius: 12px; background: #FBE0E1"><span style="font-size: 28px; font-weight: 800; color: #C0262D">1</span><span style="font-size: 13px; font-weight: 700">elmaradt</span></div>
+      <div style="display: flex; flex-direction: column; gap: 2px; padding: 14px; border-radius: 12px; background: #EEF2F8"><span style="font-size: 28px; font-weight: 800">2</span><span style="font-size: 13px; font-weight: 700">esemény</span></div>
+    </div>
+    <span style="padding: 12px 28px 0; font-size: 14px; color: #4F5B73">Jelölések: <b style="color: #6B46C1">1 nem igazolt</b> · <b style="color: #8A6100">1 időgyanús</b></span>
+
+    <span style="padding: 28px 28px 10px; font-size: 18px; font-weight: 800">Körök</span>
+    <div style="display: flex; flex-direction: column; margin: 0 28px; border: 1px solid #DCE3EE; border-radius: 12px; overflow: hidden; font-size: 14px">
+      <div style="display: grid; grid-template-columns: 70px 120px 90px 90px minmax(0, 1fr); padding: 10px 14px; background: #EEF2F8; font-size: 12px; font-weight: 800; color: #4F5B73; text-transform: uppercase; letter-spacing: 0.04em">
+        <span>Kör</span><span>Állapot</span><span>Kezdés</span><span>Idő</span><span>Pontok</span>
+      </div>
+      <sc-for list="{{rounds}}" as="r" hint-placeholder-count="13">
+        <div style="display: grid; grid-template-columns: 70px 120px 90px 90px minmax(0, 1fr); align-items: center; padding: 8px 14px; border-top: 1px solid #DCE3EE">
+          <span style="font-weight: 800">{{r.h}}</span>
+          <span><span style="display: inline-block; padding: 3px 10px; border-radius: 999px; background: {{r.bg}}; color: {{r.fg}}; font-size: 12px; font-weight: 800">{{r.s}}</span></span>
+          <span style="color: #4F5B73">{{r.start}}</span>
+          <span style="color: #4F5B73">{{r.dur}}</span>
+          <span style="font-weight: 700">{{r.pts}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <span style="padding: 28px 28px 10px; font-size: 18px; font-weight: 800">Események</span>
+    <div style="display: flex; flex-direction: column; gap: 10px; margin: 0 28px">
+      <div style="display: flex; gap: 14px; padding: 14px; border: 1px solid #DCE3EE; border-radius: 12px">
+        <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0">
+          <span style="font-size: 15px; font-weight: 800">22:16 · Nyitott ajtó / ablak</span>
+          <span style="font-size: 13px; color: #4F5B73">Raktár 2 – vészkijárat közelében · GPS ±6 m</span>
+          <span style="font-size: 14px; line-height: 1.5">„A raktár hátsó ablaka nyitva, bezártam.”</span>
+        </div>
+        <div style="display: flex; gap: 6px; flex: none">
+          <a href="#" role="img" aria-label="Fotó 1 bélyegkép" style="width: 72px; height: 72px; border-radius: 8px; background: #E1E8F5; color: #4F5B73; font-size: 11px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center">[Fotó 1]</a>
+          <a href="#" role="img" aria-label="Fotó 2 bélyegkép" style="width: 72px; height: 72px; border-radius: 8px; background: #E1E8F5; color: #4F5B73; font-size: 11px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center">[Fotó 2]</a>
+        </div>
+      </div>
+      <div style="display: flex; gap: 14px; padding: 14px; border: 1px solid #DCE3EE; border-radius: 12px">
+        <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0">
+          <span style="font-size: 15px; font-weight: 800">22:09 · Sérült címke <span style="color: #6B46C1">· nem igazolt pont</span></span>
+          <span style="font-size: 13px; color: #4F5B73">Kazánház · kézi rögzítés · GPS ±8 m</span>
+          <span style="font-size: 14px; line-height: 1.5">„A címke le van törve az ajtókeretről, a darabja a földön.”</span>
+        </div>
+        <a href="#" role="img" aria-label="Fotó bélyegkép" style="width: 72px; height: 72px; flex: none; border-radius: 8px; background: #E1E8F5; color: #4F5B73; font-size: 11px; font-weight: 700; text-decoration: none; display: flex; align-items: center; justify-content: center">[Fotó]</a>
+      </div>
+    </div>
+
+    <span style="padding: 28px 28px 4px; font-size: 18px; font-weight: 800">21:00-s kör · <span style="color: #B4470F">Hiányos</span></span>
+    <span style="padding: 0 28px 10px; font-size: 14px; color: #4F5B73">Tervezett 21:00 · indult 21:03 · 17 perc · útvonal v4</span>
+    <div style="display: flex; flex-direction: column; margin: 0 28px; border: 1px solid #DCE3EE; border-radius: 12px; overflow: hidden; font-size: 14px">
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 70px 70px 140px; padding: 10px 14px; background: #EEF2F8; font-size: 12px; font-weight: 800; color: #4F5B73; text-transform: uppercase; letter-spacing: 0.04em">
+        <span>Pont</span><span>Idő</span><span>Mód</span><span>Jelölés</span>
+      </div>
+      <sc-for list="{{pts}}" as="p" hint-placeholder-count="9">
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) 70px 70px 140px; align-items: center; padding: 8px 14px; border-top: 1px solid #DCE3EE; background: {{p.row}}">
+          <span style="font-weight: 700">{{p.name}}</span>
+          <span style="color: #4F5B73">{{p.time}}</span>
+          <span style="color: #4F5B73">{{p.m}}</span>
+          <span style="font-size: 13px; font-weight: 800; color: {{p.fc}}">{{p.flag}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <span style="padding: 28px 28px 4px; font-size: 18px; font-weight: 800">03:00-s kör · <span style="color: #C0262D">Elmaradt</span></span>
+    <span style="padding: 0 28px; font-size: 14px; line-height: 1.5; color: #4F5B73">Nem történt leolvasás a 03:00–03:25 időkeretben. Mind a 9 pont hiányzik.</span>
+
+    <span style="padding: 28px 28px 4px; font-size: 18px; font-weight: 800">20:00-s kör · <span style="color: #157F4A">Teljesítve</span></span>
+    <span style="padding: 0 28px; font-size: 14px; line-height: 1.5; color: #4F5B73">Indult 20:02 · 19 perc · 9/9 pont: Főbejárat 20:02, Portaépület 20:04, Raktár 1 20:06, Kazánház 20:09, Raktár 2 20:11, Tetőfeljáró 20:14, Parkoló 20:17, Kerítés ÉK 20:19, Hulladékudvar 20:21.</span>
+
+    <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 28px; padding: 20px 28px; background: #EEF2F8; font-size: 12px; line-height: 1.6; color: #4F5B73">
+      <span>A fotók linkje 31 napig érvényes. A jelölések nem döntések: az eltéréseket a supervisor bírálja el.</span>
+      <span>Ezt a jelentést az Őrjárat rendszer küldte automatikusan. Beállítás: app › Telephely › Jelentések.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":680,"height":2500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const S = {
+      ok: { s: 'Teljesítve', bg: '#D7F2E3', fg: '#157F4A' },
+      warn: { s: 'Hiányos', bg: '#FDE6D8', fg: '#B4470F' },
+      miss: { s: 'Elmaradt', bg: '#FBE0E1', fg: '#C0262D' }
+    };
+    const raw = [
+      ['20:00','ok','20:02','19 p','9/9'], ['21:00','warn','21:03','17 p','8/9 · 1 időgyanús'], ['22:00','ok','22:03','16 p','9/9 · 1 nem igazolt'],
+      ['23:00','ok','23:01','18 p','9/9'], ['00:00','ok','00:04','17 p','9/9'], ['01:00','ok','01:02','18 p','9/9'], ['02:00','ok','02:05','16 p','9/9'],
+      ['03:00','miss','–','–','0/9'], ['04:00','ok','04:06','19 p','9/9'], ['05:00','ok','05:01','17 p','9/9'], ['06:00','ok','06:03','18 p','9/9'],
+      ['07:00','ok','07:02','17 p','9/9'], ['08:00','ok','07:58','—','zárva műszakváltáskor']
+    ];
+    const rounds = raw.map(([h, k, start, dur, pts]) => ({ h, start, dur, pts, ...S[k] }));
+    const p = (name, time, m, flag, kind) => ({ name, time, m, flag, fc: kind === 'miss' ? '#C0262D' : kind === 'time' ? '#8A6100' : '#157F4A', row: kind === 'miss' ? '#FBE0E1' : kind === 'time' ? '#FBF0C9' : '#FFFFFF' });
+    const pts = [
+      p('Főbejárat', '21:03', 'NFC', 'rendben'), p('Portaépület hátsó ajtó', '21:05', 'NFC', 'rendben'), p('Raktár 1 – rakodókapu', '21:07', 'QR', 'rendben'),
+      p('Tetőfeljáró', '21:10', 'NFC', 'rendben'), p('Raktár 2 – vészkijárat', '21:13', 'NFC', 'rendben'), p('Kerítés, ÉK sarok', '21:16', 'QR', 'rendben'),
+      p('Kazánház', '21:19', 'NFC', 'rendben'), p('Parkoló – sorompó', '21:20', 'NFC', 'időgyanús: túl gyors', 'time'), p('Hulladékudvar', '–', '–', 'hiányzik', 'miss')
+    ];
+    return { rounds, pts };
+  }
+}
+</script>
+</body>
+</html>

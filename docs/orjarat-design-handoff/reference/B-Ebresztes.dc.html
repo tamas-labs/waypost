@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>B – Ébresztés</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{t.bg}}; color: {{t.text}}; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 56px 24px 30px; gap: 20px">
+  <div style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 999px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; font-size: 13px; font-weight: 600; color: {{t.text2}}">
+    <span style="width: 8px; height: 8px; border-radius: 50%; background: {{t.online}}"></span>
+    Szinkronizálva
+  </div>
+
+  <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; width: 100%">
+    <div style="width: 232px; height: 232px; border-radius: 50%; background: {{t.ring1}}; display: flex; align-items: center; justify-content: center">
+      <div style="width: 180px; height: 180px; border-radius: 50%; background: {{t.ring2}}; display: flex; align-items: center; justify-content: center">
+        <div style="width: 128px; height: 128px; border-radius: 50%; background: {{t.accent}}; color: {{t.onAccent}}; display: flex; align-items: center; justify-content: center">
+          <span style="font-size: 38px; font-weight: 800; line-height: 1; letter-spacing: -0.02em">22:00</span>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center">
+      <span style="font-size: 36px; font-weight: 800; line-height: 1.12; letter-spacing: -0.01em">Indul a<br>22:00-s kör</span>
+      <span style="font-size: 17px; color: {{t.text2}}">9 pont · 25 perc időkeret</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 18px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; font-size: 15px; font-weight: 600">
+      <span style="width: 24px; height: 24px; border-radius: 50%; background: {{t.okBg}}; color: {{t.ok}}; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></span>
+      Előző kör (21:00) teljesítve
+    </div>
+  </div>
+
+  <a href="B-Kor.dc.html" style="width: 100%; height: 76px; border-radius: 999px; background: {{t.accent}}; color: {{t.onAccent}}; text-decoration: none; font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center">Indulok</a>
+  <button style="width: 100%; height: 56px; border-radius: 999px; border: 1px solid {{t.cardBorder}}; background: {{t.surface}}; color: {{t.text}}; font-family: inherit; font-size: 16px; font-weight: 700">Hang némítása</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["sötét","világos"],"default":"sötét"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const dark = {bg:'#0F1420',surface:'#182033',cardBorder:'transparent',text:'#E8ECF5',text2:'#9AA6BF',accent:'#8AB4FF',onAccent:'#0B1630',ok:'#6EE7A8',okBg:'#1E3A2E',online:'#6EE7A8',ring1:'#131B2C',ring2:'#1A2640'};
+    const light = {bg:'#EEF2F8',surface:'#FFFFFF',cardBorder:'#DCE3EE',text:'#0F1726',text2:'#4F5B73',accent:'#2F6BDB',onAccent:'#FFFFFF',ok:'#157F4A',okBg:'#D7F2E3',online:'#157F4A',ring1:'#E1E8F5',ring2:'#CBD8F0'};
+    return { t: (this.props.theme ?? 'sötét') === 'világos' ? light : dark };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>Design tokenek</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1280px; height: 1560px; box-sizing: border-box; background: #FFFFFF; color: #0F1726; font-family: 'Manrope', system-ui, sans-serif; padding: 56px 64px; display: flex; flex-direction: column; gap: 36px">
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <span style="font-size: 14px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #2F6BDB">B · Éjszakai kártya</span>
+    <span style="font-size: 44px; font-weight: 800; letter-spacing: -0.02em">Design tokenek</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px">
+    <span style="font-size: 22px; font-weight: 800">Színek</span>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 48px">
+      <sc-for list="{{cols}}" as="col" hint-placeholder-count="2">
+        <div style="display: flex; flex-direction: column">
+          <div style="display: grid; grid-template-columns: 120px 120px 120px minmax(0, 1fr); gap: 12px; padding: 0 0 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #4F5B73; border-bottom: 1px solid #DCE3EE">
+            <span>Token</span><span>Sötét</span><span>Világos</span><span>Használat</span>
+          </div>
+          <sc-for list="{{col.rows}}" as="c" hint-placeholder-count="11">
+            <div style="display: grid; grid-template-columns: 120px 120px 120px minmax(0, 1fr); gap: 12px; align-items: center; min-height: 44px; border-bottom: 1px solid #EEF2F8">
+              <span style="font-size: 14px; font-weight: 800">{{c.n}}</span>
+              <span style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums"><span style="width: 24px; height: 24px; border-radius: 6px; background: {{c.d}}; border: 1px solid #C7D1E0; flex: none"></span>{{c.d}}</span>
+              <span style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums"><span style="width: 24px; height: 24px; border-radius: 6px; background: {{c.l}}; border: 1px solid #C7D1E0; flex: none"></span>{{c.l}}</span>
+              <span style="font-size: 13px; color: #4F5B73">{{c.u}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: 48px">
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <span style="font-size: 22px; font-weight: 800">Tipográfia · Manrope</span>
+      <sc-for list="{{type}}" as="ty" hint-placeholder-count="8">
+        <div style="display: flex; align-items: baseline; gap: 16px; padding-bottom: 10px; border-bottom: 1px solid #EEF2F8">
+          <span style="width: 110px; flex: none; font-size: 12px; font-weight: 700; color: #4F5B73">{{ty.spec}}</span>
+          <span style="font-size: {{ty.px}}; font-weight: {{ty.w}}; line-height: 1.1; white-space: nowrap; overflow: hidden">{{ty.sample}}</span>
+        </div>
+      </sc-for>
+      <span style="font-size: 13px; color: #4F5B73; line-height: 1.5">Számoknál táblázatos számjegyek (fontVariant: tabular-nums), hogy a visszaszámláló ne ugráljon. Minimum szövegméret 12 px.</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <span style="font-size: 22px; font-weight: 800">Térközök</span>
+      <sc-for list="{{space}}" as="s" hint-placeholder-count="7">
+        <div style="display: flex; align-items: center; gap: 14px">
+          <span style="width: 64px; font-size: 13px; font-weight: 800">{{s.n}}</span>
+          <span style="height: 16px; width: {{s.w}}; border-radius: 4px; background: #2F6BDB"></span>
+          <span style="font-size: 12px; color: #4F5B73">{{s.u}}</span>
+        </div>
+      </sc-for>
+      <span style="font-size: 22px; font-weight: 800; padding-top: 18px">Érintési felületek</span>
+      <span style="font-size: 14px; line-height: 1.6; color: #4F5B73">Minimum 48 px · fő gomb 68–76 px · PIN-billentyű 80 px · listaelem 60–64 px.</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <span style="font-size: 22px; font-weight: 800">Lekerekítés</span>
+      <sc-for list="{{radii}}" as="r" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; gap: 14px">
+          <span style="width: 56px; height: 44px; border-radius: {{r.v}}; background: #DCE7FB; border: 2px solid #2F6BDB; flex: none"></span>
+          <span style="display: flex; flex-direction: column">
+            <span style="font-size: 14px; font-weight: 800">{{r.n}}</span>
+            <span style="font-size: 12px; color: #4F5B73">{{r.u}}</span>
+          </span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const c = (n, d, l, u) => ({ n, d, l, u });
+    const left = [
+      c('bg', '#0F1420', '#EEF2F8', 'képernyő háttér'),
+      c('surface', '#182033', '#FFFFFF', 'kártya, chip, mező'),
+      c('card', '#141B2B', '#FFFFFF', 'listaelem'),
+      c('field', '#0F1420', '#EEF2F8', 'beviteli mező kitöltés'),
+      c('line', '#2C3650', '#DCE3EE', 'elválasztó, sáv'),
+      c('dash', '#2C3650', '#BAC6D8', 'szaggatott keret (hátravan)'),
+      c('text', '#E8ECF5', '#0F1726', 'elsődleges szöveg'),
+      c('text2', '#9AA6BF', '#4F5B73', 'másodlagos szöveg'),
+      c('accent', '#8AB4FF', '#2F6BDB', 'fő akció, kijelölés'),
+      c('onAccent', '#0B1630', '#FFFFFF', 'szöveg akcentuson'),
+      c('pending', '#5A6788', '#8592AD', 'hátralévő pont gyűrű')
+    ];
+    const right = [
+      c('ok / okBg', '#6EE7A8', '#157F4A', 'teljesítve · ' + '#1E3A2E / #D7F2E3'),
+      c('run / runBg', '#8AB4FF', '#2F6BDB', 'folyamatban · #1D2B4A / #DCE7FB'),
+      c('warn / warnBg', '#FFB38A', '#B4470F', 'hiányos, esemény · #3A2418 / #FDE6D8'),
+      c('miss / missBg', '#FF8A8A', '#C0262D', 'elmaradt, hiba · #3D1C22 / #FBE0E1'),
+      c('manual / bg', '#C9B8FF', '#6B46C1', 'nem igazolt · #2E2747 / #ECE5FB'),
+      c('time / timeBg', '#F5D06B', '#8A6100', 'időgyanús · #3A3216 / #FBF0C9'),
+      c('offBg', '#2A2414', '#FDF0D5', 'offline / várakozó sor háttér'),
+      c('offFg', '#FFCF7A', '#8A5300', 'offline / várakozó sor szöveg'),
+      c('mapBg', '#121A2A', '#E6ECF4', 'térkép alap'),
+      c('mapBuild', '#222D45', '#D2DBE8', 'térkép épület'),
+      c('scrim', '#05080E', '#0F1726', 'modális háttér (72% / 45%)')
+    ];
+    return {
+      cols: [{ rows: left }, { rows: right }],
+      type: [
+        { spec: 'Kijelző 72/800', px: '72px', w: 800, sample: '07:48' },
+        { spec: 'Számláló 44/800', px: '44px', w: 800, sample: '14:32' },
+        { spec: 'Riasztás 36/800', px: '36px', w: 800, sample: 'Indul a kör' },
+        { spec: 'Cím 1 · 30/800', px: '30px', w: 800, sample: 'Telephelyek' },
+        { spec: 'Cím 2 · 20/800', px: '20px', w: 800, sample: '22:00-s kör' },
+        { spec: 'Gomb 20/800', px: '20px', w: 800, sample: 'Leolvasás' },
+        { spec: 'Törzs 16/700', px: '16px', w: 700, sample: 'Raktár 2 – vészkijárat' },
+        { spec: 'Kicsi 13/600', px: '13px', w: 600, sample: '22:11 · NFC · GPS ±6 m' }
+      ],
+      space: [
+        { n: 'xs · 4', w: '4px', u: 'ikon–szöveg' }, { n: 's · 8', w: '8px', u: 'listaelemek között' },
+        { n: 'm · 12', w: '12px', u: 'szekciók' }, { n: 'l · 16', w: '16px', u: 'oldalmargó' },
+        { n: 'xl · 20', w: '20px', u: 'kártya belső' }, { n: '2xl · 24', w: '24px', u: 'nagy blokkok' },
+        { n: '3xl · 32', w: '32px', u: 'képernyő alja' }
+      ],
+      radii: [
+        { n: 'pill · 999', v: '999px', u: 'gombok, chipek, szegmens' },
+        { n: 'card · 24', v: '24px', u: 'kártyák, térkép' },
+        { n: 'item · 18', v: '18px', u: 'listaelem, mező, fotó' },
+        { n: 'tile · 12', v: '12px', u: 'ikoncsempe' },
+        { n: 'kör · 50%', v: '50%', u: 'állapotjel, ikon gomb' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

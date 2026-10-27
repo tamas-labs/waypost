@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>Műszak kezdőlap</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{t.bg}}; color: {{t.text}}; font-family: 'Manrope', system-ui, sans-serif; display: flex; flex-direction: column; padding: 52px 16px 30px; gap: 14px">
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0 4px">
+    <div style="display: flex; flex-direction: column">
+      <span style="font-size: 13px; font-weight: 600; color: {{t.text2}}">Ipari park, B épület</span>
+      <span style="font-size: 18px; font-weight: 800">Nagy Péter · műszakban</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 999px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; font-size: 13px; font-weight: 600; color: {{t.text2}}">
+      <span style="width: 8px; height: 8px; border-radius: 50%; background: {{t.ok}}"></span>
+      Szinkronizálva
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px 20px 22px; border-radius: 24px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}">
+    <span style="font-size: 15px; font-weight: 700; color: {{t.text2}}">Következő kör: 22:00</span>
+    <span style="font-size: 72px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums">07:48</span>
+    <span style="font-size: 15px; color: {{t.text2}}">múlva indul · ébresztő szól</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px 16px 14px; border-radius: 24px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <span style="font-size: 16px; font-weight: 800">Ma éjjel</span>
+      <span style="font-size: 14px; font-weight: 600; color: {{t.text2}}">2 / 13 kör lezárva</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 3px" role="img" aria-label="13 kör idővonala: 20:00 teljesítve, 21:00 hiányos, 22:00 következik, a többi később">
+      <sc-for list="{{rounds}}" as="r" hint-placeholder-count="13">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+          <span style="width: 100%; height: 40px; box-sizing: border-box; border-radius: 10px; background: {{r.bg}}; border: 2px solid {{r.border}}; color: {{r.fg}}; display: flex; align-items: center; justify-content: center">
+            <sc-if value="{{r.isOk}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></sc-if>
+            <sc-if value="{{r.isWarn}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v9M12 19v.01"/></svg></sc-if>
+            <sc-if value="{{r.isNext}}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16v-5a6 6 0 0112 0v5l2 2H4l2-2z"/></svg></sc-if>
+          </span>
+          <span style="font-size: 11px; font-weight: 700; color: {{r.label}}">{{r.h}}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; font-weight: 600; color: {{t.text2}}">
+      <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: {{t.ok}}"></span>Teljesítve</span>
+      <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: {{t.warn}}"></span>Hiányos</span>
+      <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: {{t.miss}}"></span>Elmaradt</span>
+      <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; box-sizing: border-box; border-radius: 3px; border: 2px solid {{t.accent}}"></span>Következik</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; align-items: center; gap: 14px; min-height: 62px; padding: 0 16px; border-radius: 18px; background: {{t.card}}; border: 1px solid {{t.cardBorder}}">
+      <span style="width: 32px; height: 32px; border-radius: 50%; background: {{t.warnBg}}; color: {{t.warn}}; display: flex; align-items: center; justify-content: center; flex: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v9M12 19v.01"/></svg></span>
+      <div style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+        <span style="font-size: 16px; font-weight: 700">21:00 · Hiányos · 8/9</span>
+        <span style="font-size: 13px; font-weight: 600; color: {{t.text2}}">Kimaradt: Hulladékudvar</span>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 14px; min-height: 62px; padding: 0 16px; border-radius: 18px; background: {{t.card}}; border: 1px solid {{t.cardBorder}}">
+      <span style="width: 32px; height: 32px; border-radius: 50%; background: {{t.okBg}}; color: {{t.ok}}; display: flex; align-items: center; justify-content: center; flex: none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></span>
+      <div style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+        <span style="font-size: 16px; font-weight: 700">20:00 · Teljesítve · 9/9</span>
+        <span style="font-size: 13px; font-weight: 600; color: {{t.text2}}">19 perc alatt</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 10px; margin-top: auto">
+    <a href="B-Esemeny.dc.html" style="flex: 1; height: 60px; border-radius: 999px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; color: {{t.text}}; text-decoration: none; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{t.warn}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4h11l-2 4 2 4H5"/></svg>
+      Esemény
+    </a>
+    <a href="B-Zaras.dc.html" style="flex: 1; height: 60px; border-radius: 999px; background: {{t.surface}}; border: 1px solid {{t.cardBorder}}; color: {{t.text}}; text-decoration: none; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h4v16h-4M10 16l4-4-4-4M14 12H4"/></svg>
+      Műszakzárás
+    </a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["sötét","világos"],"default":"sötét"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const D={bg:'#0F1420',surface:'#182033',card:'#141B2B',field:'#0F1420',cardBorder:'transparent',line:'#2C3650',track:'#2C3650',dash:'#2C3650',text:'#E8ECF5',text2:'#9AA6BF',accent:'#8AB4FF',onAccent:'#0B1630',ok:'#6EE7A8',okBg:'#1E3A2E',run:'#8AB4FF',runBg:'#1D2B4A',warn:'#FFB38A',warnBg:'#3A2418',miss:'#FF8A8A',missBg:'#3D1C22',manual:'#C9B8FF',manualBg:'#2E2747',time:'#F5D06B',timeBg:'#3A3216',offBg:'#2A2414',offFg:'#FFCF7A',pending:'#5A6788'};
+    const L={bg:'#EEF2F8',surface:'#FFFFFF',card:'#FFFFFF',field:'#EEF2F8',cardBorder:'#DCE3EE',line:'#DCE3EE',track:'#DCE3EE',dash:'#BAC6D8',text:'#0F1726',text2:'#4F5B73',accent:'#2F6BDB',onAccent:'#FFFFFF',ok:'#157F4A',okBg:'#D7F2E3',run:'#2F6BDB',runBg:'#DCE7FB',warn:'#B4470F',warnBg:'#FDE6D8',miss:'#C0262D',missBg:'#FBE0E1',manual:'#6B46C1',manualBg:'#ECE5FB',time:'#8A6100',timeBg:'#FBF0C9',offBg:'#FDF0D5',offFg:'#8A5300',pending:'#8592AD'};
+    const t = (this.props.theme ?? 'sötét') === 'világos' ? L : D;
+    const hours = ['20','21','22','23','00','01','02','03','04','05','06','07','08'];
+    const rounds = hours.map((h, i) => {
+      const s = i === 0 ? 'ok' : i === 1 ? 'warn' : i === 2 ? 'next' : 'future';
+      return {
+        h, isOk: s === 'ok', isWarn: s === 'warn', isNext: s === 'next',
+        bg: s === 'ok' ? t.ok : s === 'warn' ? t.warn : 'transparent',
+        border: s === 'ok' ? t.ok : s === 'warn' ? t.warn : s === 'next' ? t.accent : t.track,
+        fg: s === 'next' ? t.accent : t.bg,
+        label: s === 'next' ? t.accent : t.text2
+      };
+    });
+    return { t, rounds };
+  }
+}
+</script>
+</body>
+</html>
