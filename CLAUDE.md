@@ -28,7 +28,8 @@ src/
   sync/       # pull, push, outbox, média
   chain/      # láncbejegyzés: kanonikus JSON, HMAC
   nfc/ qr/ alarms/ location/
-  theme/      # tokens.ts: minden szín és méret (M1-02)
+  theme/      # tokens.ts (a design tokenjei), theme-provider.tsx: ThemeProvider, useTheme(), useThemePreference()
+  i18n/       # hu.json (minden felirat), index.ts: t(key, params)
 modules/      # saját Expo-modulok (M1-03: waypost-clock)
 __tests__/    # képernyőtesztek; a modulok tesztjei a modul mellett: src/<modul>/*.test.ts
 assets/       # ikon, splash (egyelőre az Expo sablon helyőrzői)
@@ -40,7 +41,8 @@ Importban a `@/…` alias a `src/…`-ra mutat.
 
 - A specifikáció *Alapszabályok* pontjai érvényesek, különösen:
   - A felület minden szövege magyar, a kód, az azonosítók, a kommentek és a commitüzenetek angolok.
-  - Szín és méret csak a `src/theme/tokens.ts`-ből, felirat csak a `src/i18n/hu.json`-ból (M1-02-től) – beégetett szín és szöveg nincs.
+  - Szín és méret csak a `src/theme/tokens.ts`-ből (`useTheme()`), felirat csak a `src/i18n/hu.json`-ból (`t('sync.offlineQueued', { count })`) – beégetett szín és szöveg nincs. A lint ezt az `src/`-ben ellenőrzi (színliterál a stílusban, szöveg a JSX-ben vagy a `title`/`label`/`placeholder`/`accessibility*` propban). Új feliratot a `hu.json`-ba kell felvenni; a kulcs típusos (`TranslationKey`).
+  - Betűtípus: Manrope (400–800), a `typography` skálából; számoknál `fontVariant: ['tabular-nums']` (DESIGN_HANDOFF 2.6).
   - Az eszközön létrejött adat a szinkron előtt soha nem módosul és nem törlődik.
   - A 2. lépcső funkcióit nem építjük meg, csak nem zárjuk ki.
 - TypeScript `strict` és `noUncheckedIndexedAccess`; `any` helyett pontos típus vagy `unknown`.

@@ -76,7 +76,7 @@ Cél: egy Androidon és egy iPhone-on bizonyítani, hogy az NFC, a QR, az ébres
   - Kész, ha: `npx tsc --noEmit`, `npm run lint` és `npm test` zöld; a dev build elkészül.
   - Spec: Repo és technológiai stack.
 
-- [ ] **M1-02 Téma- és szövegfájlok átvétele**
+- [x] **M1-02 Téma- és szövegfájlok átvétele**
   - Mit: a `docs/orjarat-design-handoff/src/theme/tokens.ts` → `src/theme/tokens.ts`, a `src/i18n/hu.json` → `src/i18n/hu.json`. Egy egyszerű `t()` segéd a feliratokhoz.
   - Kész, ha: a prototípus képernyői már ezeket használják, beégetett szín és felirat nélkül.
   - Spec: Alapszabályok 4–5.; DESIGN_HANDOFF 3.
