@@ -81,21 +81,21 @@ Cél: egy Androidon és egy iPhone-on bizonyítani, hogy az NFC, a QR, az ébres
   - Kész, ha: a prototípus képernyői már ezeket használják, beégetett szín és felirat nélkül.
   - Spec: Alapszabályok 4–5.; DESIGN_HANDOFF 3.
 
-- [ ] **M1-03 `waypost-clock` natív modul**
+- [x] **M1-03 `waypost-clock` natív modul**
   - Mit: saját Expo-modul (`modules/waypost-clock`): `getUptimeMs()` és `getBootId()`. Androidon `SystemClock.elapsedRealtime()` + `Settings.Global.BOOT_COUNT`, iOS-en `clock_gettime(CLOCK_MONOTONIC)` + `kern.boottime` alapján képzett azonosító. Egy tesztképernyő mutatja az értékeket.
   - Kész, ha: mindkét telefonon az uptime alvás alatt is nő, újraindítás után a boot ID megváltozik.
   - Spec: Láncolt napló / Bejegyzés és lenyomat.
 
-- [ ] **M1-04 NFC prototípus**
+- [x] **M1-04 NFC prototípus**
   - Mit: react-native-nfc-manager config pluginnel, iOS NFC Tag Reading entitlement. Androidon előtérbeli figyelés (`registerTagEvent`) gomb nélkül; iOS-en gombra induló munkamenet „Tartsd a telefont a címkéhez” szöveggel. A UID normalizálása (nagybetűs hex, kettőspont nélkül) és a nyers NDEF kiolvasása. Írás nincs.
   - Kész, ha: mindkét telefonon kiolvasható egy NTAG21x és egy NTAG 424 DNA címke UID-ja és NDEF tartalma.
   - Spec: Mobilapp / NFC és QR.
 
-- [ ] **M1-05 QR prototípus**
+- [x] **M1-05 QR prototípus**
   - Mit: teljes képernyős kameranézet (expo-camera barcode scanning), amely csak a `waypost:cp:` előtagú kódokat fogadja el, a többit figyelmen kívül hagyja.
   - Kész, ha: mindkét telefonon egy kinyomtatott és egy képernyőn megjelenített kód is beolvasható.
 
-- [ ] **M1-06 Ébresztés prototípus**
+- [x] **M1-06 Ébresztés prototípus**
   - Mit: expo-notifications. Android: `rounds` csatorna (MAX fontosság, saját hang, rezgés), pontos riasztás engedély kérése, kivétel az akkumulátor-optimalizálás alól. iOS: `timeSensitive` szint és jogosultság, saját hang. Egy gomb, amely 3 órára előre beütemez 15 percenként egy értesítést.
   - Kész, ha: a beállítás mindkét platformon működik, az engedélyek állapota egy képernyőn látszik.
   - Spec: Mobilapp / Ébresztés.
@@ -104,7 +104,7 @@ Cél: egy Androidon és egy iPhone-on bizonyítani, hogy az NFC, a QR, az ébres
   - Mit: a `docs/device-test.md` létrehozása a specifikáció ellenőrzőlistájából, és kiegészítése az M1 próbáival (dátum, telefon, OS-verzió, eredmény oszlopokkal).
   - Spec: Tesztelés / Kézi eszközteszt.
 
-- [ ] **M1-08 Elfogadás (Android + iPhone)**: a címke- és a QR-olvasás működik; 3 órán át 15 percenként pontosan szól az értesítés zárolt képernyőn, háttérben és bezárt appal is; az uptime alvás alatt is nő. Az eredmények a `device-test.md`-ben. Ha valami nem működik: STOP, a specifikációt kell módosítani.
+- [x] **M1-08 Elfogadás (Android + iPhone)**: a címke- és a QR-olvasás működik; 3 órán át 15 percenként pontosan szól az értesítés zárolt képernyőn, háttérben és bezárt appal is; az uptime alvás alatt is nő. Az eredmények a `device-test.md`-ben. Ha valami nem működik: STOP, a specifikációt kell módosítani.
 
 ---
 

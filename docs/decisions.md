@@ -129,3 +129,16 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - Az eszközteszten (M1-07, M1-08) ellenőrizni kell mindkét telefonon: a 12 értesítés pontosan szól zárolt képernyőn, háttérben és bezárt appal (Androidon a legutóbbi appok közül kisöpörve is); némított telefonon is szól (Android: riasztás-hangerő; iOS: a némító kapcsoló a `timeSensitive`-et nem engedi át, ezt fel kell jegyezni); a saját hang és a rezgés; az Android-engedélyek (pontos riasztás, akkumulátor) kérése és állapota; újraindítás után is szól; Androidon gyártói energiatakarékos mód mellett is.
 - **Indok:** Specifikáció *Mobilapp / Ébresztés*; M1: „3 órán át 15 percenként pontosan szól zárolt képernyőn, háttérben és bezárt appal is”.
 - **Érintett:** `src/alarms/`, `modules/waypost-power/`, `src/app/prototype/alarms.tsx`, `assets/sounds/`, `app.json`, `src/i18n/hu.json`, M1-06, M1-07, M1-08, M3-24, M3-32, M5-10, M7-02.
+
+## 2026-10-28 – Az M1 lezárása telefonos elfogadás nélkül (M1-08)
+
+- **Kérdés:** Lezárható-e az M1, ha az M1-08 telefonos elfogadása (Android + iPhone, `device-test.md`) nem futott le?
+- **Döntés:** Igen, a projekt gazdájának döntése alapján. A prototípusok elkészültek, a tesztek zöldek, a helyi debug build az Android-emulátoron (API 37) elindult. Telefonon nem futott ellenőrzés, ezért a `device-test.md` M1-es eredményei üresek, és a következő ellenőrzések nyitottak:
+  - NFC: valódi címke olvasása (NTAG21x, NTAG 424 DNA), a UID mindkét platformon azonos-e, iOS-en a 424 DNA jelentkezik-e (N1–N6);
+  - az uptime nő-e alvás alatt, és a boot ID viselkedése iPhone-on (C2–C4);
+  - QR kinyomtatott és képernyőn megjelenített kóddal, valódi kamerával (Q1–Q5);
+  - az ébresztés pontossága zárolt képernyőn, háttérben, bezárt appal, némítva, újraindítás és gyártói energiatakarékos mód után; iOS-en a `timeSensitive` (E1–E9, Á1, Á8).
+
+  Ezeket a `device-test.md` M1-es tételeivel az első telefonos eszköztesztnél (legkésőbb az M3 végén) kell lefuttatni. Ha akkor valamelyik `❌`, a specifikációt kell módosítani, ahogy az M1-08 előírja.
+- **Indok:** A projekt gazdája az M1-et késznek tekinti; a kockázat a fenti tételekben marad.
+- **Érintett:** M1-03–M1-06, M1-08, `docs/device-test.md`, M3.
