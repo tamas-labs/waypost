@@ -12,6 +12,9 @@
       ],
       "@/assets/*": [
         "./assets/*"
+      ],
+      "@modules/*": [
+        "./modules/*"
       ]
     }
   },

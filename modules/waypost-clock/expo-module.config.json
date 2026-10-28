@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["WaypostClockModule"]
+  },
+  "android": {
+    "modules": ["com.tamaslabs.waypost.clock.WaypostClockModule"]
+  }
+}

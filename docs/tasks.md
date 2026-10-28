@@ -71,7 +71,7 @@ Cél: entitás-, API- és láncsémák a login, enroll, pull és push végpontok
 
 Cél: egy Androidon és egy iPhone-on bizonyítani, hogy az NFC, a QR, az ébresztés és a monoton óra úgy működik, ahogy a specifikáció leírja. Ha nem, a munka megáll, és a specifikációt kell módosítani.
 
-- [ ] **M1-01 Expo projekt váz**
+- [x] **M1-01 Expo projekt váz**
   - Mit: a legfrissebb stabil Expo SDK, TypeScript strict, expo-router, ESLint, Jest; a `src/` mappaszerkezet (`db`, `domain`, `sync`, `chain`, `nfc`, `qr`, `alarms`, `location`, `theme`); `CLAUDE.md`, `docs/decisions.md` (üres sablon: dátum, kérdés, döntés, indok); bundle ID / package name; `eas.json` development build profillal. `⚠ Q12`
   - Kész, ha: `npx tsc --noEmit`, `npm run lint` és `npm test` zöld; a dev build elkészül.
   - Spec: Repo és technológiai stack.

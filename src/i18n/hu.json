@@ -2,6 +2,25 @@
   "app": {
     "name": "Waypost"
   },
+  "prototype": {
+    "subtitle": "Prototípus – eszközpróbák",
+    "screens": {
+      "clock": "Monoton óra és boot ID"
+    },
+    "clock": {
+      "title": "Monoton óra",
+      "uptime": "Uptime (alvással együtt)",
+      "bootId": "Boot ID",
+      "deviceTime": "Eszközóra",
+      "sinceOpen": "A képernyő megnyitása óta",
+      "deviceDelta": "Eszközóra: +{{seconds}} mp",
+      "uptimeDelta": "Uptime: +{{seconds}} mp",
+      "drift": "Eltérés: {{ms}} ms",
+      "seconds": "{{seconds}} mp",
+      "unavailable": "Nem érhető el: {{error}}",
+      "hint": "Zárold le a telefont legalább 5 percre, majd térj vissza ide: az eltérés maradjon 1 mp alatt. Írd fel a boot ID-t, indítsd újra a telefont: a boot ID-nak meg kell változnia. Az óra kézi átállítása után viszont nem változhat."
+    }
+  },
   "common": {
     "back": "Vissza",
     "save": "Mentés",

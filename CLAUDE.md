@@ -15,14 +15,14 @@ A Waypost mobilapp (Expo / React Native, TypeScript): az őrök a telephelyi tel
 - Expo SDK 58 (React Native 0.88, React 19.3). Az Expo minden SDK-val törő változásokat hoz: Expo- vagy RN-API használata előtt nézd meg a verziózott dokumentációt (`https://docs.expo.dev/versions/v58.0.0/`), ill. a `https://docs.expo.dev/llms.txt` indexet – ne emlékezetből dolgozz.
 - Csomagot `npx expo install <csomag>` paranccsal telepíts (SDK-kompatibilis verziót választ); fejlesztői függőséget `npx expo install <csomag> -- --save-dev`-vel, és ellenőrizd, hogy a `devDependencies`-be került-e.
 - Continuous Native Generation: az `android/` és `ios/` mappa generált (gitignore), kézzel nem szerkesztjük; a natív beállítás az `app.json`-ban és config pluginekben van.
-- Expo Go nem elég (NFC, saját natív modul): development build kell (`eas.json` → `development` profil).
+- Expo Go nem elég (NFC, saját natív modul): development build kell (`eas.json` → `development` profil). Natív kód (`modules/`, natív csomag, config plugin) változása után új dev build kell; a JS-változás a Metro-ról frissül. A natív modulokat a Jest-tesztekben `jest.mock`-kal helyettesítjük.
 - Azonosítók: név „Waypost”, bundle ID / package name `com.tamaslabs.waypost`, URL-séma `waypost`. Csak iOS és Android (nincs web).
 
 ## Szerkezet
 
 ```text
 src/
-  app/        # expo-router képernyők – csak route-fájl lehet benne (teszt, segéd nem)
+  app/        # expo-router képernyők – csak route-fájl lehet benne (teszt, segéd nem); prototype/ = M1 eszközpróbák
   db/         # expo-sqlite + Drizzle: séma, migrációk
   domain/     # üzleti szabályok (menetrend → körök, műszak, kör, leolvasás) – UI és I/O nélkül
   sync/       # pull, push, outbox, média
@@ -30,7 +30,7 @@ src/
   nfc/ qr/ alarms/ location/
   theme/      # tokens.ts (a design tokenjei), theme-provider.tsx: ThemeProvider, useTheme(), useThemePreference()
   i18n/       # hu.json (minden felirat), index.ts: t(key, params)
-modules/      # saját Expo-modulok (M1-03: waypost-clock)
+modules/      # saját Expo-modulok: waypost-clock (getUptimeMs, getBootId) – import: @modules/waypost-clock
 __tests__/    # képernyőtesztek; a modulok tesztjei a modul mellett: src/<modul>/*.test.ts
 assets/       # ikon, splash (egyelőre az Expo sablon helyőrzői)
 ```
