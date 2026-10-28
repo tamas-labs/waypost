@@ -98,3 +98,16 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - Az eszközteszten (M1-07, M1-08) ellenőrizni kell: mindkét címkénél a UID és az NDEF mindkét telefonon; iOS-en a 424 DNA valóban jelentkezik-e; Androidon nem jelenik-e meg a rendszer ablaka; ugyanannak a címkének a UID-ja a két telefonon azonos. **Az NTAG 424 DNA „Random ID” beállítása legyen kikapcsolva:** bekapcsolva a UID 4 bájtos és olvasásonként más, így a pont nem azonosítható.
 - **Indok:** Specifikáció *Mobilapp / NFC és QR* és *Láncolt napló* (`tag_uid`, `ndef_raw`); a reader mode a megbízhatóbb előtérbeli olvasás, iOS-en pedig csak a tag-munkamenet adja meg a UID-t.
 - **Érintett:** `src/nfc/`, `src/app/prototype/nfc.tsx`, `src/i18n/hu.json`, `app.json`, M1-04, M1-07, M1-08, M3-18, M3-22, M5-12.
+
+## 2026-10-28 – QR-olvasás: elfogadott kódok és ismétlésszűrés (M1-05)
+
+- **Kérdés:** Pontosan mely kódokat fogadja el a QR-olvasó, és mi történik, amíg egy kód a képben marad?
+- **Döntés:**
+  - `expo-camera` `CameraView`, csak `qr` vonalkódtípus, hátsó kamera. A config plugin csak a kamera-engedélyt kéri: a mikrofon (`microphonePermission: false`) és az Android `RECORD_AUDIO` (`recordAudioAndroid: false`) nincs benne, mert hangot nem veszünk fel. Az iOS-engedély szövege a fotózást is említi (M3-21), hogy később ne kelljen módosítani.
+  - **Elfogadás:** minden kód, amely pontosan a `waypost:cp:` előtaggal kezdődik (kis- és nagybetű számít) és legfeljebb 255 karakter – a láncbejegyzés `qr_payload` mezőjének sémája szerint. A szöveg nem módosul (nincs trim, nincs kisbetűsítés): a pont feloldása a teljes payloaddal megy (M3-18), és az előtaggal kezdődő, de ismeretlen kód `unknown_tag`-ként rögzül. A teljes pontkód-formátumot (`waypost:cp:<UUIDv7>:<16 karakter>`) az olvasó nem követeli meg, csak a prototípus képernyője jelzi az eltérést. Minden más kódot (URL, termékkód, Wi-Fi) az olvasó jelzés nélkül figyelmen kívül hagy; a prototípus képernyője a legutóbbit mutatja, hogy az eszközteszten ez is ellenőrizhető legyen.
+  - **Ismétlésszűrés:** a kamera képkockánként jelenti a látott kódot. Egy kód egyszer számít; újra csak akkor, ha legalább 2 mp-ig nem volt a képben (kódonként külön, monoton órával). A körbeli ismétlést („Már leolvasva”) ettől függetlenül a domain kezeli (M3-18).
+  - A kamera csak a fókuszban lévő képernyőn fut (`useIsFocused`): egyszerre csak egy kameranézet lehet aktív. Ha az engedélyt végleg elutasították, a gomb a rendszerbeállításokat nyitja.
+  - A kód a `src/qr/`-ben: `payload.ts` (elfogadás, formátum), `scan-filter.ts` (ismétlésszűrés), `qr-scanner.tsx` (kameranézet), az M3-22 és az M5-12 is ezt használja. A prototípus (`src/app/prototype/qr.tsx`) folyamatosan olvas, lámpa-kapcsolóval (sötét folyosón a nyomtatott kódhoz).
+  - Az eszközteszten (M1-07, M1-08) ellenőrizni kell mindkét telefonon: kinyomtatott és képernyőn megjelenített kód is beolvasható (fényes képernyő, tükröződés, kis méret); a lámpa működik; egy idegen QR-kód (pl. URL) nem kerül a listába; a képben tartott kód csak egyszer számít.
+- **Indok:** Specifikáció *Mobilapp / NFC és QR* („csak a `waypost:cp:` előtagú kódokat fogadja el”) és *Állapotgépek / Leolvasás* (feloldás a teljes payloaddal, `unknown_tag`).
+- **Érintett:** `src/qr/`, `src/app/prototype/qr.tsx`, `src/i18n/hu.json`, `app.json`, M1-05, M1-07, M1-08, M3-18, M3-21, M3-22, M5-12.

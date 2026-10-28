@@ -5,9 +5,10 @@ import { t, type TranslationKey } from '@/i18n';
 import { useTheme } from '@/theme/theme-provider';
 
 /** The device test screens of the M1 prototype. */
-const PROTOTYPE_SCREENS: { href: '/prototype/clock' | '/prototype/nfc'; title: TranslationKey }[] = [
+const PROTOTYPE_SCREENS: { href: '/prototype/clock' | '/prototype/nfc' | '/prototype/qr'; title: TranslationKey }[] = [
   { href: '/prototype/clock', title: 'prototype.screens.clock' },
   { href: '/prototype/nfc', title: 'prototype.screens.nfc' },
+  { href: '/prototype/qr', title: 'prototype.screens.qr' },
 ];
 
 // Start screen of the prototype: links to the device test screens (M1-03 to M1-06).

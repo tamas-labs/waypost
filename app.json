@@ -39,6 +39,14 @@
           "selectIdentifiers": ["D2760000850101"],
           "includeNdefEntitlement": false
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "A Waypost a kamerával az ellenőrzőpontok QR-kódját olvassa le, és fotót készít a leolvasásokhoz és az eseményekhez.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
       ]
     ],
     "experiments": {

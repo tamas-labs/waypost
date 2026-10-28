@@ -6,7 +6,8 @@
     "subtitle": "Prototípus – eszközpróbák",
     "screens": {
       "clock": "Monoton óra és boot ID",
-      "nfc": "NFC-címke olvasása"
+      "nfc": "NFC-címke olvasása",
+      "qr": "QR-kód olvasása"
     },
     "clock": {
       "title": "Monoton óra",
@@ -43,6 +44,21 @@
       "ndefTooLong": "Túl hosszú a láncbejegyzéshez ({{bytes}} bájt)",
       "record": "TNF {{tnf}} · {{type}} · {{bytes}} bájt",
       "hint": "Olvass le egy NTAG21x és egy NTAG 424 DNA címkét is. A UID általában 14 hexa karakter; az NDEF a címkére írt URL vagy szöveg. A címkére az app nem ír."
+    },
+    "qr": {
+      "title": "QR-kód olvasása",
+      "checking": "Kamera-engedély ellenőrzése…",
+      "permissionNeeded": "A QR-kód olvasásához engedélyezni kell a kamerát.",
+      "permissionDenied": "A kamera használata nincs engedélyezve. A beállításokban kapcsolhatod be.",
+      "allow": "Kamera engedélyezése",
+      "openSettings": "Beállítások megnyitása",
+      "torchOff": "Lámpa",
+      "torchOn": "Lámpa ki",
+      "hint": "Tartsd a kódot a keretbe. Csak a waypost:cp: kezdetű kódokat fogadja el, a többit figyelmen kívül hagyja. Ugyanaz a kód akkor olvasható újra, ha 2 mp-re kikerült a képből. Próbáld ki egy kinyomtatott és egy képernyőn megjelenített kóddal is.",
+      "count": "{{count}} beolvasott kód",
+      "notCheckpoint": "Waypost-előtag, de nem pontkód formátumú",
+      "ignored": "Figyelmen kívül hagyva ({{time}}): {{data}}",
+      "error": "Hiba: {{error}}"
     }
   },
   "common": {
