@@ -5,15 +5,43 @@ import { Manrope_600SemiBold } from '@expo-google-fonts/manrope/600SemiBold';
 import { Manrope_700Bold } from '@expo-google-fonts/manrope/700Bold';
 import { Manrope_800ExtraBold } from '@expo-google-fonts/manrope/800ExtraBold';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import { loadSession } from '@/auth/session';
+import { StartupError } from '@/components/startup-error';
+import { openDatabase } from '@/db/open';
+import { AppStack } from '@/navigation/app-stack';
 import { ThemeProvider, useTheme } from '@/theme/theme-provider';
 
-// The splash screen stays until the fonts are loaded (DESIGN_HANDOFF 3).
+// The splash screen stays until the fonts are loaded and the session is known (DESIGN_HANDOFF 3).
 void SplashScreen.preventAutoHideAsync();
+
+type Startup = { state: 'loading' } | { state: 'ready' } | { state: 'failed'; error: unknown };
+
+/** Opens and migrates the database, then reads the device mode (specification, Mobilapp: three start states). */
+function useStartup(): [Startup, () => void] {
+  const [startup, setStartup] = useState<Startup>({ state: 'loading' });
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let current = true;
+    openDatabase()
+      .then(loadSession)
+      .then(
+        () => current && setStartup({ state: 'ready' }),
+        (error: unknown) => current && setStartup({ state: 'failed', error }),
+      );
+    return () => {
+      current = false;
+    };
+  }, [attempt]);
+  const retry = useCallback(() => {
+    setStartup({ state: 'loading' });
+    setAttempt((n) => n + 1);
+  }, []);
+  return [startup, retry];
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -23,7 +51,8 @@ export default function RootLayout() {
     Manrope_700Bold,
     Manrope_800ExtraBold,
   });
-  const ready = fontsLoaded || fontError !== null;
+  const [startup, retry] = useStartup();
+  const ready = (fontsLoaded || fontError !== null) && startup.state !== 'loading';
 
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync();
@@ -32,17 +61,13 @@ export default function RootLayout() {
   if (!ready) return null;
   return (
     <ThemeProvider>
-      <ThemedStack />
+      <ThemedStatusBar />
+      {startup.state === 'failed' ? <StartupError error={startup.error} onRetry={retry} /> : <AppStack />}
     </ThemeProvider>
   );
 }
 
-function ThemedStack() {
-  const { name, color } = useTheme();
-  return (
-    <>
-      <StatusBar style={name === 'dark' ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg } }} />
-    </>
-  );
+function ThemedStatusBar() {
+  const { name } = useTheme();
+  return <StatusBar style={name === 'dark' ? 'light' : 'dark'} />;
 }

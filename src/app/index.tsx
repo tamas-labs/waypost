@@ -1,42 +1,10 @@
-import { Link } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Redirect } from 'expo-router';
 
-import { t, type TranslationKey } from '@/i18n';
-import { useTheme } from '@/theme/theme-provider';
+import { useSession } from '@/auth/session';
+import { homeHref } from '@/navigation/access';
 
-/** The device test screens of the M1 prototype. */
-const PROTOTYPE_SCREENS: { href: '/prototype/clock' | '/prototype/nfc' | '/prototype/qr' | '/prototype/alarms'; title: TranslationKey }[] = [
-  { href: '/prototype/clock', title: 'prototype.screens.clock' },
-  { href: '/prototype/nfc', title: 'prototype.screens.nfc' },
-  { href: '/prototype/qr', title: 'prototype.screens.qr' },
-  { href: '/prototype/alarms', title: 'prototype.screens.alarms' },
-];
-
-// Start screen of the prototype: links to the device test screens (M1-03 to M1-06).
+// The start route: sends the session to its start screen (supervisor login, PIN, shift home or site list).
 export default function Index() {
-  const { color, typography, space, radius, size } = useTheme();
-  return (
-    <View style={[styles.container, { backgroundColor: color.bg, padding: space.l, gap: space.m }]}>
-      <Text style={[typography.title1, { color: color.text }]}>{t('app.name')}</Text>
-      <Text style={[typography.bodyRegular, { color: color.text2 }]}>{t('prototype.subtitle')}</Text>
-      {PROTOTYPE_SCREENS.map((screen) => (
-        <Link key={screen.href} href={screen.href} asChild>
-          <Pressable
-            // Link asChild needs a flat style object.
-            style={StyleSheet.flatten([
-              styles.item,
-              { backgroundColor: color.surface, borderColor: color.cardBorder, borderRadius: radius.item, minHeight: size.listItem, paddingHorizontal: space.l },
-            ])}
-          >
-            <Text style={[typography.body, { color: color.text }]}>{t(screen.title)}</Text>
-          </Pressable>
-        </Link>
-      ))}
-    </View>
-  );
+  const href = useSession(homeHref);
+  return href === null ? null : <Redirect href={href} />;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center' },
-  item: { borderWidth: 1, justifyContent: 'center' },
-});

@@ -14,7 +14,9 @@ Az app offline is működik. Az adatot láncolt naplóba írja, és szinkronizá
 - QR-olvasás;
 - ébresztés.
 
-A telefonos elfogadás (M1-08) még nem futott le, a nyitott ellenőrzések a [`docs/decisions.md`](docs/decisions.md)-ben és a [`docs/device-test.md`](docs/device-test.md)-ben vannak. A következő mérföldkő az M3 (offline őr mód), lásd a [feladatlistát](docs/tasks.md).
+A telefonos elfogadás (M1-08) még nem futott le, a nyitott ellenőrzések a [`docs/decisions.md`](docs/decisions.md)-ben és a [`docs/device-test.md`](docs/device-test.md)-ben vannak.
+
+Az M3 (offline őr mód) folyamatban, lásd a [feladatlistát](docs/tasks.md). Az alapok készek: helyi adatbázis, azonosító- és idősegédek, secure store, API-kliens, az indulási állapotok szerinti navigáció (a képernyők még helyőrzők) és egy fejlesztői képernyő, amellyel a telefon egy telephelyhez rendelhető. A prototípus-képernyők és a fejlesztői eszközök csak fejlesztői buildben érhetők el (a kezdőképernyőkről: „Fejlesztői eszközök”).
 
 ## Dokumentáció
 
@@ -39,6 +41,8 @@ npx eas-cli@latest build --profile development --platform android   # vagy: --pl
 npm start
 ```
 
+Az API címét (előtaggal, pl. `https://example.com/api/waypost/v1`) az `EXPO_PUBLIC_WAYPOST_API_URL` környezeti változó adja; fejlesztői buildben a „Telefon hozzárendelése” fejlesztői képernyőn is megadható. Helyi backendhez: `laravel-waypost` workbench (`composer serve`, demóadatokkal).
+
 Az elkészült dev buildet a telefonra telepítve az app a Metro szerverhez csatlakozik. A JS-változásokat a Metro frissíti. Ha a natív kód változik (a `modules/` mappa, egy natív csomag vagy egy config plugin), új dev build kell.
 
 Az `android/` és `ios/` mappát az Expo generálja (Continuous Native Generation), ezért nincsenek a repóban. A natív beállítások az `app.json`-ban vannak.
@@ -52,6 +56,7 @@ Az `android/` és `ios/` mappát az Expo generálja (Continuous Native Generatio
 | `npm run lint` | ESLint (`expo lint`), a beégetett színek és feliratok tiltásával |
 | `npm test` | Jest (`jest-expo`) |
 | `npx expo-doctor` | a függőségek és a konfiguráció ellenőrzése |
+| `npm run db:generate` | új adatbázis-migráció a `src/db/schema.ts` változása után |
 
 Egy feladat akkor kész, ha a `typecheck`, a `lint` és a `test` is zöld.
 
@@ -59,8 +64,13 @@ Egy feladat akkor kész, ha a `typecheck`, a `lint` és a `test` is zöld.
 
 ```text
 src/
-  app/        # expo-router képernyők; prototype/ = az M1 eszközpróbái
-  db/         # helyi adatbázis (expo-sqlite + Drizzle) – M3
+  app/        # expo-router képernyők: (auth)/, (guard)/, (supervisor)/; dev/ és prototype/ csak fejlesztői buildben
+  navigation/ # melyik képernyőcsoport nyitott az indulási állapot szerint
+  components/ # közös UI-komponensek
+  api/        # API-kliens (token, Idempotency-Key, típusos hibák, sémaellenőrzés fejlesztői módban)
+  auth/       # tokenek és eszköztitok (secure store), indulási állapot, telefon hozzárendelése
+  db/         # helyi adatbázis (expo-sqlite + Drizzle): séma, migrációk, kv
+  id/ time/   # UUIDv7; időbélyeg, monoton óra, megbízható idő
   domain/     # üzleti szabályok, UI és I/O nélkül – M3
   sync/       # pull, push, outbox, média – M3/M4
   chain/      # láncbejegyzés: kanonikus JSON, HMAC – M3

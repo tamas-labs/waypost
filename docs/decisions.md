@@ -142,3 +142,64 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   Ezeket a `device-test.md` M1-es tételeivel az első telefonos eszköztesztnél (legkésőbb az M3 végén) kell lefuttatni. Ha akkor valamelyik `❌`, a specifikációt kell módosítani, ahogy az M1-08 előírja.
 - **Indok:** A projekt gazdája az M1-et késznek tekinti; a kockázat a fenti tételekben marad.
 - **Érintett:** M1-03–M1-06, M1-08, `docs/device-test.md`, M3.
+
+## 2026-10-28 – Helyi adatbázis (M3-01)
+
+- **Kérdés:** Hogyan készüljenek és fussanak a migrációk, és pontosan miben tér el a helyi séma a szerverétől?
+- **Döntés:**
+  - `expo-sqlite` + Drizzle ORM (0.45, szinkron SQLite-driver). A séma a `src/db/schema.ts`-ben van; a migrációkat a `drizzle-kit` generálja (`npm run db:generate`) a `src/db/migrations/` alá, és commitoljuk őket. A `.sql` fájlokat a `babel-plugin-inline-import` szövegként fordítja be (`babel.config.js`; a `metro.config.js` a `sql` kiterjesztést is felveszi), így a migrációk a bundle-ben vannak. Indításkor az `openDatabase()` nyitja meg a `waypost.db`-t (`journal_mode = WAL`, `synchronous = FULL`: egy lezárt tranzakció áramszünetet is túlél), és lefuttatja a még nem futott migrációkat; addig a splash marad, hiba esetén hibaképernyő jön újrapróbálással.
+  - Az oszlopnevek a `@waypost/schema` mezőnevei (snake_case), így a pullban érkező rekordok átalakítás nélkül tárolhatók; a teszt a séma minden érvényes entitáspéldáját beírja és visszaolvassa. Időbélyeg: ISO 8601 UTC szöveg (szövegként is időrendben rendeződik), logikai érték: 0/1, JSON: szöveg.
+  - Eltérések a szerver tábláitól: `users` e-mail és jelszó nélkül, a pull `site_ids` mezője a `site_user` táblába kerül; `devices` titok, `last_seq`, `last_hash` és időbélyegek nélkül, a pull alakjában; `checkpoints` a koordinátát az entitássémához hasonlóan `lat_e7` / `lng_e7` / `accuracy_dm` egészként tárolja; `chain_entries` a csak szerveroldali `received_at`, `verify_status`, `flags` nélkül, de `synced_at`-tal, `UNIQUE(device_id, seq)`; `media` a szerveroldali `path` helyett `local_uri`-t (a fájl a telefonon) és `uploaded_at`-ot tart. Új táblák: `outbox` (metódus, útvonal, törzs, idempotencia-kulcs, `acting_user_id`, próbálkozások, következő próbálkozás, utolsó hiba – az M5-03 tölti fel) és `kv` (kulcs → JSON; a kulcsok típusosak: `src/db/kv.ts`).
+  - **Nincs idegen kulcs**, és a címke-UID és a QR-payload indexe nem egyedi: a hivatkozási épséget a szerver őrzi, egy pull-oldal pedig egy címkét átrakhat egyik pontról a másikra. Ráadásul egy pullban érkező törlés nem törölhet kaszkádolva az eszközön keletkezett adatból.
+  - A tesztek a `better-sqlite3`-on futnak (`src/db/testing.ts`), ugyanazzal a migrátorral és ugyanazokkal a migrációkkal, mint az app.
+- **Indok:** Specifikáció *Adatbázis* (utolsó bekezdés) és *Repo és technológiai stack* („migrációk a kódban, induláskor futnak”); Alapszabályok 6.
+- **Érintett:** `src/db/`, `babel.config.js`, `metro.config.js`, `drizzle.config.ts`, `src/app/_layout.tsx`, M3-01, M3-07, M3-11, M3-21, M5-03.
+
+## 2026-10-28 – Azonosító, időbélyeg és megbízható idő (M3-02)
+
+- **Döntés:**
+  - **UUIDv7** saját megvalósítással (`src/id/uuidv7.ts`, RFC 9562): 48 bites ezredmásodperc, 12 bites számláló, 62 véletlen bit (`expo-crypto` `getRandomValues`). Egy generátor azonosítói szigorúan növekvők, egy ezredmásodpercen belül és az óra visszaállítása után is (a számláló az utolsó időbélyegtől folytatódik, túlcsorduláskor az időbélyeg lép tovább).
+  - **Időbélyeg:** `toTimestamp()` / `parseTimestamp()` (`src/time/timestamp.ts`) pontosan a séma `common/timestamp.json` alakjával; más alakot (eltolás, ezredmásodperc nélkül, nem létező nap) elutasít.
+  - **Óra:** a `readClock()` egyszerre olvassa a faliórát, az uptime-ot és a boot ID-t (a boot ID-t egyszer, mert futás közben nem változhat).
+  - **Megbízható idő:** sikeres szinkronkor a `server_time` a hozzá tartozó uptime-mal és boot ID-val a `kv` `sync.time_ref` kulcsára kerül. A becslés `server_time + (uptime − ref_uptime)`, ha a referencia ugyanebből a bootból való (és az uptime nem kisebb nála); különben a falióra, `source: 'device'` jelzéssel. A láncbejegyzés `ref_*` mezői mindig az utolsó szinkron referenciáját hordozzák, más bootból is: a szerver a `boot_id = ref_boot_id` egyezésből látja, hogy használható-e.
+- **Indok:** Specifikáció *Szinkron protokoll / Pull* és *Láncolt napló* (`time_suspect`); CLAUDE.md (UUIDv7, ISO 8601 UTC ezredmásodperccel).
+- **Érintett:** `src/id/`, `src/time/`, `src/db/kv.ts`, M3-02, M3-07, M3-11.
+
+## 2026-10-28 – Secure store (M3-03)
+
+- **Döntés:**
+  - `expo-secure-store`, három kulcs: `waypost.supervisor_token`, `waypost.device_token`, `waypost.device_secret` (`src/auth/credentials.ts`). A titok csak 32 bájtos base64 lehet; a token és a titok csak együtt érvényes.
+  - `keychainAccessible: AFTER_FIRST_UNLOCK`: a telefon újraindítás utáni első feloldásától zárolt képernyőnél is olvasható, mert az ébresztés és a szinkron zárolt telefonon fut. (A `…_THIS_DEVICE_ONLY` változatot az SDK 58 dokumentációja elavultnak jelöli.)
+  - Az eszköz azonosítója nem titok, ezért a `kv` `device.id` kulcsán van. Ez egyben jelzi, hogy az adatbázis ismeri az eszközt: az iOS Keychain az app törlése után is megmarad, ezért újratelepítéskor a régi token és titok ott lehet, a láncuk viszont a régi adatbázissal elveszett. Ilyenkor (titok van, `device.id` nincs) az app indításkor törli őket, és a telefon hozzárendeletlen.
+- **Indok:** Specifikáció *Telephelyi telefon hozzárendelése* (4. pont) és *Adatbázis* (a titok a secure store-ban van).
+- **Érintett:** `src/auth/`, M3-03, M3-05, M3-11, M5-09.
+
+## 2026-10-28 – API-kliens (M3-04)
+
+- **Döntés:**
+  - **Alap-URL** az előtaggal együtt (pl. `https://example.com/api/waypost/v1`): build idejű `EXPO_PUBLIC_WAYPOST_API_URL`; fejlesztői buildben a fejlesztői hozzárendelő képernyőn megadott cím (`kv` `dev.api_base_url`) felülírja.
+  - Minden író kérés `Idempotency-Key` fejlécet kap: új UUIDv7-et, vagy a hívó által megadottat (az outbox a tárolt kulcsát adja, hogy az újraküldést a szerver felismerje). `X-Acting-User` a megadott supervisorral. Időkorlát: 30 mp.
+  - **Hibák:** `ApiError` (HTTP-státusz, `code`, magyar `message`, `details`, `Retry-After` másodpercben), `NetworkError` (nincs válasz vagy lejárt az idő), `InvalidResponseError` (a 2xx válasz nem JSON, vagy fejlesztői buildben nem felel meg a sémának). Ha a hibaválasz nem a hibaformátumban jön (pl. proxy HTML-oldala), a kód a státuszból képződik (401 → `unauthenticated`, 5xx → `server_error`, egyéb 4xx → `bad_request` …), `fromServer: false` jelzéssel.
+  - **Sémaellenőrzés** fejlesztői buildben (`__DEV__`): a kérés törzse és a 2xx válasz Ajv 2020-szal, a `waypost-schema` saját beállításaival (`strict`, `allErrors`, `ajv-formats`); a sémák első használatkor fordulnak le. A hibaválaszt csak szerkezetileg nézzük, hogy egy nem várt hibaoldal ne takarja el a státuszt. Az Ajv a release bundle-ben is benne van (a Metro statikusan gyűjti a függőségeket), de nem fut.
+  - A végpontok típusos függvények (`src/api/endpoints.ts`); a típusok a `@waypost/schema`-ból jönnek.
+- **Indok:** Specifikáció *API-szerződés*, *Hibaformátum* és *Repo és technológiai stack* (a csomag szabályai).
+- **Érintett:** `src/api/`, M3-04, M3-06, M3-07, M4, M5-03.
+
+## 2026-10-28 – Útvonalak és indulási állapotok (M3-05, Q1 részben)
+
+- **Kérdés:** A design (`DESIGN_HANDOFF.md`) más útvonalneveket használ (`/(guard)/pin`, `/supervisor/...`), mint a specifikáció (`(auth)/pin`, `(supervisor)/...`). Melyik a mérvadó?
+- **Döntés:**
+  - Az útvonalak a **specifikáció** csoportjai és nevei szerint készülnek: `(auth)/login`, `(auth)/pin`, `(guard)/…`, `(supervisor)/…`. A design útvonalai csak a képernyők azonosítására szolgálnak. A csak a designban szereplő képernyőkről (G2, G4, G6, S4, S6) a saját feladatuknál születik döntés (M3-30, M3-32, M3-34, M5-13, M5-20); a Q1 ebben a részében nyitott marad.
+  - **Indulási állapot** (`src/auth/startup.ts`, `src/auth/session.ts`): telephelyi telefon, ha van eszköztoken és -titok, és az adatbázis ismeri az eszközt; supervisor saját telefonja, ha csak supervisortoken van; különben hozzárendeletlen. A telephelyi telefonon maradt supervisortokent (megszakadt hozzárendelés) az app törli. Az állapot Zustand-tárban van (`useSession`), benne a PIN-nel belépett felhasználó (`activeUser`, az M3-15 tölti ki).
+  - **Navigáció:** a gyökér-Stack `Stack.Protected` őrökkel nyitja a csoportokat (`src/navigation/`): `(auth)` – a `login` csak hozzárendeletlen telefonon, a `pin` a telephelyi telefonon, amíg nincs belépett felhasználó; `(guard)` – őr PIN-belépése után; `(supervisor)` – a supervisor saját telefonján, vagy ha a telephelyi telefonon supervisor lépett be PIN-nel (M5-04). Az `index` az állapot kezdőképernyőjére irányít; ha az állapot változik, a már nem engedett képernyőről a router az `index`-re, onnan a kezdőképernyőre visz.
+  - A képernyők egyelőre helyőrzők (cím + „Ez a képernyő még készül.”); fejlesztői buildben a fejlesztői eszközökre linkelnek. A **fejlesztői eszközök** (`/dev`) és az M1 prototípus-képernyői (`/prototype/…`) csak fejlesztői buildben érhetők el; a régi prototípus-kezdőképernyő a `/dev` menüje lett.
+- **Indok:** Specifikáció *Mobilapp*; a `Stack.Protected` az expo-router ajánlott megoldása a hozzáféréshez kötött útvonalakra.
+- **Érintett:** `src/app/`, `src/auth/`, `src/navigation/`, `src/components/`, M3-05, M3-15, M3-29 – M3-38, M5-04 – M5-09, Q1.
+
+## 2026-10-28 – Fejlesztői eszköz-hozzárendelés (M3-06, Q7)
+
+- **Kérdés:** Hogyan legyen M3-ban hozzárendelt telefon, ha a hozzárendelés felülete csak M5-ben készül?
+- **Döntés:** A javaslat szerint: a `/dev/enroll` képernyő, csak fejlesztői buildben. Lépések: API-cím (elmentve a `kv`-be), supervisor e-mail és jelszó → `POST /auth/login` → `GET /sites` → telephely kiválasztása → `POST /devices/enroll` (név: a telefon neve, platform, appverzió). A token és a titok a secure store-ba, az eszköz az adatbázisba kerül, a pull kurzora törlődik (a következő pull teljes). Utána az app kijelentkezteti a supervisort a szerveren (ha ez nem sikerül, a hozzárendelés attól még érvényes), és törli a tokenjét; a supervisortoken ezen a képernyőn csak a memóriában van. Végül a telefon telephelyi telefon lesz (PIN-képernyő). A folyamat (`enrollThisPhone`) az M5-09 valódi képernyőjén is ezt használja. A hozzárendelés utáni azonnali teljes pull az M3-07-tel jön.
+  - Kipróbálva a `laravel-waypost` workbench-én (`composer serve`, demó-telephely): belépés, telephelylista, hozzárendelés, kijelentkezés és teljes pull a valódi szerverrel, minden válasz sémaellenőrzéssel (Node-ból, a Jest-környezetben). Telefonon még nem futott; ez a `device-test.md` M3-as I1–I5 tétele.
+- **Indok:** Az M3 offline teszteléséhez hozzárendelt telefon kell (M3-40).
+- **Érintett:** `src/app/dev/`, `src/auth/enrollment.ts`, `src/api/`, M3-06, M3-07, M5-09, Q7.

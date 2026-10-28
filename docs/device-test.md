@@ -14,6 +14,8 @@ Hogyan használd:
 | --- | --- | --- | --- | --- | --- |
 | | M1 | Android: | | | |
 | | M1 | iPhone: | | | |
+| | M3 | Android: | | | |
+| | M3 | iPhone: | | | |
 
 ## Ellenőrzések
 
@@ -75,6 +77,18 @@ A próbasorozat: „Ütemezés: 3 óra, 15 percenként” → 12 értesítés eg
 | E7 | Ütemezés után indítsd újra a telefont (ne nyisd meg az appot). | A következő értesítés újraindítás után is pontosan szól. |
 | E8 | Android: energiatakarékos mód bekapcsolva (és ha van, a gyártói „alkalmazás alvó állapotba” funkció). | Pontosan szól; ha nem, a megjegyzésbe a gyártó, a beállítás és a késés. |
 | E9 | iPhone: egy Fókusz mód (pl. Alvás) bekapcsolva. | Az időérzékeny értesítés átjut. |
+
+### M3 – Indulás és fejlesztői hozzárendelés (M3-01, M3-05, M3-06; fejlesztői build)
+
+A workbench demó-telephelye kell (`laravel-waypost`: `composer serve`), olyan címen, amelyet a telefon elér (ugyanazon a Wi-Fi-n a gép IP-címe, Android-emulátoron `10.0.2.2`), pl. `http://192.168.1.10:8088/api/waypost/v1`. A demó supervisor: `supervisor@waypost.test` / `password`.
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| I1 | Friss telepítés, első indítás. | A splash után a „Supervisor belépés” képernyő jön, hibaképernyő nélkül (az adatbázis létrejött). |
+| I2 | „Fejlesztői eszközök” → „Telefon hozzárendelése”: API-cím, demó supervisor, „Belépés”, majd a „Demó telephely”. | „A telefon a(z) Demó telephely telephelyhez rendelve.”; a „Kész” után a „PIN-belépés” képernyő. A workbench-ben megjelenik az új eszköz. |
+| I3 | Zárd be az appot (a legutóbbi appok közül kisöpörve), és nyisd meg újra; utána indítsd újra a telefont, és oldd fel. | Mindkétszer a „PIN-belépés” jön (a hozzárendelés megmaradt). |
+| I4 | Hibás API-cím vagy leállított workbench mellett „Belépés”. | „A szerver nem érhető el (…)”, legfeljebb 30 mp múlva; az app nem fagy le. |
+| I5 | Töröld az appot, és telepítsd újra (iPhone-on is: a Keychain megmarad). | Az app hozzárendeletlenként indul („Supervisor belépés”); a „Fejlesztői eszközök” állapota „nincs hozzárendelve”. |
 
 ## Eredmények
 

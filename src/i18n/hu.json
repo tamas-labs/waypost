@@ -2,6 +2,40 @@
   "app": {
     "name": "Waypost"
   },
+  "startup": {
+    "failed": "Az app nem tudott elindulni",
+    "retry": "Újrapróbálás"
+  },
+  "placeholder": {
+    "notReady": "Ez a képernyő még készül."
+  },
+  "dev": {
+    "title": "Fejlesztői eszközök",
+    "subtitle": "Csak fejlesztői buildben látszik.",
+    "mode": "Állapot: {{mode}}",
+    "modes": {
+      "unassigned": "nincs hozzárendelve",
+      "site_phone": "telephelyi telefon",
+      "supervisor_phone": "supervisor saját telefonja"
+    },
+    "screens": {
+      "enroll": "Telefon hozzárendelése"
+    },
+    "enroll": {
+      "title": "Telefon hozzárendelése",
+      "intro": "Supervisor-fiókkal ehhez a telephelyhez rendeli a telefont. A végleges felület később készül el.",
+      "apiUrl": "API-cím",
+      "apiUrlExample": "http://192.168.1.10:8000/api/waypost/v1",
+      "invalidUrl": "Az API-cím http:// vagy https:// kezdetű legyen.",
+      "chooseSite": "Válaszd ki a telephelyet",
+      "noSites": "Ehhez a fiókhoz nincs telephely rendelve.",
+      "working": "Folyamatban…",
+      "done": "A telefon a(z) {{site}} telephelyhez rendelve.",
+      "networkError": "A szerver nem érhető el ({{url}}).",
+      "invalidResponse": "A szerver válasza nem felel meg a sémának: {{details}}",
+      "error": "Hiba: {{message}}"
+    }
+  },
   "prototype": {
     "subtitle": "Prototípus – eszközpróbák",
     "screens": {
@@ -135,6 +169,7 @@
     "read": "Címke leolvasva"
   },
   "pin": {
+    "title": "PIN-belépés",
     "greetingEvening": "Jó estét!",
     "greetingMorning": "Jó reggelt!",
     "greetingDay": "Jó napot!",

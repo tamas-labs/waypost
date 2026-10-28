@@ -231,28 +231,28 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
 
 ### Alapok
 
-- [ ] **M3-01 Helyi adatbázis (expo-sqlite + Drizzle)**
+- [x] **M3-01 Helyi adatbázis (expo-sqlite + Drizzle)**
   - Mit: a szerver tábláinak tükre a specifikáció eltéréseivel (a `users` táblában nincs e-mail és jelszó; a `devices` táblában csak a saját eszköz van, titok nélkül); a `chain_entries` táblában `synced_at`; `outbox` és `kv` tábla; a migrációk induláskor futnak.
   - Kész, ha: Jest teszt a migrációkra (vagy legalább a sémára); az app induláskor létrehozza az adatbázist.
   - Spec: Adatbázis (utolsó bekezdés).
 
-- [ ] **M3-02 Idő- és azonosítósegédek**
+- [x] **M3-02 Idő- és azonosítósegédek**
   - Mit: UUIDv7 generátor; ISO 8601 UTC ezredmásodperccel; `waypost-clock` wrapper; a „megbízható idő” becslése a `kv` táblában tárolt utolsó `server_time` + uptime alapján (ugyanazon boot ID mellett).
   - Kész, ha: Jest tesztek (a natív modul mockolva).
 
-- [ ] **M3-03 Secure store réteg**
+- [x] **M3-03 Secure store réteg**
   - Mit: supervisortoken, eszköztoken, eszköztitok tárolása, olvasása, törlése.
 
-- [ ] **M3-04 API-kliens**
+- [x] **M3-04 API-kliens**
   - Mit: alap-URL konfiguráció, Bearer token, `Idempotency-Key` minden író kérésnél, a hibaformátum értelmezése (típusos hibák), a `@waypost/schema` TS típusai, `__DEV__` módban Ajv-ellenőrzés a válaszokra.
   - Kész, ha: Jest tesztek mockolt fetch-csel (sikeres válasz, 401, `device_revoked`, 422, sémahibás válasz fejlesztői módban).
   - Spec: Repo és technológiai stack (a csomag szabályai).
 
-- [ ] **M3-05 Indulási állapotok és navigációs váz** `⚠ Q1`
+- [x] **M3-05 Indulási állapotok és navigációs váz** `⚠ Q1`
   - Mit: a három indulási állapot (nincs hozzárendelve → supervisor belépés; telephelyi telefon → PIN; supervisor saját telefonja → telephelylista); expo-router csoportok: `(auth)`, `(guard)`, `(supervisor)`; átirányítás az állapot szerint.
   - Spec: Mobilapp.
 
-- [ ] **M3-06 Fejlesztői eszköz-hozzárendelés** `⚠ Q7`
+- [x] **M3-06 Fejlesztői eszköz-hozzárendelés** `⚠ Q7`
   - Mit: csak `__DEV__` módban egy képernyő: supervisor login + `POST /devices/enroll`, a token és a titok mentése. Az M3 teszteléséhez kell, mert a valódi hozzárendelés felülete csak M5-ben készül.
   - Kész, ha: a workbench demó-telephelyéhez (M2-06) a telefon hozzárendelhető.
 
@@ -591,13 +591,13 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
 
 Ezeket célszerű a megfelelő feladat előtt eldönteni és a `decisions.md`-be írni.
 
-- **Q1 – Képernyők és útvonalak eltérése.** A design (`SCREENS.md`) más route-neveket használ (pl. `/(guard)/pin` vs. a specifikáció `(auth)/pin`-je, `/supervisor/...` vs. `(supervisor)/...`), és olyan képernyőket is tartalmaz, amelyek a specifikációban nincsenek: Műszakkezdés (G2), Ébresztés (G4), Kör térképpel (G6), Kör részletei (S4), Betanítás – pont adatai (S6). Melyik a mérvadó, és melyik képernyő tartozik az 1. lépcsőbe? Az S4-hez a szervertől lekért kör- és leolvasásadat is kellene, amire most nincs végpont.
+- **Q1 – Képernyők és útvonalak eltérése.** A design (`SCREENS.md`) más route-neveket használ (pl. `/(guard)/pin` vs. a specifikáció `(auth)/pin`-je, `/supervisor/...` vs. `(supervisor)/...`), és olyan képernyőket is tartalmaz, amelyek a specifikációban nincsenek: Műszakkezdés (G2), Ébresztés (G4), Kör térképpel (G6), Kör részletei (S4), Betanítás – pont adatai (S6). Melyik a mérvadó, és melyik képernyő tartozik az 1. lépcsőbe? Az S4-hez a szervertől lekért kör- és leolvasásadat is kellene, amire most nincs végpont. **Részben eldöntve (2026-10-28): az útvonalak a specifikáció csoportjai és nevei szerint; a csak a designban szereplő képernyőkről a saját feladatuknál (M3-30, M3-32, M3-34, M5-13, M5-20) születik döntés; részletek: `docs/decisions.md`.**
 - **Q2 – Diagnosztikai esemény `chain_gap` / `chain_fork` esetén.** A specifikáció szerint az app „diagnosztikai eseményt küld”, de erre nincs se bejegyzéstípus, se végpont, és maga a lánc a hibás. Javaslat: egy külön, láncon kívüli `POST /devices/diagnostics` végpont (séma: M4-01).
 - **Q3 – Törlések a pullban.** A `deleted` listához tudni kell, mi törlődött. Soft delete (`deleted_at`) csak a `users` és a `sites` táblán van; a `checkpoints`, `routes` és `schedules` táblán csak `active` mező van. Javaslat: `deleted_at` minden szinkronizált táblára, vagy egy közös törlésnapló-tábla. **Eldöntve (2026-10-28): `deleted_at` (soft delete) és `updated_at` minden szinkronizált táblán; részletek: `laravel-waypost/docs/decisions.md`.**
 - **Q4 – Idempotencia-kulcsok tárolása.** Az adatmodellben nincs rá tábla. Javaslat: `waypost_idempotency_keys` (M2-04). **Eldöntve (2026-10-28): a javaslat szerint, hívónként egyedi kulccsal; részletek: `laravel-waypost/docs/decisions.md`.**
 - **Q5 – DST-szabály a menetrendben.** Mi legyen a tavaszi váltáskor nem létező (02:30) és az őszi váltáskor kétszer előforduló helyi időponttal? És az intervallum lépései faliórás időpontok (20:00, 21:00 … helyi idő szerint) vagy valós eltelt percek? Javaslat: faliórás időpontok; a nem létező időpontot a váltás utáni első érvényes időre toljuk, a kétszer előfordulónál az elsőt vesszük. Ez a tesztvektorokat (M0-08) is meghatározza. **Eldöntve (2026-10-27): a javaslat szerint; részletek: `waypost-schema/docs/decisions.md`.**
 - **Q6 – PIN-zárolás újraindítás után.** A zárolás az uptime-ot méri, ami újraindításkor nulláz. Javaslat: ha a boot ID megváltozott, a zárolás a teljes, eredeti időtartammal újraindul (így újraindítással nem lehet megkerülni).
-- **Q7 – Eszköztoken M3-ban.** Az M3 offline tesztjéhez hozzárendelt telefon kell, de a hozzárendelés felülete csak M5-ben készül. Javaslat: fejlesztői hozzárendelő képernyő (M3-06).
+- **Q7 – Eszköztoken M3-ban.** Az M3 offline tesztjéhez hozzárendelt telefon kell, de a hozzárendelés felülete csak M5-ben készül. Javaslat: fejlesztői hozzárendelő képernyő (M3-06). **Eldöntve (2026-10-28): a javaslat szerint, `/dev/enroll`, csak fejlesztői buildben; részletek: `docs/decisions.md`.**
 - **Q8 – Sanctum token gazdája.** Az eszköztoken a `Device` modellhez tartozzon (javaslat), vagy egy technikai felhasználóhoz? **Eldöntve (2026-10-28): a `Device`-hoz, a csomag saját tokentáblájában (`waypost_personal_access_tokens`); részletek: `laravel-waypost/docs/decisions.md`.**
 - **Q9 – A supervisor saját telefonjának pullja.** Az összes hozzárendelt telephely adatát kapja, PIN-hashekkel együtt? Javaslat: igen, de a PIN-mezők nélkül (neki nincs szüksége offline PIN-ellenőrzésre). **Eldöntve (2026-10-28): a javaslat szerint, a CRUD-válaszokban és a pullban (M2-23); részletek: `laravel-waypost/docs/decisions.md`.**
 - **Q10 – „A nap utolsó ütemezett köre” több útvonalnál.** Az automatikus műszakzárás a telephely összes útvonalának utolsó köréhez igazodik? Javaslat: igen, a legkésőbbi határidejű kör zárása + 60 perc.

@@ -58,7 +58,9 @@
           "sounds": ["./assets/sounds/round_alarm.wav"],
           "enableRemoteNotifications": false
         }
-      ]
+      ],
+      "expo-sqlite",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

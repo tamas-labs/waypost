@@ -22,8 +22,14 @@ A Waypost mobilapp (Expo / React Native, TypeScript): az őrök a telephelyi tel
 
 ```text
 src/
-  app/        # expo-router képernyők – csak route-fájl lehet benne (teszt, segéd nem); prototype/ = M1 eszközpróbák
-  db/         # expo-sqlite + Drizzle: séma, migrációk
+  app/        # expo-router képernyők – csak route-fájl lehet benne (teszt, segéd nem); (auth)/ (guard)/ (supervisor)/, dev/ és prototype/ (M1 eszközpróbák) csak fejlesztői buildben
+  navigation/ # melyik csoport nyitott az állapot szerint (Stack.Protected), kezdőképernyő
+  components/ # közös UI-komponensek
+  api/        # API-kliens: client.ts (token, Idempotency-Key, típusos hibák, __DEV__ Ajv), endpoints.ts
+  auth/       # secure store (tokenek, eszköztitok), indulási állapot, munkamenet (Zustand), hozzárendelés
+  db/         # expo-sqlite + Drizzle: schema.ts, migrations/ (generált), kv.ts, testing.ts (better-sqlite3 a tesztekhez)
+  id/         # uuidv7()
+  time/       # időbélyeg, readClock() (waypost-clock), megbízható idő
   domain/     # üzleti szabályok (menetrend → körök, műszak, kör, leolvasás) – UI és I/O nélkül
   sync/       # pull, push, outbox, média
   chain/      # láncbejegyzés: kanonikus JSON, HMAC
@@ -32,6 +38,7 @@ src/
   i18n/       # hu.json (minden felirat), index.ts: t(key, params)
 modules/      # saját Expo-modulok: waypost-clock (getUptimeMs, getBootId), waypost-power (akkumulátor-optimalizálás, Android) – import: @modules/<név>
 __tests__/    # képernyőtesztek; a modulok tesztjei a modul mellett: src/<modul>/*.test.ts
+__mocks__/    # Jest: expo-secure-store memóriában (automatikus); jest.setup.ts: expo-crypto véletlenforrás
 assets/       # ikon, splash (egyelőre az Expo sablon helyőrzői), sounds/ (az ébresztés hangja, helyőrző)
 ```
 
@@ -58,4 +65,6 @@ Importban a `@/…` alias a `src/…`-ra mutat.
 - `npm run lint` – `expo lint` (ESLint, `eslint-config-expo`).
 - `npm test` – Jest (`jest-expo` preset). A `jest.modulePaths` azért kell, mert a symlinkelt `@waypost/schema` fájljait a Jest a valódi útvonalukon fordítja, és a Babel-segédeket innen kell feloldani.
 - `npx expo-doctor` – függőségek és konfiguráció ellenőrzése.
+- `npm run db:generate` – a `src/db/schema.ts` változása után új migráció a `src/db/migrations/` alá (`drizzle-kit generate`); a generált fájlokat commitoljuk, kézzel nem szerkesztjük. A `.sql` fájlokat a `babel-plugin-inline-import` fordítja be; ha a Metro régi migrációt mutat, `npm start -- --clear`.
+- API-cím: `EXPO_PUBLIC_WAYPOST_API_URL` (előtaggal, pl. `https://example.com/api/waypost/v1`); fejlesztői buildben a `/dev/enroll` képernyőn is megadható.
 - Development build (Expo-fiók kell): `npx eas-cli@latest build --profile development --platform android` (ill. `ios`; ahhoz Apple Developer fiók és regisztrált eszköz kell).
