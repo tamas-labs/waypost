@@ -100,7 +100,7 @@ Cél: egy Androidon és egy iPhone-on bizonyítani, hogy az NFC, a QR, az ébres
   - Kész, ha: a beállítás mindkét platformon működik, az engedélyek állapota egy képernyőn látszik.
   - Spec: Mobilapp / Ébresztés.
 
-- [ ] **M1-07 Kézi eszközteszt-lista**
+- [x] **M1-07 Kézi eszközteszt-lista**
   - Mit: a `docs/device-test.md` létrehozása a specifikáció ellenőrzőlistájából, és kiegészítése az M1 próbáival (dátum, telefon, OS-verzió, eredmény oszlopokkal).
   - Spec: Tesztelés / Kézi eszközteszt.
 

@@ -10,7 +10,10 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.tamaslabs.waypost",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "entitlements": {
+        "com.apple.developer.usernotifications.time-sensitive": true
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +23,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.tamaslabs.waypost"
+      "package": "com.tamaslabs.waypost",
+      "permissions": ["android.permission.SCHEDULE_EXACT_ALARM"]
     },
     "plugins": [
       "expo-router",
@@ -46,6 +50,13 @@
           "cameraPermission": "A Waypost a kamerával az ellenőrzőpontok QR-kódját olvassa le, és fotót készít a leolvasásokhoz és az eseményekhez.",
           "microphonePermission": false,
           "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./assets/sounds/round_alarm.wav"],
+          "enableRemoteNotifications": false
         }
       ]
     ],

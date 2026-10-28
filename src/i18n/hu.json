@@ -7,7 +7,8 @@
     "screens": {
       "clock": "Monoton óra és boot ID",
       "nfc": "NFC-címke olvasása",
-      "qr": "QR-kód olvasása"
+      "qr": "QR-kód olvasása",
+      "alarms": "Ébresztés és engedélyek"
     },
     "clock": {
       "title": "Monoton óra",
@@ -59,6 +60,33 @@
       "notCheckpoint": "Waypost-előtag, de nem pontkód formátumú",
       "ignored": "Figyelmen kívül hagyva ({{time}}): {{data}}",
       "error": "Hiba: {{error}}"
+    },
+    "alarms": {
+      "title": "Ébresztés",
+      "checking": "Engedélyek ellenőrzése…",
+      "notifications": "Értesítések",
+      "exactAlarms": "Pontos riasztás",
+      "battery": "Akkumulátor-optimalizálás",
+      "allowed": "Engedélyezve",
+      "notAllowed": "Nincs engedélyezve",
+      "batteryExempt": "Kivétel – nem korlátozza az ébresztést",
+      "batteryOptimized": "Optimalizált – késleltetheti az ébresztést",
+      "allow": "Engedélyezés",
+      "openSettings": "Beállítások megnyitása",
+      "batteryFix": "Kivétel kérése",
+      "timeSensitive": "Időérzékeny értesítések",
+      "timeSensitiveHint": "Az app ezt nem tudja lekérdezni. Ellenőrizd: Beállítások → Értesítések → Waypost → Időérzékeny értesítések: bekapcsolva.",
+      "schedule": "Ütemezés: {{hours}} óra, {{every}} percenként",
+      "scheduled": "Ütemezett értesítések: {{count}}",
+      "noneScheduled": "Nincs ütemezett értesítés.",
+      "cancel": "Összes törlése",
+      "arrivals": "Beérkezett, amíg az app előtérben volt",
+      "noArrivals": "Még nem érkezett értesítés.",
+      "arrival": "{{time}} · ütemezve {{scheduled}} · +{{delay}} mp",
+      "notificationTitle": "Próbaébresztés {{time}}",
+      "notificationBody": "{{n}}/{{total}}. értesítés. Ha késve szólt, írd fel, mennyit.",
+      "error": "Hiba: {{error}}",
+      "hint": "Engedélyezz mindent, ütemezd be a sorozatot, majd zárold le a telefont. Próbáld ki háttérben lévő és bezárt appal (a legutóbbi appok közül kisöpörve) is. Minden negyedórában pontosan kell szólnia, saját hanggal és rezgéssel, némított telefonon is."
     }
   },
   "common": {
@@ -152,7 +180,9 @@
     "previous": "Előző kör ({{time}}) {{status}}",
     "go": "Indulok",
     "mute": "Hang némítása",
-    "timingNote": "Az időmérés az első leolvasással indul."
+    "timingNote": "Az időmérés az első leolvasással indul.",
+    "channelName": "Körök ébresztése",
+    "channelDescription": "Szól, amikor egy járőrkör indul."
   },
   "round": {
     "title": "{{time}}-s kör",

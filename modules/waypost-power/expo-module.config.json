@@ -1,0 +1,6 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": ["com.tamaslabs.waypost.power.WaypostPowerModule"]
+  }
+}
