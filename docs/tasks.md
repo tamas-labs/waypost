@@ -114,114 +114,114 @@ Cél: migrációk, modellek, telepítő parancsok, login, konfigurációs CRUD P
 
 ### Váz és infrastruktúra
 
-- [ ] **M2-01 Csomag váz**
+- [x] **M2-01 Csomag váz**
   - Mit: `composer.json` (`waypost/laravel-waypost`; Laravel 13, Sanctum, `waypost/schema` path repositoryból, opis/json-schema, dompdf), `WaypostServiceProvider`, `config/waypost.php` (route prefix, middleware, tábla-előtag, storage disk, queue, mail feladó), Orchestra Testbench + workbench, Pest, Larastan 8-as szint, `CLAUDE.md`, `docs/decisions.md`.
   - Kész, ha: `vendor/bin/pest` (egy üres teszttel) és `vendor/bin/phpstan` zöld; a workbench elindul.
   - Spec: Repo és technológiai stack.
 
-- [ ] **M2-02 Alapkonvenciók**
+- [x] **M2-02 Alapkonvenciók**
   - Mit: táblanév-előtag (`waypost_`, konfigurálható) a modellekben és a migrációkban; UUIDv7 elsődleges kulcs trait; UTC és `datetime(3)` kezelés; az ISO 8601 ezredmásodperces kimenet egységes formázója.
   - Kész, ha: unit teszt az előtagra, az UUIDv7-re és az időformátumra.
 
 ### Adatbázis és modellek
 
-- [ ] **M2-03 Migrációk: konfiguráció** `⚠ Q3`
+- [x] **M2-03 Migrációk: konfiguráció** `⚠ Q3`
   - Mit: `users`, `sites`, `site_user`, `devices`, `checkpoints`, `routes`, `route_versions`, `route_version_checkpoints`, `schedules`, `report_subscriptions`, az összes egyedi kulccsal és indexszel. A pull törlési listájához szükséges törlésjelölés minden szinkronizált táblán.
   - Kész, ha: a migráció MySQL 8-on és PostgreSQL 16-on (vagy legalább SQLite-on a tesztekben és egy valódi motoron kézzel) fut, és vissza is görgethető.
   - Spec: Adatbázis.
 
-- [ ] **M2-04 Migrációk: eszközadat, kimenő és idempotencia** `⚠ Q4` `⚠ Q14`
+- [x] **M2-04 Migrációk: eszközadat, kimenő és idempotencia** `⚠ Q4` `⚠ Q14`
   - Mit: `chain_entries`, `shifts`, `rounds`, `scans`, `incidents`, `media`, `reports`, valamint egy idempotenciatábla (kulcs, token/eszköz, kérés-lenyomat, tárolt válasz, lejárat).
   - Kész, ha: mint fent.
 
-- [ ] **M2-05 Modellek, kapcsolatok, factory-k**
+- [x] **M2-05 Modellek, kapcsolatok, factory-k**
   - Mit: minden táblához modell (`Waypost\Models\...`), kapcsolatok, castok (a `devices.secret` titkosítva), factory-k a tesztekhez. A `User` és a `Device` Sanctum-tokenelhető.
   - Kész, ha: factory-kkel minden modell létrehozható; PHPStan zöld.
 
-- [ ] **M2-06 Workbench demó-seeder**
+- [x] **M2-06 Workbench demó-seeder**
   - Mit: egy seeder, amely létrehoz egy telephelyet supervisorral, két őrrel (ismert PIN-nel), 6 ponttal (NFC és QR), egy kötött és egy szabad sorrendű útvonallal, és egy 5 perces menetrenddel. Az app M3-as tesztjéhez is ez kell.
   - Kész, ha: `php artisan db:seed` után a pull a teljes demóállapotot adja.
 
 ### Parancsok és PIN
 
-- [ ] **M2-07 `waypost:install` parancs**
+- [x] **M2-07 `waypost:install` parancs**
   - Mit: a konfiguráció és a migrációk publikálása, opcionálisan a migráció futtatása.
   - Kész, ha: egy friss Laravel 13 alkalmazásban (`composer require` + `waypost:install`) a táblák létrejönnek; feature teszt.
 
-- [ ] **M2-08 `waypost:create-supervisor` parancs**
+- [x] **M2-08 `waypost:create-supervisor` parancs**
   - Mit: név, e-mail és jelszó bekérése (interaktívan vagy opciókkal), validálás, létrehozás.
   - Kész, ha: feature teszt; ugyanazzal az e-mail-címmel másodszor hibát ad.
 
-- [ ] **M2-09 PIN-szolgáltatás** `⚠ Q11`
+- [x] **M2-09 PIN-szolgáltatás** `⚠ Q11`
   - Mit: PBKDF2-HMAC-SHA256, 16 bájtos véletlen só, 100 000 iteráció; 6 jegyű PIN generálása; ellenőrzés, hogy a PIN egyedi-e egy telephelyen belül (minden ott lévő felhasználó sójával újraszámolva); egy rögzített PIN-tesztvektor, amelyet az app is használ.
   - Kész, ha: unit tesztek, köztük az ütközés esete.
   - Spec: Azonosítás / PIN-kód.
 
 ### API-alapok
 
-- [ ] **M2-10 API-keret**
+- [x] **M2-10 API-keret**
   - Mit: útvonalcsoport a konfigurált előtaggal (`api/waypost/v1`); egységes hibaformátum (exception handler, magyar üzenetek, a specifikáció kódjai); `server_time` minden válaszban (middleware); rate limiting (`rate_limited`, 429).
   - Kész, ha: feature tesztek minden hibakódra.
   - Spec: API-szerződés / Hibaformátum.
 
-- [ ] **M2-11 Sémaellenőrzés**
+- [x] **M2-11 Sémaellenőrzés**
   - Mit: a bemenő JSON ellenőrzése a `waypost/schema` sémáival (opis/json-schema) middleware-ben vagy a FormRequest előtt; a FormRequest csak az adatbázisfüggő szabályokat nézi. Pest-segéd: `expect($response)->toMatchSchema('api/...')`.
   - Kész, ha: hibás törzsre `validation_failed` jön mezőnkénti részletekkel.
 
-- [ ] **M2-12 Idempotency-Key middleware**
+- [x] **M2-12 Idempotency-Key middleware**
   - Mit: minden író kérésnél kötelező UUID fejléc; ugyanarra a kulcsra 24 órán át ugyanaz a válasz; más törzzsel érkező azonos kulcs esetén hiba; a lejárt kulcsok takarítása (ütemezett job).
   - Kész, ha: feature tesztek (ismétlés, eltérő törzs, lejárat).
 
-- [ ] **M2-13 Azonosítás: Sanctum, képességek, X-Acting-User** `⚠ Q8`
+- [x] **M2-13 Azonosítás: Sanctum, képességek, X-Acting-User** `⚠ Q8`
   - Mit: két tokenfajta (`supervisor` a `User`-en, `device` a `Device`-on); middleware a képességekre; a visszavont eszközre `device_revoked` (401); az `X-Acting-User` fejléc kezelése: eszköztoken + egy olyan supervisor nevében, aki az eszköz telephelyéhez van rendelve, és csak azon a telephelyen.
   - Kész, ha: feature tesztek minden kombinációra (jó/rossz képesség, visszavont eszköz, idegen telephely supervisora).
   - Spec: Azonosítás.
 
-- [ ] **M2-14 `POST /auth/login`, `POST /auth/logout`**
+- [x] **M2-14 `POST /auth/login`, `POST /auth/logout`**
   - Kész, ha: feature tesztek (helyes, hibás jelszó, inaktív felhasználó, őr nem léphet be jelszóval, a kijelentkezés törli a tokent); a válasz megfelel a sémának.
 
-- [ ] **M2-15 Policy-k**
+- [x] **M2-15 Policy-k**
   - Mit: a supervisor csak a `site_user` szerint hozzárendelt telephelyeit és azok alá tartozó entitásait látja és módosíthatja.
   - Kész, ha: unit vagy feature teszt minden Policy-ra, idegen telephelyre 403 / 404.
 
 ### Konfigurációs CRUD
 
-- [ ] **M2-16 `/sites` és `/sites/{id}/users`**
+- [x] **M2-16 `/sites` és `/sites/{id}/users`**
   - Mit: CRUD (soft delete), felhasználók hozzárendelése és leválasztása. Az új telephely létrehozója automatikusan hozzárendelődik.
   - Kész, ha: feature tesztek jogosultsággal.
 
-- [ ] **M2-17 `/users`**
+- [x] **M2-17 `/users`**
   - Mit: őr és supervisor létrehozása, módosítása, inaktiválása; PIN megadása vagy generálása (a generált PIN egyszer jelenik meg a válaszban); PIN-csere; `conflict` (409) foglalt PIN-re.
   - Kész, ha: feature tesztek, köztük a 409.
 
-- [ ] **M2-18 `/checkpoints`**
+- [x] **M2-18 `/checkpoints`**
   - Mit: CRUD; a `tag_uid` normalizálása; `UNIQUE(site_id, tag_uid)` és `UNIQUE(qr_payload)` ütközésre 409; a QR payload generálása (`waypost:cp:<id>:<16 karakteres véletlen kód>`), ha nincs megadva.
   - Kész, ha: feature tesztek, köztük a 409.
 
-- [ ] **M2-19 `/routes` és `/routes/{id}/versions`**
+- [x] **M2-19 `/routes` és `/routes/{id}/versions`**
   - Mit: útvonal CRUD; új verzió létrehozása pontlistával és mért időkkel (a verzió utólag nem módosul); a `current_version_id` frissítése; a `version` sorszám automatikus.
   - Kész, ha: feature tesztek; egy meglévő verzió módosítási kísérlete hibát ad.
 
-- [ ] **M2-20 `/schedules`**
+- [x] **M2-20 `/schedules`**
   - Mit: CRUD; a módhoz tartozó mezők validálása (`list`: `start_times`; `interval`: from, to, every); `time_limit_min` alapértéke a jelenlegi útvonalverzióból, ha a kérés nem ad meg semmit.
   - Kész, ha: feature tesztek mindkét módra és az alapértékre.
 
-- [ ] **M2-21 `/report-subscriptions`**
+- [x] **M2-21 `/report-subscriptions`**
   - Kész, ha: CRUD feature tesztek, `UNIQUE(user_id, site_id, frequency)` ütközés.
 
 ### Eszköz és pull
 
-- [ ] **M2-22 `POST /devices/enroll`**
+- [x] **M2-22 `POST /devices/enroll`**
   - Mit: `devices` rekord, 32 bájtos véletlen titkos kulcs, `device` képességű token; a válasz (eszköz ID, token, base64 titok) csak egyszer adódik ki; ha a telephelynek már volt eszköze, az visszavonódik (`revoked_at`), és a tokenjei érvénytelenné válnak.
   - Kész, ha: feature tesztek (első hozzárendelés, csere, jogosultság).
   - Spec: Azonosítás / Telephelyi telefon hozzárendelése.
 
-- [ ] **M2-23 `GET /sync/pull`** `⚠ Q3` `⚠ Q9`
+- [x] **M2-23 `GET /sync/pull`** `⚠ Q3` `⚠ Q9`
   - Mit: átlátszatlan kurzor (`updated_at` + `id`); üres kurzorral teljes állapot; oldalanként legfeljebb 500 rekord, `has_more`; a `changes` és a `deleted` listák; az eszköz a saját telephelyét, a supervisor a hozzárendelt telephelyeit kapja; a felhasználóknál a PIN-mezők; az eszköz `last_seen_at` értékének frissítése.
   - Kész, ha: feature tesztek: teljes pull, lapozás 500 felett, inkrementális pull módosítás és törlés után, azonos `updated_at` értékű rekordok a lapozás határán; a válasz megfelel a sémának.
   - Spec: API-szerződés / Pull.
 
-- [ ] **M2-24 Elfogadás**: Pest feature teszt minden végpontra jogosultsággal együtt; a válaszok megfelelnek a sémáknak; PHPStan 8 hibamentes.
+- [x] **M2-24 Elfogadás**: Pest feature teszt minden végpontra jogosultsággal együtt; a válaszok megfelelnek a sémáknak; PHPStan 8 hibamentes.
 
 ---
 
@@ -458,7 +458,7 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
 
 ### Séma és backend
 
-- [ ] **M5-01 Séma: konfigurációs CRUD végpontok**
+- [x] **M5-01 Séma: konfigurációs CRUD végpontok** *(előrehozva az M2-16 – M2-21 elé)*
   - Mit: kérés- és válaszsémák a `/sites`, `/sites/{id}/users`, `/checkpoints`, `/routes`, `/routes/{id}/versions`, `/schedules`, `/users`, `/report-subscriptions` végpontokhoz; az `X-Acting-User` fejléc dokumentálása; minor verzió.
   - Kész, ha: a backend M2-es CRUD-tesztjei a sémaellenőrzéssel is zöldek.
 
@@ -593,15 +593,15 @@ Ezeket célszerű a megfelelő feladat előtt eldönteni és a `decisions.md`-be
 
 - **Q1 – Képernyők és útvonalak eltérése.** A design (`SCREENS.md`) más route-neveket használ (pl. `/(guard)/pin` vs. a specifikáció `(auth)/pin`-je, `/supervisor/...` vs. `(supervisor)/...`), és olyan képernyőket is tartalmaz, amelyek a specifikációban nincsenek: Műszakkezdés (G2), Ébresztés (G4), Kör térképpel (G6), Kör részletei (S4), Betanítás – pont adatai (S6). Melyik a mérvadó, és melyik képernyő tartozik az 1. lépcsőbe? Az S4-hez a szervertől lekért kör- és leolvasásadat is kellene, amire most nincs végpont.
 - **Q2 – Diagnosztikai esemény `chain_gap` / `chain_fork` esetén.** A specifikáció szerint az app „diagnosztikai eseményt küld”, de erre nincs se bejegyzéstípus, se végpont, és maga a lánc a hibás. Javaslat: egy külön, láncon kívüli `POST /devices/diagnostics` végpont (séma: M4-01).
-- **Q3 – Törlések a pullban.** A `deleted` listához tudni kell, mi törlődött. Soft delete (`deleted_at`) csak a `users` és a `sites` táblán van; a `checkpoints`, `routes` és `schedules` táblán csak `active` mező van. Javaslat: `deleted_at` minden szinkronizált táblára, vagy egy közös törlésnapló-tábla.
-- **Q4 – Idempotencia-kulcsok tárolása.** Az adatmodellben nincs rá tábla. Javaslat: `waypost_idempotency_keys` (M2-04).
+- **Q3 – Törlések a pullban.** A `deleted` listához tudni kell, mi törlődött. Soft delete (`deleted_at`) csak a `users` és a `sites` táblán van; a `checkpoints`, `routes` és `schedules` táblán csak `active` mező van. Javaslat: `deleted_at` minden szinkronizált táblára, vagy egy közös törlésnapló-tábla. **Eldöntve (2026-10-28): `deleted_at` (soft delete) és `updated_at` minden szinkronizált táblán; részletek: `laravel-waypost/docs/decisions.md`.**
+- **Q4 – Idempotencia-kulcsok tárolása.** Az adatmodellben nincs rá tábla. Javaslat: `waypost_idempotency_keys` (M2-04). **Eldöntve (2026-10-28): a javaslat szerint, hívónként egyedi kulccsal; részletek: `laravel-waypost/docs/decisions.md`.**
 - **Q5 – DST-szabály a menetrendben.** Mi legyen a tavaszi váltáskor nem létező (02:30) és az őszi váltáskor kétszer előforduló helyi időponttal? És az intervallum lépései faliórás időpontok (20:00, 21:00 … helyi idő szerint) vagy valós eltelt percek? Javaslat: faliórás időpontok; a nem létező időpontot a váltás utáni első érvényes időre toljuk, a kétszer előfordulónál az elsőt vesszük. Ez a tesztvektorokat (M0-08) is meghatározza. **Eldöntve (2026-10-27): a javaslat szerint; részletek: `waypost-schema/docs/decisions.md`.**
 - **Q6 – PIN-zárolás újraindítás után.** A zárolás az uptime-ot méri, ami újraindításkor nulláz. Javaslat: ha a boot ID megváltozott, a zárolás a teljes, eredeti időtartammal újraindul (így újraindítással nem lehet megkerülni).
 - **Q7 – Eszköztoken M3-ban.** Az M3 offline tesztjéhez hozzárendelt telefon kell, de a hozzárendelés felülete csak M5-ben készül. Javaslat: fejlesztői hozzárendelő képernyő (M3-06).
-- **Q8 – Sanctum token gazdája.** Az eszköztoken a `Device` modellhez tartozzon (javaslat), vagy egy technikai felhasználóhoz?
-- **Q9 – A supervisor saját telefonjának pullja.** Az összes hozzárendelt telephely adatát kapja, PIN-hashekkel együtt? Javaslat: igen, de a PIN-mezők nélkül (neki nincs szüksége offline PIN-ellenőrzésre).
+- **Q8 – Sanctum token gazdája.** Az eszköztoken a `Device` modellhez tartozzon (javaslat), vagy egy technikai felhasználóhoz? **Eldöntve (2026-10-28): a `Device`-hoz, a csomag saját tokentáblájában (`waypost_personal_access_tokens`); részletek: `laravel-waypost/docs/decisions.md`.**
+- **Q9 – A supervisor saját telefonjának pullja.** Az összes hozzárendelt telephely adatát kapja, PIN-hashekkel együtt? Javaslat: igen, de a PIN-mezők nélkül (neki nincs szüksége offline PIN-ellenőrzésre). **Eldöntve (2026-10-28): a javaslat szerint, a CRUD-válaszokban és a pullban (M2-23); részletek: `laravel-waypost/docs/decisions.md`.**
 - **Q10 – „A nap utolsó ütemezett köre” több útvonalnál.** Az automatikus műszakzárás a telephely összes útvonalának utolsó köréhez igazodik? Javaslat: igen, a legkésőbbi határidejű kör zárása + 60 perc.
-- **Q11 – Közös PIN-tesztvektor.** A specifikáció nem írja elő, de a PBKDF2-paraméterek eltérése csendes hibát okozna. Javaslat: egy PIN-vektor a `waypost-schema` repóba (pl. `pin/test-vectors.json`).
+- **Q11 – Közös PIN-tesztvektor.** A specifikáció nem írja elő, de a PBKDF2-paraméterek eltérése csendes hibát okozna. Javaslat: egy PIN-vektor a `waypost-schema` repóba (pl. `pin/test-vectors.json`). **Eldöntve (2026-10-28): a javaslat szerint, `waypost-schema/pin/test-vectors.json`; részletek: `waypost-schema/docs/decisions.md`.**
 - **Q12 – Az app neve.** A design „Őrjárat”, a specifikáció „Waypost”. Mi jelenjen meg a telefonon és az e-mailekben? **Eldöntve (2026-10-27): „Waypost”; bundle ID / package name `com.tamaslabs.waypost`; részletek: `docs/decisions.md`.**
 - **Q13 – Rossz sorrend visszajelzése.** A specifikáció hibánál két rövid rezgést és piros jelzést ír; a design a rossz sorrendre „Warning” haptikát ad (mert a leolvasás számít). Javaslat: a designé.
-- **Q14 – `chain_entries.type` adatbázis-típusa.** A 2. lépcső új típusokat hoz (`sos`); egy DB `enum` bővítése migrációt igényel. Javaslat: `string` oszlop, a validálás a sémában.
+- **Q14 – `chain_entries.type` adatbázis-típusa.** A 2. lépcső új típusokat hoz (`sos`); egy DB `enum` bővítése migrációt igényel. Javaslat: `string` oszlop, a validálás a sémában. **Eldöntve (2026-10-28): a javaslat szerint, minden felsorolásra; részletek: `laravel-waypost/docs/decisions.md`.**
