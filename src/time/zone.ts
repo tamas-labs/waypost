@@ -75,6 +75,11 @@ export function formatLocalTime(minutes: number): string {
   return `${pad(Math.floor(minutes / 60) % 24)}:${pad(minutes % 60)}`;
 }
 
+/** The local time (HH:MM) of a UTC instant in the time zone. */
+export function localTimeOf(utcMs: number, timeZone: string): string {
+  return formatLocalTime(Math.floor((naiveOf(utcMs, timeZone) % DAY_MS) / MINUTE_MS));
+}
+
 /** The local time with its UTC offset, e.g. 2026-03-29T03:00:00+02:00. */
 export function formatLocalWithOffset(utcMs: number, timeZone: string): string {
   const naive = naiveOf(utcMs, timeZone);

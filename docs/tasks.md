@@ -341,10 +341,11 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
 - [x] **M3-23 Ütemező futtató**
   - Mit: a domain ütemező lépésének futtatása induláskor, előtérbe kerüléskor, minden értesítéskor és előtérben 30 másodpercenként; a kimenetének láncba írása.
 
-- [ ] **M3-24 Ébresztés-ütemezés**
+- [x] **M3-24 Ébresztés-ütemezés**
   - Mit: mindig a következő 36 óra körei, legfeljebb 48 értesítés; körönként kettő (időpontban, és +5 percnél emlékeztető, amelyet a kör indulása töröl); a teljes lista cseréje induláskor, pull után, műszakkezdéskor és minden értesítéskor; koppintásra a kör képernyője, vagy ha nincs belépett őr, a PIN-képernyő; figyelmeztető sáv a PIN-képernyőn, ha hiányzik egy Android-engedély.
   - Kész, ha: Jest tesztek a lista kiszámítására (36 óra, 48-as korlát, emlékeztető törlése).
   - Spec: Mobilapp / Ébresztés.
+  - Megjegyzés (2026-10-29): a koppintás célképernyője az M3-32-ben, a figyelmeztető sáv az M3-29-ben készül el, mert a képernyők még helyőrzők; az ütemezés és a lista kész.
 
 ### Felület (őr mód)
 
@@ -359,13 +360,13 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
 - [ ] **M3-28 Szinkronjelző a fejlécben**
   - Mit: online / offline / „N tétel vár feltöltésre”; koppintásra az utolsó sikeres szinkron ideje és „Szinkron most” gomb; minden képernyőn.
 
-- [ ] **M3-29 PIN-képernyő (G1, `B-PIN`)**: telephely neve, 6 jegyű billentyűzet, szinkronállapot, zárolásnál visszaszámlálás, az engedélyekre figyelmeztető sáv.
+- [ ] **M3-29 PIN-képernyő (G1, `B-PIN`)**: telephely neve, 6 jegyű billentyűzet, szinkronállapot, zárolásnál visszaszámlálás, az engedélyekre figyelmeztető sáv (`getAlarmPermissions`, `allAlarmPermissionsGranted`, `src/alarms/permissions.ts`; M3-24).
 
 - [ ] **M3-30 Műszakkezdés képernyő (G2, `B-Muszakkezdes`)** `⚠ Q1`: a design szerint; a specifikációban nincs külön képernyő, a döntés a `decisions.md`-be kerül.
 
 - [ ] **M3-31 Műszak kezdőlap (G3, `B-Kezdolap`)**: a következő kör visszaszámlálással, az éjszaka körei idővonalon állapottal, „Esemény rögzítése” és „Műszak zárása” gomb.
 
-- [ ] **M3-32 Ébresztés képernyő (G4, `B-Ebresztes`)** `⚠ Q1`: hang és rezgés ismétlődve, „Indulok” (a kör képernyője) és „Hang némítása”; halasztás nincs.
+- [ ] **M3-32 Ébresztés képernyő (G4, `B-Ebresztes`)** `⚠ Q1`: hang és rezgés ismétlődve, „Indulok” (a kör képernyője) és „Hang némítása”; halasztás nincs. Az értesítésre koppintva ez nyílik meg a kör adataival (`RoundAlarmData`, `src/alarms/round-alarms.ts`), belépett őr nélkül a PIN-képernyő (M3-24).
 
 - [ ] **M3-33 Kör folyamatban – lista (G5, `B-Kor`)**: pontlista (leolvasva időponttal / hátralévő), hátralévő idő (az utolsó 5 percben figyelmeztető szín és egyszeri rezgés), nagy „Leolvasás” gomb (iOS-en NFC), QR gomb, „Címke nem olvasható”; expo-keep-awake; Androidon előtérbeli NFC-figyelés.
 

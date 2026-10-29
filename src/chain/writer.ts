@@ -14,6 +14,7 @@ import { notifyChainEntry } from '@/sync/runtime';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 import { chainTimeReference, getTimeReference } from '@/time/trusted-time';
 
+import { emitChainEntries } from './events';
 import { GENESIS_HASH, signChainEntry } from './hmac';
 import { applyProjection } from './projection';
 
@@ -84,6 +85,7 @@ async function writeDrafts(db: Database, drafts: readonly ChainEntryDraft[], opt
   });
 
   notifyChainEntry();
+  emitChainEntries(written);
   return written;
 }
 

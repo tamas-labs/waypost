@@ -28,6 +28,7 @@ A formátum a [Keep a Changelog](https://keepachangelog.com/hu/1.1.0/) ajánlás
 - Leolvasás feloldása (NFC, QR) és jelölései: ismeretlen címke, ismétlés, körön kívül, rossz sorrend, kör teljesítése (M3-18).
 - Kézi rögzítés (leolvasás + sérült címke esemény) és esemény a legközelebbi ponttal (M3-19).
 - Ütemező futtató: a kör-ütemező lépése induláskor, előtérbe kerüléskor, értesítéskor és előtérben 30 másodpercenként, a megbízható idővel; az állapot beolvasása és a bejegyzések írása egy záron belül, így egy kör nem nyílhat kétszer; az automatikus műszakzárás azonnal szinkronizál (M3-23).
+- Ébresztés-ütemezés: a következő 36 óra köreinek értesítése és 5 perces emlékeztetője, legfeljebb 48; a lista cseréje induláskor, pull után, értesítéskor, előtérbe kerüléskor, a műszak és a kör indulásakor és zárásakor, csak az eltérő értesítéseket érintve; a megbízható időből számolva, a telefon órájához igazítva (M3-24).
 - Függőség: `@react-native-community/netinfo` (natív: új development build kell).
 - Függőség: `react-native-quick-crypto` (a `react-native-nitro-modules` és a `react-native-quick-base64` csomaggal; natív: új development build kell).
 

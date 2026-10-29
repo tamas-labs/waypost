@@ -32,6 +32,15 @@ export function slotsAround(state: GuardState, fromMs: number, toMs: number): Sl
   return slotsBetween(state.schedules, state.timezone, fromMs - DAY_MS, toMs + 2 * DAY_MS);
 }
 
+/** slotsAround, only of the routes that have rounds: an inactive route, or one without a trained version, has none. */
+export function expectedSlots(state: GuardState, fromMs: number, toMs: number): Slot[] {
+  const routes = new Map(state.routes.map((route) => [route.id, route]));
+  return slotsAround(state, fromMs, toMs).filter((slot) => {
+    const route = routes.get(slot.route_id);
+    return route !== undefined && route.active && route.current_version_id !== null;
+  });
+}
+
 /** The deadline of a round, given the slots around it. */
 export function deadlineOf(state: GuardState, round: Pick<RoundInfo, 'route_id' | 'schedule_id' | 'scheduled_at' | 'time_limit_min'>, slots: readonly Slot[]): number {
   const slot = slots.find((s) => s.schedule_id === round.schedule_id && s.scheduled_at === round.scheduled_at);
@@ -75,11 +84,7 @@ export function schedulerStep(state: GuardState, now: Timestamp, newId: NewId): 
   const openRounds = state.rounds.filter(isOpen);
   const earliest = Math.min(shiftStartedMs, ...openRounds.map((round) => parseTimestamp(round.scheduled_at)));
   const routes = new Map(state.routes.map((route) => [route.id, route]));
-  // Rounds of an inactive route, or of one without a trained version, are not expected.
-  const slots = slotsAround(state, earliest, nowMs).filter((slot) => {
-    const route = routes.get(slot.route_id);
-    return route !== undefined && route.active && route.current_version_id !== null;
-  });
+  const slots = expectedSlots(state, earliest, nowMs);
   const autoCloseMs = autoCloseTime(state, slots, shiftStartedMs);
   const endMs = autoCloseMs !== null && autoCloseMs <= nowMs ? autoCloseMs : nowMs;
 

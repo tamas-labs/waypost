@@ -217,7 +217,13 @@
     "mute": "Hang némítása",
     "timingNote": "Az időmérés az első leolvasással indul.",
     "channelName": "Körök ébresztése",
-    "channelDescription": "Szól, amikor egy járőrkör indul."
+    "channelDescription": "Szól, amikor egy járőrkör indul.",
+    "notification": {
+      "round": "{{time}} – indul a kör.",
+      "roundLogin": "{{time}} – indul a kör. Lépj be a PIN-kódoddal.",
+      "reminder": "{{time}} – a kör még nem indult el.",
+      "reminderLogin": "{{time}} – a kör még nem indult el. Lépj be a PIN-kódoddal."
+    }
   },
   "round": {
     "title": "{{time}}-s kör",

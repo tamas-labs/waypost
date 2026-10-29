@@ -270,3 +270,17 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **Hiba:** a sikertelen lépés nem állítja meg az indítókat; fejlesztői buildben `console.warn`, a következő indító újra próbálja.
 - **Indok:** Specifikáció *Állapotgépek / Kör* (Megnyitás), *Láncolt napló*. A zár alatti döntés nélkül egy 30 másodperces lépés és egy egyidejű értesítés két `round_opened`-et írhatna ugyanarra az időpontra.
 - **Érintett:** `src/guard/`, `src/chain/writer.ts`, `src/app/_layout.tsx`, M3-23, M3-24, M3-29 – M3-38.
+
+## 2026-10-29 – Ébresztés-ütemezés (M3-24)
+
+- **Kérdés:** Mely körök kapnak ébresztést, mikor és hogyan cserélődik a lista, és mi a helyzet, ha a telefon órája eltér a megbízható időtől?
+- **Döntés:**
+  - **A lista** (`alarmPlan`, `src/domain/alarms.ts`, tiszta függvény): a következő 36 óra (`scheduled_at`, a határon lévő kör még benne van) köreinek két értesítése: az időpontban, és 5 perccel később emlékeztető. Csak az ütemezőnél is körökkel rendelkező útvonalak számítanak (aktív, betanított verzióval, aktív menetrenddel). Az emlékeztető addig marad, amíg a kör a telefonon nem indult el és nem zárult le: egy 5 percen belül elmúlt, még el nem indult kör emlékeztetője is a listába kerül. Időrendben az első 48 marad (az iOS 64-es korlátja alatt).
+  - **Belépésre kér:** ha a kört a lista számításakor egy nyitott műszak sem fedi (nincs műszak, vagy a kör a műszak automatikus zárása utáni), az értesítés szövege a PIN-belépést is kéri. A műszakkezdés és -zárás ezért újraszámolja a listát.
+  - **A szöveg:** cím az útvonal neve, törzs „20:00 – indul a kör.” / „20:00 – a kör még nem indult el.”, szükség esetén „Lépj be a PIN-kódoddal.” kiegészítéssel. Névelő nincs benne, mert az időponttól függne („a 20:00”, de „az 1:00”).
+  - **Csere** (`src/alarms/round-alarms.ts`): a lista mindig teljes egészében cserélődik, de csak az eltérő értesítés törlődik vagy ütemeződik. Az értesítés azonosítója `<kind>:<schedule_id>:<scheduled_at>`, az adatában ujjlenyomat (cím, törzs, időpont). Így nincs olyan pillanat, amikor egy épp esedékes ébresztés a „mindet töröl, újra ütemez” közé esik. Más értesítéshez (az M1 próbaébresztései) nem nyúl. A cserék sorban futnak; a futás közbeni kérések egy további futásba olvadnak.
+  - **Az idő:** a lista a megbízható időből számol, de a rendszer a telefon órája szerint szólaltat meg: az értesítés időpontja ezért a kettő különbségével el van tolva. Ha az óra elállítódik, a következő csere korrigál.
+  - **Indítók:** induláskor (előtte a `rounds` csatorna és az előtérbeli megjelenítés), pull után, minden értesítés megérkezésekor és koppintáskor, a műszak kezdetekor és zárásakor, a kör indulásakor (az első pontjának leolvasása) és zárásakor – ezek a láncíró új eseményéből jönnek (`onChainEntries`, `src/chain/events.ts`) –, és **előtérbe kerüléskor** (a specifikáción túl). Az utóbbi azért kell, mert háttérben a megérkező értesítés nem futtat kódot, így a 36 órás ablak csak így lép tovább, ha az appot napokig nem nyitják meg.
+  - Az emlékeztető „törlése a kör indulásakor” ugyanez a csere: az első leolvasás után a kör emlékeztetője már nincs a listában.
+- **Indok:** Specifikáció *Mobilapp / Ébresztés*; az M1-06 döntése (csatorna, `alarmClock`, `timeSensitive`).
+- **Érintett:** `src/domain/alarms.ts`, `src/alarms/round-alarms.ts`, `src/chain/events.ts`, `src/chain/writer.ts`, `src/app/_layout.tsx`, `src/i18n/hu.json`, M3-24, M3-29, M3-32.

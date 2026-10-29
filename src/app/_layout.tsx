@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 
+import { startRoundAlarms } from '@/alarms/round-alarms';
 import { loadSession } from '@/auth/session';
 import { StartupError } from '@/components/startup-error';
 import { getDatabase, openDatabase } from '@/db/open';
@@ -60,12 +61,12 @@ export default function RootLayout() {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
 
-  // The sync and the scheduler run while the app does, from the start (specification, Szinkron protokoll / Mikor
-  // fut; Állapotgépek / Kör).
+  // The sync, the scheduler and the round alarms run while the app does, from the start (specification, Szinkron
+  // protokoll / Mikor fut; Állapotgépek / Kör; Mobilapp / Ébresztés).
   useEffect(() => {
     if (startup.state !== 'ready') return undefined;
     const db = getDatabase();
-    const stops = [startSync(db), startScheduler(db)];
+    const stops = [startSync(db), startScheduler(db), startRoundAlarms(db)];
     return () => stops.forEach((stop) => stop());
   }, [startup.state]);
 

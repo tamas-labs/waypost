@@ -11,6 +11,7 @@ import { uuidv7 } from '@/id/uuidv7';
 import { notifyChainEntry } from '@/sync/runtime';
 import type { ClockReading } from '@/time/clock';
 
+import { onChainEntries } from './events';
 import { GENESIS_HASH, verifyChainEntry } from './hmac';
 import { incident, roundClosed, roundOpened, scan, shiftClosed, shiftStarted } from './payloads';
 import { ProjectionError } from './projection';
@@ -191,6 +192,17 @@ describe('chain writer', () => {
     expect(first.entries).toEqual([expect.objectContaining({ seq: 2, type: 'round_opened' })]);
     expect(second).toEqual({ decision: { exists: true, drafts: [] }, entries: [] });
     expect(db.select().from(rounds).all()).toHaveLength(1);
+  });
+
+  it('tells the listeners the entries of a committed write, and nothing of a failed one', async () => {
+    const heard: number[][] = [];
+    const unsubscribe = onChainEntries((entries) => heard.push(entries.map((entry) => entry.seq)));
+    await startShift();
+    await expect(startShift()).rejects.toThrow();
+    await appendChainEntries(db, [roundOpened({ round_id: ROUND, shift_id: SHIFT, ...ROUND_FIELDS }), shiftClosed({ shift_id: SHIFT, closed_by: 'guard' })], options);
+    unsubscribe();
+    await openRound(uuidv7()).catch(() => undefined);
+    expect(heard).toEqual([[1], [2, 3]]);
   });
 
   it('starts a new chain for a newly enrolled device', async () => {
