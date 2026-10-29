@@ -8,7 +8,9 @@ module.exports = defineConfig([
   expoConfig,
   {
     // No hard-coded colours or texts: colours come from src/theme/tokens.ts, texts from src/i18n/hu.json.
+    // Tests are exempt: their labels are fixtures, not texts of the app.
     files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/**/*.test.{ts,tsx}'],
     plugins: { 'react-native': reactNative },
     rules: {
       'react-native/no-color-literals': 'error',

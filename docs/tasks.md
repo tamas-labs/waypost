@@ -357,7 +357,8 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
   - Spec: DESIGN_HANDOFF 3.
   - Megjegyzés (2026-10-29): a provider, a betűtípus és a tokenek az M1-02-ből; most a kézi választás tárolása (`ui.theme_preference`, `src/theme/preference.ts`). A választó egyelőre a fejlesztői eszközök képernyőjén, a végleges helye az M5-10.
 
-- [ ] **M3-26 Alapkomponensek I.**: `Button`, `IconButton`, `StatusDot`, `StatusBadge`, `Card`, `InfoBanner`, `TextField` / `TextArea`, `Switch`, `SegmentedControl`. (DESIGN_HANDOFF 5.; referencia: `T-Komponensek.dc.html`.)
+- [x] **M3-26 Alapkomponensek I.**: `Button`, `IconButton`, `StatusDot`, `StatusBadge`, `Card`, `InfoBanner`, `TextField` / `TextArea`, `Switch`, `SegmentedControl`. (DESIGN_HANDOFF 5.; referencia: `T-Komponensek.dc.html`.)
+  - Megjegyzés (2026-10-29): `src/components/`; ikonok: `Icon` (lucide-react-native + react-native-svg, natív változás, új dev build kell); új tokenek a `tokens.ts`-ben; bemutató: `/dev/components`.
 
 - [ ] **M3-27 Alapkomponensek II.**: `SyncIndicator`, `PointListItem`, `ProgressRing`, `ProgressSegments`, `RoundTimeline`, `PhotoSlot` / `PhotoAdd`, `CategoryTile`, `PinPad` + `PinDots`, `ResultScreen`. Akadálymentesség a DESIGN_HANDOFF 8. szerint.
 

@@ -310,3 +310,19 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - Átállítani egyelőre a fejlesztői eszközök képernyőjén lehet. A végleges helye a supervisor felületén lesz, a telefon beállításainál (M5-10), mert a telephelyi telefonon az őr ne változtassa.
 - **Indok:** DESIGN_HANDOFF 2.1 és 3; az M1-02 döntése.
 - **Érintett:** `src/theme/`, `src/db/kv.ts`, `src/app/_layout.tsx`, `src/app/dev/index.tsx`, `src/i18n/hu.json` (`theme.*`), M3-25, M5-10.
+
+## 2026-10-29 – Alapkomponensek I. (M3-26)
+
+- **Kérdés:** Honnan jönnek az ikonok, és hova kerülnek a komponensek azon méretei, amelyek a design szerint kellenek, de a `tokens.ts`-ben nincsenek (a „szín és méret csak a tokenekből” szabály miatt)?
+- **Döntés:**
+  - **Ikonok:** `lucide-react-native` + `react-native-svg` (DESIGN_HANDOFF 4); a `react-native-svg` natív, új dev build kell hozzá. Ikononként importálva (`lucide-react-native/icons/<név>`), mert a csomag indexe mind a ~2000 ikont becsomagolná. Az `Icon` komponens jelentés szerinti neveket ad (`check`, `exclam`, `nfc`, `back` …; a `statusStyle.icon` nevei fordítási időben ellenőrizve). Ahol a lucide-ban nincs megfelelő, a design útvonalai rajzolnak: felkiáltójel (hiányos) és a három ív (NFC-leolvasás). Az ikon díszítés: a jelentését mindig felirat vagy `accessibilityLabel` adja.
+  - **Jestben** a lucide ESM-változata nem fut, ezért a `moduleNameMapper` a CommonJS-változatra mutat (`package.json`).
+  - **Új tokenek** (`tokens.ts`, a handoff fájljától eltérés): `color.knob` (a kapcsoló fehér gombja, mindkét témában); `typography.badge` (13/800), `segment` (15/800), `banner` (14/600, sormagasság 20); `size.buttonDashed` 56, `buttonDanger` 52, `buttonTonal` 44, `iconButtonMap` 52, `field` 56, `textArea` 100, `segmentOption` 40, `segmentPadding` 4; `iconSize`, `border` (1 / 2 / 2,5), `iconStroke` (2 / 2,8), `press` (0,85 / 0,98 / 0,4). A `chip` a szinkronjelzőé maradt (13/700), az állapotjelvény a referencia szerint 800-as.
+  - **`StatusBadge`:** a DESIGN_HANDOFF 5.5 szerinti 30 dp-s kapszula sima ikonnal, ahogy a képernyők referenciái használják (a `T-Komponensek` 40 dp-s, teli körös változata csak a komponenstáblán szerepel).
+  - **`Switch`:** a platform natív kapcsolója a téma színeivel (a handoff megengedi): akadálymentes és animált, Androidon kisebb, mint az 56×34.
+  - **`SegmentedControl`:** a 40 dp-s opció `hitSlop`-pal éri el a 48 dp-s érintési minimumot; az opciók `radio` szerepűek, `checked` állapottal. Kettőnél több opciót is elfogad (a téma választója hármat).
+  - **`TextField`:** fókuszban 2 dp-s `accent` keret; a keret növekedését a belső margó kompenzálja, a szöveg nem mozdul. Az akadálymentes név a címke és a „kötelező” / „nem kötelező” jelölés. Kártyán belül (`onCard`) a `field` kitöltés. A jelszómező szem gombja `togglebutton`.
+  - **Lint:** az `src/` tesztfájljai kikerültek a „beégetett szöveg” szabály alól (a címkéik tesztadatok, mint a `__tests__/`-ben).
+  - **Bemutató:** `/dev/components` (csak fejlesztői build) a komponensekkel és a témaváltóval, a `T-Komponensek.dc.html`-lel való összevetéshez.
+- **Indok:** DESIGN_HANDOFF 2, 4, 5.1–5.5, 5.10–5.13, 8; a CLAUDE.md token- és feliratszabálya.
+- **Érintett:** `src/components/`, `src/theme/tokens.ts`, `src/app/dev/`, `src/i18n/hu.json`, `package.json`, `eslint.config.js`, M3-27 – M3-38, M5.

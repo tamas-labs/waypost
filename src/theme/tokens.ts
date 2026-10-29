@@ -5,8 +5,9 @@
  * Használat: const t = useTheme(); <View style={{ backgroundColor: t.color.bg }} />
  * A sötét téma az elsődleges; a világos téma ugyanazokat a kulcsokat adja.
  *
- * Átvéve: docs/orjarat-design-handoff/src/theme/tokens.ts. Eltérés: a statusStyle és a syncStyle
- * feliratai a src/i18n/hu.json kulcsai (label → t(label)), nem magyar szövegek.
+ * Átvéve: docs/orjarat-design-handoff/src/theme/tokens.ts. Eltérések: a statusStyle és a syncStyle
+ * feliratai a src/i18n/hu.json kulcsai (label → t(label)), nem magyar szövegek; a komponensekhez
+ * (M3-26) új kulcsok: knob szín, a DESIGN_HANDOFF 5. méretei (typography, size, iconSize, border, press).
  */
 
 import type { TranslationKey } from '@/i18n';
@@ -25,6 +26,7 @@ export const palette = {
     track: '#2C3650',       // haladásjelző háttér, kikapcsolt kapcsoló
     dash: '#2C3650',        // szaggatott keret (hátralévő pont, „hozzáadás”)
     scrim: 'rgba(5,8,14,0.72)',
+    knob: '#FFFFFF',        // kapcsoló gombja
 
     // szöveg
     text: '#E8ECF5',
@@ -58,6 +60,7 @@ export const palette = {
     track: '#C7D1E0',
     dash: '#BAC6D8',
     scrim: 'rgba(15,23,38,0.45)',
+    knob: '#FFFFFF',
 
     text: '#0F1726',
     text2: '#4F5B73',
@@ -104,7 +107,10 @@ export const typography = {
   bodyRegular: { fontSize: 16, lineHeight: 23, fontFamily: fontFamily.semibold },                     // mező tartalom, magyarázó szöveg
   small:     { fontSize: 13, lineHeight: 18, fontFamily: fontFamily.semibold },                       // meta sor (idő · mód)
   label:     { fontSize: 14, lineHeight: 18, fontFamily: fontFamily.extrabold },                      // szekció- és mezőcímke
-  chip:      { fontSize: 13, lineHeight: 16, fontFamily: fontFamily.bold },                           // szinkronjelző, jelvény
+  chip:      { fontSize: 13, lineHeight: 16, fontFamily: fontFamily.bold },                           // szinkronjelző
+  badge:     { fontSize: 13, lineHeight: 16, fontFamily: fontFamily.extrabold },                      // állapotjelvény
+  segment:   { fontSize: 15, lineHeight: 20, fontFamily: fontFamily.extrabold },                      // szegmens (aktív; inaktív: bold)
+  banner:    { fontSize: 14, lineHeight: 20, fontFamily: fontFamily.semibold },                       // információs sáv
   micro:     { fontSize: 11, lineHeight: 14, fontFamily: fontFamily.bold },                           // idővonal óra-feliratok (minimum)
 } as const;
 
@@ -127,17 +133,47 @@ export const size = {
   buttonPrimary: 68,     // fő gomb (űrlap alján)
   buttonHero: 72,        // Leolvasás, Indulok, Tovább (76 az ébresztésen)
   buttonSecondary: 54,   // másodlagos gomb (52–56)
+  buttonDashed: 56,      // szaggatott „hozzáadás” gomb (56–60)
+  buttonDanger: 52,      // veszélyes szöveggomb
+  buttonTonal: 44,       // figyelmeztető tónusos gomb („Javítás”)
   iconButton: 48,        // vissza gomb, kis kerek ikon gomb
+  iconButtonMap: 52,     // térkép-vezérlő
   iconButtonLg: 72,      // esemény gomb a Leolvasás mellett
+  field: 56,             // beviteli mező (56–58)
+  textArea: 100,         // többsoros mező min. magassága (~3 sor)
   pinKey: 80,            // PIN-billentyű (kör)
   listItem: 60,          // listaelem min. magasság (60–64)
   statusDot: 32,         // állapotjel kör a listaelemben
   chipHeight: 30,        // szinkronjelző, kis jelvény
   segmentHeight: 48,     // szegmens kapcsoló (40 belső + 2×4 padding)
+  segmentOption: 40,     // szegmens egy opciója
+  segmentPadding: 4,
   switchW: 56, switchH: 34, switchKnob: 28,
   resultRingOuter: 196, resultRingInner: 132, // leolvasás eredmény kör
   alarmRing: [232, 180, 128],                 // ébresztés koncentrikus körök
 } as const;
+
+/** Ikonméretek (lucide, 24-es rács) */
+export const iconSize = {
+  badge: 14,      // állapotjelvény
+  dot: 16,        // állapotjel kör (32) közepe
+  banner: 18,     // információs sáv
+  field: 22,      // mezőben (jelszó szem)
+  button: 24,     // gomb felirata előtt, ikon gomb (48)
+  buttonHero: 26, // hero gomb
+  large: 28,      // nagy ikon gomb (72)
+} as const;
+
+/** Vonalvastagságok: keret és ikon */
+export const border = {
+  thin: 1,    // cardBorder
+  thick: 2,   // fókusz, kijelölés, szaggatott
+  ring: 2.5,  // hátralévő pont gyűrűje
+} as const;
+export const iconStroke = { regular: 2, bold: 2.8 } as const; // bold: kis körökben (állapotjel, jelvény)
+
+/** Gomb lenyomva / letiltva (DESIGN_HANDOFF 5.1) */
+export const press = { opacity: 0.85, scale: 0.98, disabledOpacity: 0.4 } as const;
 
 /** Állapotok → token kulcsok + ikon + felirat (hu.json kulcs). A szöveg mindig megjelenik a szín mellett. */
 export type RoundStatus = 'completed' | 'in_progress' | 'incomplete' | 'missed' | 'open';
@@ -169,6 +205,6 @@ export const syncStyle = {
 export const theme = (name: ThemeName) => ({
   name,
   color: palette[name] as ColorTokens,
-  typography, space, radius, size, fontFamily,
+  typography, space, radius, size, fontFamily, iconSize, border, iconStroke, press,
 });
 export type Theme = ReturnType<typeof theme>;

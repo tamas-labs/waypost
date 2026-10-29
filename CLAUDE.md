@@ -24,7 +24,7 @@ A Waypost mobilapp (Expo / React Native, TypeScript): az őrök a telephelyi tel
 src/
   app/        # expo-router képernyők – csak route-fájl lehet benne (teszt, segéd nem); (auth)/ (guard)/ (supervisor)/, dev/ és prototype/ (M1 eszközpróbák) csak fejlesztői buildben
   navigation/ # melyik csoport nyitott az állapot szerint (Stack.Protected), kezdőképernyő
-  components/ # közös UI-komponensek
+  components/ # közös UI-komponensek (DESIGN_HANDOFF 5); ikon: icon.tsx (lucide, ikononként importálva)
   api/        # API-kliens: client.ts (token, Idempotency-Key, típusos hibák, __DEV__ Ajv), endpoints.ts
   auth/       # secure store (tokenek, eszköztitok), indulási állapot, munkamenet (Zustand), hozzárendelés
   db/         # expo-sqlite + Drizzle: schema.ts, migrations/ (generált), kv.ts, testing.ts (better-sqlite3 a tesztekhez)
@@ -52,7 +52,7 @@ Importban a `@/…` alias a `src/…`-ra mutat.
 
 - A specifikáció *Alapszabályok* pontjai érvényesek, különösen:
   - A felület minden szövege magyar, a kód, az azonosítók, a kommentek és a commitüzenetek angolok.
-  - Szín és méret csak a `src/theme/tokens.ts`-ből (`useTheme()`), felirat csak a `src/i18n/hu.json`-ból (`t('sync.offlineQueued', { count })`) – beégetett szín és szöveg nincs. A lint ezt az `src/`-ben ellenőrzi (színliterál a stílusban, szöveg a JSX-ben vagy a `title`/`label`/`placeholder`/`accessibility*` propban). Új feliratot a `hu.json`-ba kell felvenni; a kulcs típusos (`TranslationKey`).
+  - Szín és méret csak a `src/theme/tokens.ts`-ből (`useTheme()`), felirat csak a `src/i18n/hu.json`-ból (`t('sync.offlineQueued', { count })`) – beégetett szín és szöveg nincs. A lint ezt az `src/`-ben ellenőrzi, a tesztfájlok kivételével (színliterál a stílusban, szöveg a JSX-ben vagy a `title`/`label`/`placeholder`/`accessibility*` propban). Új feliratot a `hu.json`-ba kell felvenni; a kulcs típusos (`TranslationKey`).
   - Betűtípus: Manrope (400–800), a `typography` skálából; számoknál `fontVariant: ['tabular-nums']` (DESIGN_HANDOFF 2.6).
   - Az eszközön létrejött adat a szinkron előtt soha nem módosul és nem törlődik.
   - A 2. lépcső funkcióit nem építjük meg, csak nem zárjuk ki.
@@ -68,7 +68,7 @@ Importban a `@/…` alias a `src/…`-ra mutat.
 - `npm start` – Metro dev szerver a development buildhez.
 - `npm run typecheck` – `tsc --noEmit`.
 - `npm run lint` – `expo lint` (ESLint, `eslint-config-expo`).
-- `npm test` – Jest (`jest-expo` preset). A `jest.modulePaths` azért kell, mert a symlinkelt `@waypost/schema` fájljait a Jest a valódi útvonalukon fordítja, és a Babel-segédeket innen kell feloldani.
+- `npm test` – Jest (`jest-expo` preset). A `jest.modulePaths` azért kell, mert a symlinkelt `@waypost/schema` fájljait a Jest a valódi útvonalukon fordítja, és a Babel-segédeket innen kell feloldani. A `jest.moduleNameMapper` a lucide-ikonokat a CommonJS-változatukra irányítja (az ESM-változat a Jestben nem fut).
 - `npx expo-doctor` – függőségek és konfiguráció ellenőrzése.
 - `npm run db:generate` – a `src/db/schema.ts` változása után új migráció a `src/db/migrations/` alá (`drizzle-kit generate`); a generált fájlokat commitoljuk, kézzel nem szerkesztjük. A `.sql` fájlokat a `babel-plugin-inline-import` fordítja be; ha a Metro régi migrációt mutat, `npm start -- --clear`.
 - API-cím: `EXPO_PUBLIC_WAYPOST_API_URL` (előtaggal, pl. `https://example.com/api/waypost/v1`); fejlesztői buildben a `/dev/enroll` képernyőn is megadható.

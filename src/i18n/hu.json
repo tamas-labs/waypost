@@ -19,7 +19,23 @@
       "supervisor_phone": "supervisor saját telefonja"
     },
     "screens": {
-      "enroll": "Telefon hozzárendelése"
+      "enroll": "Telefon hozzárendelése",
+      "components": "Komponensek"
+    },
+    "components": {
+      "buttons": "Gombok",
+      "statuses": "Állapotok",
+      "cardsAndBanners": "Kártya és sávok",
+      "fields": "Mezők",
+      "controls": "Választók",
+      "add": "Hozzáadás",
+      "disabled": "Letiltva",
+      "pointName": "Főbejárat",
+      "pointMeta": "22:03 · NFC",
+      "fieldPlaceholder": "Írd ide…",
+      "fieldError": "Ez a mező kötelező.",
+      "switchLabel": "Kapcsoló",
+      "pressed": "Megnyomva: {{label}}"
     },
     "enroll": {
       "title": "Telefon hozzárendelése",
