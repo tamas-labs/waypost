@@ -5,7 +5,7 @@ import { asc } from 'drizzle-orm';
 import { setDeviceCredentials } from '@/auth/credentials';
 import type { Database } from '@/db/database';
 import { deleteKv, setKv } from '@/db/kv';
-import { chainEntries, incidents, rounds, scans, shifts } from '@/db/schema';
+import { chainEntries, incidents, media, rounds, scans, shifts } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import { uuidv7 } from '@/id/uuidv7';
 import { notifyChainEntry } from '@/sync/runtime';
@@ -13,7 +13,7 @@ import type { ClockReading } from '@/time/clock';
 
 import { onChainEntries } from './events';
 import { GENESIS_HASH, verifyChainEntry } from './hmac';
-import { incident, roundClosed, roundOpened, scan, shiftClosed, shiftStarted } from './payloads';
+import { incident, roundClosed, roundOpened, scan, shiftClosed, shiftStarted, type PhotoFile } from './payloads';
 import { ProjectionError } from './projection';
 import { appendChainEntries, appendChainEntry, appendDecidedEntries, ChainWriteError, type ChainWriterOptions } from './writer';
 
@@ -253,5 +253,35 @@ describe('chain projections', () => {
     await expect(appendChainEntry(db, shiftClosed({ shift_id: SHIFT, closed_by: 'auto' }), options)).rejects.toThrow(new ProjectionError(`Shift ${SHIFT} is already closed`));
     await expect(openRound(uuidv7())).rejects.toThrow(ProjectionError);
     expect(allEntries()).toHaveLength(4);
+  });
+
+  const photo = (sha: string): PhotoFile => {
+    const id = uuidv7();
+    return { id, sha256: sha.repeat(64), mime: 'image/jpeg', size_bytes: 245_000, local_uri: `file:///data/media/${id}.jpg`, taken_at: '2026-10-27T20:04:00.000Z' };
+  };
+
+  it('record the photos with the entries citing them, owned by the first one', async () => {
+    const photos = [photo('a'), photo('b')];
+    const scanId = uuidv7();
+    const incidentId = uuidv7();
+    const manual = scan({ scan_id: scanId, round_id: ROUND, checkpoint_id: CHECKPOINT, method: 'manual', location: null, flags: ['manual'], note: 'Leszakadt.', media: photos });
+    const damaged = incident({ incident_id: incidentId, shift_id: SHIFT, category: 'damaged_tag', note: 'Leszakadt.', location: null, scan_id: scanId, media: photos });
+    await appendChainEntries(db, [manual, damaged], { ...options, photos });
+    expect(db.select().from(media).orderBy(asc(media.id)).all()).toEqual(photos.map((p) => ({ ...p, owner_type: 'scan', owner_id: scanId, uploaded_at: null })));
+    const incidentPhoto = photo('c');
+    await appendChainEntries(db, [incident({ incident_id: uuidv7(), shift_id: SHIFT, category: 'water', note: null, location: null, media: [incidentPhoto] })], { ...options, photos: [incidentPhoto] });
+    expect(db.select().from(media).all().find((row) => row.id === incidentPhoto.id)).toMatchObject({ owner_type: 'incident' });
+  });
+
+  it('write nothing if a cited photo is missing or differs, or a photo is not cited', async () => {
+    const given = photo('a');
+    const cites = (refs: { id: string; sha256: string }[]) => incident({ incident_id: uuidv7(), shift_id: SHIFT, category: 'water', note: null, location: null, media: refs });
+    await expect(appendChainEntries(db, [cites([given])], options)).rejects.toThrow(ProjectionError);
+    await expect(appendChainEntries(db, [cites([{ id: given.id, sha256: 'f'.repeat(64) }])], { ...options, photos: [given] })).rejects.toThrow(ProjectionError);
+    await expect(appendChainEntries(db, [cites([])], { ...options, photos: [given] })).rejects.toThrow(new ChainWriteError(`Photos not cited by any entry: ${given.id}`));
+    await expect(appendChainEntries(db, [], { ...options, photos: [given] })).rejects.toThrow(ChainWriteError);
+    expect(db.select().from(media).all()).toEqual([]);
+    expect(db.select().from(incidents).all()).toEqual([]);
+    expect(allEntries()).toHaveLength(2);
   });
 });

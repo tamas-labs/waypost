@@ -32,6 +32,15 @@ export interface MediaRef {
   sha256: string;
 }
 
+/** A photo taken on the phone (src/photo), not yet recorded: the media row is written with the entry citing it. */
+export interface PhotoFile extends MediaRef {
+  mime: string;
+  size_bytes: number;
+  /** The file in the app's document directory. */
+  local_uri: string;
+  taken_at: Timestamp;
+}
+
 /** The flags the app sets on a scan from its own decision; mock_location follows from the location. */
 export type ScanDecisionFlag = 'manual' | 'out_of_order' | 'out_of_round' | 'unknown_tag';
 

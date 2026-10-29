@@ -24,7 +24,8 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.tamaslabs.waypost",
-      "permissions": ["android.permission.SCHEDULE_EXACT_ALARM"]
+      "permissions": ["android.permission.SCHEDULE_EXACT_ALARM"],
+      "blockedPermissions": ["android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE"]
     },
     "plugins": [
       "expo-router",
@@ -59,9 +60,28 @@
           "enableRemoteNotifications": false
         }
       ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "A Waypost a leolvasások és az események helyét rögzíti, amíg az app nyitva van.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false,
+          "locationFullAccuracyPermission": false
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ],
       "expo-sqlite",
       "expo-secure-store",
-      "react-native-quick-crypto"
+      "react-native-quick-crypto",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,

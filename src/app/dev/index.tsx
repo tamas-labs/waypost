@@ -11,9 +11,11 @@ const SCREENS: { href: Href; title: TranslationKey }[] = [
   { href: '/prototype/nfc', title: 'prototype.screens.nfc' },
   { href: '/prototype/qr', title: 'prototype.screens.qr' },
   { href: '/prototype/alarms', title: 'prototype.screens.alarms' },
+  { href: '/prototype/field', title: 'prototype.screens.field' },
 ];
 
-// Developer tools: the developer enrollment (M3-06) and the device test screens of the M1 prototype.
+// Developer tools: the developer enrollment (M3-06) and the device test screens of the M1 prototype (and of
+// the location and the photo, M3-20 / M3-21).
 export default function DevToolsScreen() {
   const { color, typography, space, radius, size } = useTheme();
   const mode = useSession((session) => session.mode);

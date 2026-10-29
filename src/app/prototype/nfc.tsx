@@ -1,10 +1,12 @@
-import { Stack, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Stack } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { playFeedback } from '@/feedback/feedback';
 import { t } from '@/i18n';
-import { getNfcStatus, listenForTags, openNfcSettings, readOneTag, type NfcStatus } from '@/nfc/reader';
+import { openNfcSettings } from '@/nfc/reader';
 import type { TagReading } from '@/nfc/tag';
+import { useTagReader } from '@/nfc/use-tag-reader';
 import { useTheme } from '@/theme/theme-provider';
 
 interface Reading {
@@ -32,62 +34,22 @@ function techText(tech: string[]): string {
 }
 
 // M1-04 device test: UID and raw NDEF of NTAG21x and NTAG 424 DNA tags. Android reads while the screen is open,
-// iOS reads one tag per press of the Scan button.
+// iOS reads one tag per press of the Scan button (useTagReader, M3-22). A tag with a valid UID gives the success
+// feedback, one without the error feedback.
 export default function NfcScreen() {
   const { color, typography, space, radius, size } = useTheme();
-  const [status, setStatus] = useState<NfcStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [readings, setReadings] = useState<Reading[]>([]);
-  const [reading, setReading] = useState(false);
+  const [settingsError, setSettingsError] = useState<unknown>(null);
   const nextKey = useRef(0);
 
   const addReading = useCallback((tag: TagReading) => {
     const key = nextKey.current++;
+    playFeedback(tag.uid !== null ? 'success' : 'error');
     setReadings((previous) => [{ key, at: new Date(), tag }, ...previous].slice(0, MAX_READINGS));
   }, []);
-
-  // Checked again when the app comes back, e.g. from the NFC settings.
-  useEffect(() => {
-    const refresh = () => getNfcStatus().then(setStatus, (e: unknown) => setError(errorText(e)));
-    void refresh();
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void refresh();
-    });
-    return () => subscription.remove();
-  }, []);
-
-  const listening = Platform.OS === 'android' && status?.enabled === true;
-  useFocusEffect(
-    useCallback(() => {
-      if (!listening) return;
-      let stop: (() => Promise<void>) | null = null;
-      let closed = false;
-      listenForTags(addReading).then(
-        (stopListening) => {
-          if (closed) void stopListening();
-          else stop = stopListening;
-        },
-        (e: unknown) => setError(errorText(e)),
-      );
-      return () => {
-        closed = true;
-        stop?.().catch((e: unknown) => setError(errorText(e)));
-      };
-    }, [listening, addReading]),
-  );
-
-  const scan = async () => {
-    setReading(true);
-    setError(null);
-    try {
-      const tag = await readOneTag({ prompt: t('nfc.prompt'), success: t('nfc.read') });
-      if (tag) addReading(tag);
-    } catch (e) {
-      setError(errorText(e));
-    } finally {
-      setReading(false);
-    }
-  };
+  const { status, reading, read, error: readError } = useTagReader(addReading);
+  const failure = readError ?? settingsError;
+  const error = failure === null ? null : errorText(failure);
 
   const label = [typography.label, { color: color.text2 }];
   const body = [typography.bodyRegular, { color: color.text }];
@@ -116,7 +78,7 @@ export default function NfcScreen() {
         {Platform.OS === 'android' && status?.supported && !status.enabled && (
           <Pressable
             accessibilityRole="button"
-            onPress={() => openNfcSettings().catch((e: unknown) => setError(errorText(e)))}
+            onPress={() => openNfcSettings().catch(setSettingsError)}
             style={[styles.button, { backgroundColor: color.bg, borderRadius: radius.pill, minHeight: size.buttonSecondary }]}
           >
             <Text style={[typography.buttonSm, { color: color.text }]}>{t('prototype.nfc.openSettings')}</Text>
@@ -131,7 +93,7 @@ export default function NfcScreen() {
           accessibilityRole="button"
           accessibilityState={{ disabled: reading || !status?.enabled }}
           disabled={reading || !status?.enabled}
-          onPress={scan}
+          onPress={read}
           style={[
             styles.button,
             { backgroundColor: color.accent, borderRadius: radius.pill, minHeight: size.buttonHero, opacity: reading || !status?.enabled ? 0.5 : 1 },

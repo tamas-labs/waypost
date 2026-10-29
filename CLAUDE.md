@@ -34,13 +34,16 @@ src/
   guard/      # a domain és az adatbázis között: a GuardState betöltése, az ütemező futtató; testing.ts (a domain-fixture az adatbázisban)
   sync/       # pull, push, outbox, média
   chain/      # láncbejegyzés: kanonikus JSON, HMAC
-  nfc/ qr/ alarms/ location/
+  nfc/        # olvasás (reader.ts), Androidon az app-szintű figyelés (tag-events.ts), useTagReader a kör és a betanítás képernyőjére
+  qr/ alarms/ location/
+  photo/      # fotó: tömörítés, SHA-256, fájl a dokumentumok media/ mappájában (a media sort a láncíró írja)
+  feedback/   # leolvasási visszajelzés: rezgés és hang (siker / hiba / figyelmeztetés)
   theme/      # tokens.ts (a design tokenjei), theme-provider.tsx: ThemeProvider, useTheme(), useThemePreference()
   i18n/       # hu.json (minden felirat), index.ts: t(key, params)
-modules/      # saját Expo-modulok: waypost-clock (getUptimeMs, getBootId), waypost-power (akkumulátor-optimalizálás, Android) – import: @modules/<név>
+modules/      # saját Expo-modulok: waypost-clock (getUptimeMs, getBootId, getGnssTimeMs), waypost-power (akkumulátor-optimalizálás, Android) – import: @modules/<név>
 __tests__/    # képernyőtesztek; a modulok tesztjei a modul mellett: src/<modul>/*.test.ts
-__mocks__/    # Jest: expo-secure-store memóriában (automatikus); jest.setup.ts: expo-crypto véletlenforrás, NetInfo, react-native-quick-crypto (node:crypto)
-assets/       # ikon, splash (egyelőre az Expo sablon helyőrzői), sounds/ (az ébresztés hangja, helyőrző)
+__mocks__/    # Jest: expo-secure-store memóriában (automatikus); jest.setup.ts: expo-crypto véletlenforrás, NetInfo, react-native-quick-crypto (node:crypto), expo-audio
+assets/       # ikon, splash (egyelőre az Expo sablon helyőrzői), sounds/ (az ébresztés és a leolvasás hangjai, helyőrzők)
 ```
 
 Importban a `@/…` alias a `src/…`-ra mutat.

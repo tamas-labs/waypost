@@ -42,7 +42,8 @@
       "clock": "Monoton óra és boot ID",
       "nfc": "NFC-címke olvasása",
       "qr": "QR-kód olvasása",
-      "alarms": "Ébresztés és engedélyek"
+      "alarms": "Ébresztés és engedélyek",
+      "field": "Helyadat, fotó, visszajelzés"
     },
     "clock": {
       "title": "Monoton óra",
@@ -94,6 +95,29 @@
       "notCheckpoint": "Waypost-előtag, de nem pontkód formátumú",
       "ignored": "Figyelmen kívül hagyva ({{time}}): {{data}}",
       "error": "Hiba: {{error}}"
+    },
+    "field": {
+      "title": "Helyadat, fotó, visszajelzés",
+      "location": "Helyadat",
+      "allowLocation": "Helymeghatározás engedélyezése",
+      "locate": "Helyadat kérése",
+      "locating": "Helyadat kérése…",
+      "noLocation": "Nincs helyadat ({{ms}} ms) – a leolvasás helyadat nélkül rögzülne.",
+      "coords": "{{lat}}, {{lng}}",
+      "accuracy": "Pontosság: ±{{m}} m · {{ms}} ms",
+      "mocked": "Hamisított helyadat (mock_location)",
+      "notMocked": "Valódi helyadat",
+      "gnss": "GNSS-idő: {{time}}",
+      "photo": "Fotó",
+      "allowCamera": "Kamera engedélyezése",
+      "takePhoto": "Fotó készítése",
+      "taking": "Fotó mentése…",
+      "photoSize": "Tömörítve: {{kb}} kB",
+      "sha256": "SHA-256: {{sha256}}",
+      "feedback": "Leolvasási visszajelzés",
+      "feedbackKinds": { "success": "Siker", "error": "Hiba", "warning": "Figyelmeztetés" },
+      "error": "Hiba: {{error}}",
+      "hint": "Kérj helyadatot a szabadban és épületben is: friss helyadat nélkül legfeljebb 5 mp a várakozás. Androidon GPS-fix után a GNSS-idő is megjelenik; hamisított helyről (fejlesztői beállítás) a jelölés látszik. A fotó nem rögzül, a fájlja a következő fotónál vagy a képernyő elhagyásakor törlődik. Siker: egy rövid rezgés, hiba: kettő, figyelmeztetés: egy hosszabb, mindegyik a saját hangjával."
     },
     "alarms": {
       "title": "Ébresztés",

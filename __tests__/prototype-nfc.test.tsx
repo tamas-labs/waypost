@@ -2,8 +2,10 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 
 import NfcScreen from '@/app/prototype/nfc';
+import { playFeedback } from '@/feedback/feedback';
 import { getNfcStatus, listenForTags, openNfcSettings, readOneTag } from '@/nfc/reader';
 import type { TagReading } from '@/nfc/tag';
+import { startTagEvents, tagEventsStarted } from '@/nfc/tag-events';
 import { ThemeProvider } from '@/theme/theme-provider';
 
 jest.mock('@/nfc/reader', () => ({
@@ -12,6 +14,7 @@ jest.mock('@/nfc/reader', () => ({
   openNfcSettings: jest.fn(),
   readOneTag: jest.fn(),
 }));
+jest.mock('@/feedback/feedback', () => ({ playFeedback: jest.fn() }));
 jest.mock('expo-router', () => {
   const { useEffect } = jest.requireActual<typeof import('react')>('react');
   return { Stack: { Screen: () => null }, useFocusEffect: (effect: () => void | (() => void)) => useEffect(effect, [effect]) };
@@ -31,6 +34,7 @@ const NTAG213: TagReading = {
 };
 
 const stop = jest.fn().mockResolvedValue(undefined);
+let stopTagEvents = () => {};
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -39,8 +43,13 @@ beforeEach(() => {
   jest.mocked(openNfcSettings).mockResolvedValue(undefined);
 });
 
+afterEach(() => stopTagEvents());
+
+/** Renders the screen with the app-wide tag listening running, as in the app. */
 async function renderScreen(os: 'ios' | 'android') {
   jest.replaceProperty(Platform, 'OS', os);
+  stopTagEvents = startTagEvents();
+  await tagEventsStarted();
   const result = await render(
     <ThemeProvider>
       <NfcScreen />
@@ -59,6 +68,7 @@ describe('Android', () => {
 
     const onTag = listen.mock.calls[0]![0];
     await act(async () => onTag(NTAG213));
+    expect(playFeedback).toHaveBeenCalledWith('success');
     expect(screen.getByText('04A1B2C3D4E580')).toBeOnTheScreen();
     expect(screen.getByText('21 bájt · 1 rekord')).toBeOnTheScreen();
     expect(screen.getByText('https://waypost.dev/cp/1')).toBeOnTheScreen();
@@ -66,16 +76,19 @@ describe('Android', () => {
     expect(screen.getByText(/· NfcA, Ndef$/)).toBeOnTheScreen();
   });
 
-  test('stops listening when the screen closes', async () => {
+  test('a tag touched after the screen closed does nothing', async () => {
     const { unmount } = await renderScreen('android');
     await act(async () => unmount());
-    expect(stop).toHaveBeenCalled();
+    await act(async () => listen.mock.calls[0]![0](NTAG213));
+    expect(playFeedback).not.toHaveBeenCalled();
+    // The app-wide listening goes on, swallowing the tag.
+    expect(stop).not.toHaveBeenCalled();
   });
 
-  test('NFC switched off: no listening, link to the settings', async () => {
+  test('NFC switched off: link to the settings', async () => {
     status.mockResolvedValue({ supported: true, enabled: false });
     await renderScreen('android');
-    expect(listen).not.toHaveBeenCalled();
+    expect(screen.getByText('Kikapcsolva – kapcsold be a beállításokban')).toBeOnTheScreen();
     await act(async () => fireEvent.press(screen.getByText('NFC-beállítások')));
     expect(openNfcSettings).toHaveBeenCalled();
   });
@@ -84,6 +97,7 @@ describe('Android', () => {
     await renderScreen('android');
     const onTag = listen.mock.calls[0]![0];
     await act(async () => onTag({ ...NTAG213, uid: null, rawId: '0102', ndefRaw: null, ndefLength: 0, records: [] }));
+    expect(playFeedback).toHaveBeenCalledWith('error');
     expect(screen.getByText('Érvénytelen UID: 0102')).toBeOnTheScreen();
     expect(screen.getByText('Nincs NDEF tartalom')).toBeOnTheScreen();
   });

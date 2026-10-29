@@ -16,6 +16,8 @@ import { chainTimeReference, getTimeReference } from '@/time/trusted-time';
 
 import { emitChainEntries } from './events';
 import { GENESIS_HASH, signChainEntry } from './hmac';
+import { recordPhotos } from './media';
+import type { PhotoFile } from './payloads';
 import { applyProjection } from './projection';
 
 /** What the domain decides about an entry; the writer adds the identity, the position and the clocks. */
@@ -32,6 +34,8 @@ export interface ChainWriterOptions {
   readClock?: ReadClock;
   /** The HMAC key (device secret, base64); default: from the secure store. */
   readSecret?: () => Promise<string | null>;
+  /** The photos the entries cite: their media rows are written in the same transaction (every one must be cited). */
+  photos?: readonly PhotoFile[];
 }
 
 export class ChainWriteError extends Error {
@@ -53,7 +57,7 @@ async function readDeviceSecret(): Promise<string | null> {
 
 /** Appends the drafts in one transaction; the caller holds the chain lock. */
 async function writeDrafts(db: Database, drafts: readonly ChainEntryDraft[], options: ChainWriterOptions): Promise<ChainEntry[]> {
-  if (drafts.length === 0) return [];
+  if (drafts.length === 0 && (options.photos ?? []).length === 0) return [];
   const readClock = options.readClock ?? readDeviceClock;
   const secret = await (options.readSecret ?? readDeviceSecret)();
   if (secret === null) throw new ChainWriteError('No device secret: the phone is not enrolled');
@@ -65,8 +69,10 @@ async function writeDrafts(db: Database, drafts: readonly ChainEntryDraft[], opt
     const reference = chainTimeReference(getTimeReference(tx));
     let seq = last?.seq ?? 0;
     let prevHash = last?.hash ?? GENESIS_HASH;
+    const photos = new Map((options.photos ?? []).map((photo) => [photo.id, photo]));
+    const recorded = new Set<string>();
 
-    return drafts.map((draft) => {
+    const entries = drafts.map((draft) => {
       const clock = readClock();
       seq += 1;
       const entry = signChainEntry(
@@ -79,9 +85,13 @@ async function writeDrafts(db: Database, drafts: readonly ChainEntryDraft[], opt
       }
       tx.insert(chainEntries).values(entry).run();
       applyProjection(tx, entry);
+      recordPhotos(tx, entry, photos, recorded);
       prevHash = entry.hash;
       return entry;
     });
+    const uncited = [...photos.keys()].filter((id) => !recorded.has(id));
+    if (uncited.length > 0) throw new ChainWriteError(`Photos not cited by any entry: ${uncited.join(', ')}`);
+    return entries;
   });
 
   notifyChainEntry();
@@ -91,7 +101,8 @@ async function writeDrafts(db: Database, drafts: readonly ChainEntryDraft[], opt
 
 /**
  * Appends the drafts to the chain in one transaction, applying each to the projections; returns the signed entries.
- * Throws (and writes nothing) if the phone is not enrolled, an entry is invalid or a projection does not fit.
+ * Throws (and writes nothing) if the phone is not enrolled, an entry is invalid, a projection does not fit, or a
+ * photo given is not cited (or a cited one not given).
  */
 export function appendChainEntries(db: Database, drafts: readonly ChainEntryDraft[], options: ChainWriterOptions = {}): Promise<ChainEntry[]> {
   return withChainLock(() => writeDrafts(db, drafts, options));

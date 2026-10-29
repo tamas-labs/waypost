@@ -1,5 +1,6 @@
 package com.tamaslabs.waypost.clock
 
+import android.location.LocationManager
 import android.os.SystemClock
 import android.provider.Settings
 import expo.modules.kotlin.exception.CodedException
@@ -30,6 +31,21 @@ class WaypostClockModule : Module() {
         return@Function "android-kernel:$kernelBootId"
       }
       throw BootIdUnavailableException()
+    }
+
+    // The time of the last fix of the GPS provider, as the GNSS receiver reported it, if the fix is at most
+    // maxAgeMs old by the monotonic clock (so a changed wall clock does not make an old fix look fresh).
+    // Null without such a fix or without the location permission.
+    Function("getGnssTimeMs") { maxAgeMs: Double ->
+      val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
+      val manager = context.getSystemService(LocationManager::class.java) ?: return@Function null
+      val fix = try {
+        manager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+      } catch (_: SecurityException) {
+        null
+      } ?: return@Function null
+      val ageMs = (SystemClock.elapsedRealtimeNanos() - fix.elapsedRealtimeNanos) / 1_000_000.0
+      if (ageMs < 0 || ageMs > maxAgeMs || fix.time <= 0) null else fix.time.toDouble()
     }
   }
 }

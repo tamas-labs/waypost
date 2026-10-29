@@ -29,7 +29,9 @@ A formátum a [Keep a Changelog](https://keepachangelog.com/hu/1.1.0/) ajánlás
 - Kézi rögzítés (leolvasás + sérült címke esemény) és esemény a legközelebbi ponttal (M3-19).
 - Ütemező futtató: a kör-ütemező lépése induláskor, előtérbe kerüléskor, értesítéskor és előtérben 30 másodpercenként, a megbízható idővel; az állapot beolvasása és a bejegyzések írása egy záron belül, így egy kör nem nyílhat kétszer; az automatikus műszakzárás azonnal szinkronizál (M3-23).
 - Ébresztés-ütemezés: a következő 36 óra köreinek értesítése és 5 perces emlékeztetője, legfeljebb 48; a lista cseréje induláskor, pull után, értesítéskor, előtérbe kerüléskor, a műszak és a kör indulásakor és zárásakor, csak az eltérő értesítéseket érintve; a megbízható időből számolva, a telefon órájához igazítva (M3-24).
+- Helyadat a leolvasáshoz (legfeljebb 60 mp-es utolsó ismert hely, különben legfeljebb 5 mp várakozás; Androidon hamisított hely és GNSS-idő), fotó (csak kamera, 1600 px, JPEG 0,7, SHA-256; a `media` sor a bejegyzéssel együtt), app-szintű NFC-figyelés Androidon (a címke csak a kör és a betanítás képernyőjén számít), leolvasási visszajelzés rezgéssel és hanggal; próbaképernyő „Helyadat, fotó, visszajelzés” (M3-20 – M3-22).
 - Függőség: `@react-native-community/netinfo` (natív: új development build kell).
+- Függőség: `expo-location`, `expo-image-manipulator`, `expo-file-system`, `expo-haptics`, `expo-audio` (és a peer függősége, `expo-asset`); a `waypost-clock` modulban új `getGnssTimeMs` (natív: új development build kell).
 - Függőség: `react-native-quick-crypto` (a `react-native-nitro-modules` és a `react-native-quick-base64` csomaggal; natív: új development build kell).
 
 ### Módosítva

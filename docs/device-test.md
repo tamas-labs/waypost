@@ -90,6 +90,21 @@ A workbench demó-telephelye kell (`laravel-waypost`: `composer serve`), olyan c
 | I4 | Hibás API-cím vagy leállított workbench mellett „Belépés”. | „A szerver nem érhető el (…)”, legfeljebb 30 mp múlva; az app nem fagy le. |
 | I5 | Töröld az appot, és telepítsd újra (iPhone-on is: a Keychain megmarad). | Az app hozzárendeletlenként indul („Supervisor belépés”); a „Fejlesztői eszközök” állapota „nincs hozzárendelve”. |
 
+### M3 – Helyadat, fotó, NFC és visszajelzés (M3-20 – M3-22, képernyő: „Helyadat, fotó, visszajelzés”; új dev build)
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| H1 | „Helymeghatározás engedélyezése”, majd a szabadban (előtte pl. egy térképappban legyen GPS-fix) „Helyadat kérése”. | Koordináta, ±néhány m, 1 mp alatt. Android: a GNSS-idő megjelenik, és a pontos időtől legfeljebb 1 percet tér el. iPhone: a GNSS-idő „–”. |
+| H2 | Épületben, majd kikapcsolt helymeghatározással „Helyadat kérése”. | Helyadat, vagy „Nincs helyadat”, de legfeljebb kb. 5000 ms után; az app nem akad meg. |
+| H3 | Android: fejlesztői beállítások → „Hely-utánzó alkalmazás” egy hamis hely appal, majd „Helyadat kérése”. | „Hamisított helyadat (mock_location)”, a GNSS-idő „–”. |
+| H4 | Az engedélyt utasítsd el (vagy vond vissza a beállításokban), majd „Helyadat kérése”. | Azonnal „Nincs helyadat”. |
+| P1 | „Kamera engedélyezése”, majd fotó álló és fekvő tartásban is. | A kép nincs elforgatva; a tömörített méret néhány száz kB; SHA-256 látszik. |
+| P2 | Készíts két fotót, majd lépj ki a képernyőről. | Az előző fotó minden új fotónál, az utolsó a kilépéskor törlődik (a tárhely nem nő). |
+| V1 | „Siker”, „Hiba”, „Figyelmeztetés” gomb, rendes és némított csengővel. | Siker: egy rövid rezgés, hiba: kettő, figyelmeztetés: egy hosszabb; mindegyiknek saját hangja van. Jegyezd fel, némítva szól-e a hang. |
+| V2 | „NFC-címke olvasása”, illetve „QR-kód olvasása”: olvass le egy címkét és egy kódot. | Minden sikeres olvasás a siker visszajelzését adja. |
+| V3 | Android: a „Fejlesztői eszközök” listán (nem olvasó képernyőn) érints egy URL-es NDEF-rekordot tartalmazó címkét (pl. NTAG 424 DNA). Utána tedd háttérbe az appot, és érintsd újra. | Az appban nem történik semmi, nincs „új címke” ablak, és nem nyílik böngésző. Háttérben a rendszer szokott viselkedése jön (ez nem hiba). |
+| V4 | Android: kapcsold ki az NFC-t, indítsd el az appot, majd kapcsold be a beállításokban, és térj vissza az „NFC-címke olvasása” képernyőre. | Bekapcsolás után gomb nélkül olvas. |
+
 ## Eredmények
 
 Sablon (egy futáshoz másold le, és a fejlécbe írd a dátumot és a mérföldkövet):

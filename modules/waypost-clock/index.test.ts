@@ -1,9 +1,9 @@
-import { getBootId, getUptimeMs } from './index';
+import { getBootId, getGnssTimeMs, getUptimeMs } from './index';
 import WaypostClock from './src/WaypostClockModule';
 
 jest.mock('./src/WaypostClockModule', () => ({
   __esModule: true,
-  default: { getUptimeMs: jest.fn(), getBootId: jest.fn() },
+  default: { getUptimeMs: jest.fn(), getBootId: jest.fn(), getGnssTimeMs: jest.fn() },
 }));
 
 const native = WaypostClock as jest.Mocked<typeof WaypostClock>;
@@ -24,4 +24,14 @@ test('rejects values a chain entry could not carry', () => {
     native.getBootId.mockReturnValue(bad);
     expect(() => getBootId()).toThrow('waypost-clock: invalid boot ID');
   }
+});
+
+test('passes through the GNSS time of a recent GPS fix, or null', () => {
+  native.getGnssTimeMs.mockReturnValue(1_793_738_623_000);
+  expect(getGnssTimeMs(60_000)).toBe(1_793_738_623_000);
+  expect(native.getGnssTimeMs).toHaveBeenCalledWith(60_000);
+  native.getGnssTimeMs.mockReturnValue(null);
+  expect(getGnssTimeMs(60_000)).toBeNull();
+  native.getGnssTimeMs.mockReturnValue(1.5);
+  expect(() => getGnssTimeMs(60_000)).toThrow('waypost-clock: invalid GNSS time');
 });

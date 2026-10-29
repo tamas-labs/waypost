@@ -21,6 +21,11 @@ public class WaypostClockModule: Module {
       }
       throw BootIdUnavailableException()
     }
+
+    // iOS does not tell the GNSS time of a fix (gnss_time is Android only).
+    Function("getGnssTimeMs") { (_: Double) -> Double? in
+      nil
+    }
   }
 
   private static func sysctlString(_ name: String) -> String? {

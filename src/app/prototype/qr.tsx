@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { playFeedback } from '@/feedback/feedback';
 import { t } from '@/i18n';
 import { parseCheckpointQr } from '@/qr/payload';
 import { QrScanner } from '@/qr/qr-scanner';
@@ -28,7 +29,7 @@ function formatTime(date: Date): string {
 }
 
 // M1-05 device test: a full-screen camera view that reads waypost:cp: codes only, from paper and from a screen.
-// It keeps reading, so several codes can be tried one after the other.
+// It keeps reading, so several codes can be tried one after the other; each read gives the success feedback (M3-22).
 export default function QrScreen() {
   const { color, typography, space, radius, size } = useTheme();
   const insets = useSafeAreaInsets();
@@ -43,6 +44,7 @@ export default function QrScreen() {
 
   const addReading = useCallback((payload: string) => {
     const key = nextKey.current++;
+    playFeedback('success');
     setReadings((previous) => [{ key, at: new Date(), payload }, ...previous]);
   }, []);
 

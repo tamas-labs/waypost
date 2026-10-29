@@ -325,18 +325,21 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
 
 ### Eszközszolgáltatások
 
-- [ ] **M3-20 Helymeghatározás**
+- [x] **M3-20 Helymeghatározás**
   - Mit: expo-location (előtér); az utolsó ismert pozíció, ha 60 mp-nél frissebb, különben legfeljebb 5 mp várakozás, utána helyadat nélkül; Androidon a mock-forrás és a `gnss_time` (ha a helyadat GPS-forrású).
   - Kész, ha: Jest tesztek mockolt providerrel az időkorlátokra.
   - Spec: Állapotgépek / Leolvasás 6.
+  - Megjegyzés (2026-10-29): `currentLocation()` (`src/location/location.ts`); a `gnss_time` a `waypost-clock` új `getGnssTimeMs` függvényéből jön (natív változás, új dev build kell). Az engedélyt a leolvasás nem kéri: a kérés az M5-10 ellenőrzőlistájára (`requestLocationPermission`), addig a „Helyadat, fotó, visszajelzés” próbaképernyőre került.
 
-- [ ] **M3-21 Fotó**
+- [x] **M3-21 Fotó**
   - Mit: csak kamera (galéria nem); tömörítés: hosszabbik oldal 1600 px, JPEG 0,7; sha256; helyi `media` rekord `path = null` szerveroldali státusszal.
   - Spec: Repo és technológiai stack (Fotó).
+  - Megjegyzés (2026-10-29): `takePhoto(camera)` / `discardPhoto` (`src/photo/photo.ts`); a `media` sort a láncíró a hivatkozó bejegyzéssel egy tranzakcióban írja (`ChainWriterOptions.photos`), `uploaded_at = null`-lal. A kameranézet a képernyőkön (M3-36, M3-37) készül.
 
-- [ ] **M3-22 NFC és QR szolgáltatás (az M1 prototípusból)**
+- [x] **M3-22 NFC és QR szolgáltatás (az M1 prototípusból)**
   - Mit: Androidon előtérbeli figyelés csak a kör és a betanítás képernyőjén (máshol a címke nem csinál semmit); iOS-en gombra induló munkamenet; a QR-olvasó csak `waypost:cp:` kódot fogad el; haptika és hang: siker / hiba (két rövid rezgés) / figyelmeztetés.
   - Spec: Mobilapp / NFC és QR; DESIGN_HANDOFF 7.
+  - Megjegyzés (2026-10-29): `useTagReader(onTag)` (`src/nfc/use-tag-reader.ts`) a kör és a betanítás képernyőjére, `playFeedback(kind)` (`src/feedback/feedback.ts`); a QR-olvasó az M1-es `QrScanner`. A hangok helyőrzők (`assets/sounds/scan_*.wav`). A rossz sorrend visszajelzése (figyelmeztetés vagy hiba) a Q13-tól függ (M3-35).
 
 - [x] **M3-23 Ütemező futtató**
   - Mit: a domain ütemező lépésének futtatása induláskor, előtérbe kerüléskor, minden értesítéskor és előtérben 30 másodpercenként; a kimenetének láncba írása.
@@ -368,15 +371,15 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
 
 - [ ] **M3-32 Ébresztés képernyő (G4, `B-Ebresztes`)** `⚠ Q1`: hang és rezgés ismétlődve, „Indulok” (a kör képernyője) és „Hang némítása”; halasztás nincs. Az értesítésre koppintva ez nyílik meg a kör adataival (`RoundAlarmData`, `src/alarms/round-alarms.ts`), belépett őr nélkül a PIN-képernyő (M3-24).
 
-- [ ] **M3-33 Kör folyamatban – lista (G5, `B-Kor`)**: pontlista (leolvasva időponttal / hátralévő), hátralévő idő (az utolsó 5 percben figyelmeztető szín és egyszeri rezgés), nagy „Leolvasás” gomb (iOS-en NFC), QR gomb, „Címke nem olvasható”; expo-keep-awake; Androidon előtérbeli NFC-figyelés.
+- [ ] **M3-33 Kör folyamatban – lista (G5, `B-Kor`)**: pontlista (leolvasva időponttal / hátralévő), hátralévő idő (az utolsó 5 percben figyelmeztető szín és egyszeri rezgés), nagy „Leolvasás” gomb (iOS-en NFC), QR gomb, „Címke nem olvasható”; expo-keep-awake; Androidon előtérbeli NFC-figyelés (`useTagReader`, M3-22); a leolvasás helye `currentLocation()` (M3-20).
 
 - [ ] **M3-34 Kör folyamatban – térkép (G6, `B-Terkep`)** `⚠ Q1`: react-native-maps, a pontok és a leolvasások összekötve. A specifikáció nem említi; ha a döntés „később”, ez a feladat átkerül a 2. lépcsőbe.
 
-- [ ] **M3-35 Leolvasás eredménye (G7–G9, `B-Siker`, `B-Ismeretlen`, `B-Sorrend`)**: siker (pont neve, utasítás, 3 mp után vissza), ismeretlen címke, már leolvasva, rossz sorrend; haptika típusonként; fade + scale animáció.
+- [ ] **M3-35 Leolvasás eredménye (G7–G9, `B-Siker`, `B-Ismeretlen`, `B-Sorrend`)**: siker (pont neve, utasítás, 3 mp után vissza), ismeretlen címke, már leolvasva, rossz sorrend; haptika típusonként (`playFeedback`, M3-22; a rossz sorrendé a Q13 szerint); fade + scale animáció.
 
-- [ ] **M3-36 Kézi rögzítés (G10, `B-Kezi`)**: pontválasztás az útvonal listájából, kötelező fotó (csak kamera) és megjegyzés.
+- [ ] **M3-36 Kézi rögzítés (G10, `B-Kezi`)**: pontválasztás az útvonal listájából, kötelező fotó (csak kamera) és megjegyzés. A fotó: `CameraView` + `takePhoto`, a mentés `photos`-szal, a törölt fotó `discardPhoto` (M3-21).
 
-- [ ] **M3-37 Esemény rögzítése (G11, `B-Esemeny`)**: kategória, megjegyzés, 0–5 fotó (csak kamera).
+- [ ] **M3-37 Esemény rögzítése (G11, `B-Esemeny`)**: kategória, megjegyzés, 0–5 fotó (csak kamera; M3-21), a helyadat `currentLocation()` (M3-20).
 
 - [ ] **M3-38 Műszakzárás (G12, `B-Zaras`)**: összegzés (körök állapota, események száma, feltöltetlen tételek), figyelmeztetés nyitott körnél, megerősítés PIN-nel.
 
@@ -445,7 +448,7 @@ Cél: az eszköz adatai hibátlanul a szerverre kerülnek, és a szerver ellenő
   - Kész, ha: Jest teszt a folyamatra.
 
 - [ ] **M4-12 Helyi takarítás**
-  - Mit: a nyugtázott bejegyzések és a feltöltött fotók törlése 7 nap után; a lánc utolsó eleme (`last_hash`) mindig megmarad.
+  - Mit: a nyugtázott bejegyzések és a feltöltött fotók törlése 7 nap után; a lánc utolsó eleme (`last_hash`) mindig megmarad. A `media` sor nélküli fotófájlok (a dokumentumok `media/` mappájában, pl. az app leállt egy félbehagyott kézi rögzítés közben) is törlődnek, ha legalább egy naposak (M3-21).
   - Kész, ha: Jest teszt.
   - Spec: Szinkron protokoll / Push és média; Adatmegőrzés.
 
@@ -492,7 +495,7 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
   - Mit: a valódi folyamat (felváltja az M3-06 fejlesztői képernyőt): `POST /devices/enroll`, a token és a titok mentése, a supervisortoken törlése erről a telefonról, azonnali teljes pull, utána a PIN-képernyő.
   - Spec: Azonosítás / Telephelyi telefon hozzárendelése.
 
-- [ ] **M5-10 Telefon beállítása – ellenőrzőlista (`device-setup`)**: értesítések, pontos riasztás (Android), akkumulátor-optimalizálás kikapcsolva (Android), helymeghatározás, kamera, NFC; zöld pipák; minden tételhez a rendszerbeállítás megnyitása.
+- [ ] **M5-10 Telefon beállítása – ellenőrzőlista (`device-setup`)**: értesítések, pontos riasztás (Android), akkumulátor-optimalizálás kikapcsolva (Android), helymeghatározás (`hasLocationPermission` / `requestLocationPermission`, M3-20), kamera, NFC; zöld pipák; minden tételhez a rendszerbeállítás megnyitása.
 
 - [ ] **M5-11 Betanítás – domain**
   - Mit: piszkozat, amely csak mentéskor lesz új útvonalverzió; `walk_duration_s` = utolsó − első leolvasás; `walk_time_from_prev_s`; ugyanaz a címke nem lehet két ponté (helyi ellenőrzés és a szerver 409-e).

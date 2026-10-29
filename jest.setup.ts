@@ -14,3 +14,8 @@ jest.mock('@react-native-community/netinfo', () => require('@react-native-commun
 
 // react-native-quick-crypto is native (JSI); its package ships a Jest mock that forwards to node:crypto.
 jest.mock('react-native-quick-crypto', () => require('react-native-quick-crypto/jest/index.js'));
+
+// expo-audio's player is native; a player that plays nothing.
+jest.mock('expo-audio', () => ({
+  createAudioPlayer: jest.fn(() => ({ seekTo: jest.fn(() => Promise.resolve()), play: jest.fn(), remove: jest.fn() })),
+}));

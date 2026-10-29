@@ -1,4 +1,5 @@
-// waypost-clock: the device's monotonic clock and boot ID for chain entries (uptime_ms, boot_id).
+// waypost-clock: the device's monotonic clock and boot ID for chain entries (uptime_ms, boot_id), and the GNSS time
+// of the last GPS fix (gnss_time).
 import WaypostClock from './src/WaypostClockModule';
 
 /** Same pattern as boot_id in @waypost/schema chain/entry.json. */
@@ -21,5 +22,16 @@ export function getUptimeMs(): number {
 export function getBootId(): string {
   const value = WaypostClock.getBootId();
   if (!BOOT_ID.test(value)) throw new Error(`waypost-clock: invalid boot ID ${value}`);
+  return value;
+}
+
+/**
+ * Android: the time (epoch ms) of the last fix of the GPS provider as the GNSS receiver reported it, if that fix is
+ * at most maxAgeMs old by the monotonic clock; null otherwise, without the location permission, and always on iOS.
+ */
+export function getGnssTimeMs(maxAgeMs: number): number | null {
+  const value = WaypostClock.getGnssTimeMs(maxAgeMs);
+  if (value === null || value === undefined) return null;
+  if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`waypost-clock: invalid GNSS time ${value}`);
   return value;
 }

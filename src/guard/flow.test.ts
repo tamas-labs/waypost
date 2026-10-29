@@ -4,7 +4,7 @@ import { asc } from 'drizzle-orm';
 
 import { appendChainEntries } from '@/chain/writer';
 import type { Database } from '@/db/database';
-import { chainEntries, incidents, rounds, shifts } from '@/db/schema';
+import { chainEntries, incidents, media, rounds, scans, shifts } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import { schedulerStep } from '@/domain/rounds';
 import { manualScan, resolveScan } from '@/domain/scan';
@@ -54,7 +54,8 @@ describe('a night on the site phone', () => {
     const context = () => ({ state: loadState(), now, location: null, newId });
     await write(resolveScan(context(), { method: 'nfc', tag_uid: tag(C1), ndef_raw: null }).drafts);
     const roundA = loadState().rounds.find((r) => r.scheduled_at === local('21:00'))!;
-    await write(manualScan(context(), { round_id: roundA.id, checkpoint_id: C2, note: 'Letörött.', media: [{ id: newId(), sha256: 'b'.repeat(64) }] }).drafts);
+    const photo = { id: newId(), sha256: 'b'.repeat(64), mime: 'image/jpeg', size_bytes: 240_000, local_uri: 'file:///documents/media/c2.jpg', taken_at: now };
+    await appendChainEntries(db, manualScan(context(), { round_id: roundA.id, checkpoint_id: C2, note: 'Letörött.', media: [photo] }).drafts, { readClock, photos: [photo] });
     // C3 is on both routes: it completes A first.
     const completing = resolveScan(context(), { method: 'nfc', tag_uid: tag(C3), ndef_raw: null });
     expect(completing).toMatchObject({ round_id: roundA.id, completed: true });
@@ -62,6 +63,8 @@ describe('a night on the site phone', () => {
     await write(resolveScan(context(), { method: 'nfc', tag_uid: tag(C3), ndef_raw: null }).drafts);
     expect(roundStatuses().map((r) => r.status)).toEqual(['missed', 'in_progress', 'completed']);
     expect(db.select().from(incidents).all()).toEqual([expect.objectContaining({ category: 'damaged_tag', note: 'Letörött.' })]);
+    const manual = db.select().from(scans).all().find((row) => row.method === 'manual')!;
+    expect(db.select({ owner_type: media.owner_type, owner_id: media.owner_id, uploaded_at: media.uploaded_at }).from(media).all()).toEqual([{ owner_type: 'scan', owner_id: manual.id, uploaded_at: null }]);
 
     now = local('21:15');
     const handover = guardLogin(loadState(), OTHER_GUARD, now, newId);
