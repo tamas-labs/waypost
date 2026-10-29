@@ -60,7 +60,8 @@
         }
       ],
       "expo-sqlite",
-      "expo-secure-store"
+      "expo-secure-store",
+      "react-native-quick-crypto"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -11,3 +11,6 @@ jest.mock('expo-crypto', () => ({
 
 // NetInfo is a native module; its package ships a Jest mock (always connected).
 jest.mock('@react-native-community/netinfo', () => require('@react-native-community/netinfo/jest/netinfo-mock.js'));
+
+// react-native-quick-crypto is native (JSI); its package ships a Jest mock that forwards to node:crypto.
+jest.mock('react-native-quick-crypto', () => require('react-native-quick-crypto/jest/index.js'));

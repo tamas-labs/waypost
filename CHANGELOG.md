@@ -17,7 +17,11 @@ A formátum a [Keep a Changelog](https://keepachangelog.com/hu/1.1.0/) ajánlás
 - Pull: lapozás a kurzorral, az összes oldal egy tranzakcióban (upsert, törlés, `reset`), a kurzor és a szerveridő mentése, esemény a többi modulnak (M3-07).
 - Szinkron-vezérlő: egyszerre egy szinkron, push → média → outbox → pull sorrend, 2 mp-es összevont késleltetés láncbejegyzés után; indítók: indulás, előtérbe kerülés, hálózat visszatérése, 5 percenként előtérben, munkamenet-váltás (M3-08).
 - Szinkronállapot-tár: online/offline, feltöltetlen tételek, utolsó sikeres szinkron, utolsó hiba, „Szinkron most” (M3-09).
+- Kanonikus JSON (RFC 8785, a Waypost szűkítéseivel): lebegőpontos számra és magányos surrogate-re kivétel; a közös tesztvektorok bájtra egyeznek (M3-10).
+- Láncíró: HMAC-SHA256 az eszköztitokkal, `seq` 1-től hézag nélkül egy globális írási zár alatt, `prev_hash`, órák és szinkronreferencia; a bejegyzések és a vetületeik (műszak, kör, leolvasás, esemény) egy tranzakcióban (M3-11).
+- Bejegyzés-építők a hat típushoz: koordináta `lat_e7` / `lng_e7`, pontosság `accuracy_dm`, `media: [{id, sha256}]`, jelölések (M3-12).
 - Függőség: `@react-native-community/netinfo` (natív: új development build kell).
+- Függőség: `react-native-quick-crypto` (a `react-native-nitro-modules` és a `react-native-quick-base64` csomaggal; natív: új development build kell).
 
 ### Módosítva
 

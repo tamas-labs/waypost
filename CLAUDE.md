@@ -38,7 +38,7 @@ src/
   i18n/       # hu.json (minden felirat), index.ts: t(key, params)
 modules/      # saját Expo-modulok: waypost-clock (getUptimeMs, getBootId), waypost-power (akkumulátor-optimalizálás, Android) – import: @modules/<név>
 __tests__/    # képernyőtesztek; a modulok tesztjei a modul mellett: src/<modul>/*.test.ts
-__mocks__/    # Jest: expo-secure-store memóriában (automatikus); jest.setup.ts: expo-crypto véletlenforrás
+__mocks__/    # Jest: expo-secure-store memóriában (automatikus); jest.setup.ts: expo-crypto véletlenforrás, NetInfo, react-native-quick-crypto (node:crypto)
 assets/       # ikon, splash (egyelőre az Expo sablon helyőrzői), sounds/ (az ébresztés hangja, helyőrző)
 ```
 

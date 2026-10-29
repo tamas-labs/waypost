@@ -273,17 +273,17 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
 
 ### Lánc
 
-- [ ] **M3-10 `canonical_json` (RFC 8785)**
+- [x] **M3-10 `canonical_json` (RFC 8785)**
   - Mit: saját vagy bevált könyvtárra épülő implementáció; lebegőpontos szám esetén kivétel.
   - Kész, ha: a `chain/test-vectors.json` minden `canonical_json` esete bájtra egyezik.
   - Spec: Láncolt napló / Bejegyzés és lenyomat.
 
-- [ ] **M3-11 HMAC és láncíró**
+- [x] **M3-11 HMAC és láncíró**
   - Mit: HMAC-SHA256 a react-native-quick-crypto-val (a tesztekben Node crypto); globális írási zár; `seq` kiosztás 1-től hézag nélkül; `prev_hash` (első bejegyzésnél 64 db `0`); a bejegyzés és a vetületrekord egy SQLite tranzakcióban; az idő- és referenciamezők (`device_time`, `uptime_ms`, `boot_id`, `gnss_time`, `ref_*`) kitöltése.
   - Kész, ha: a tesztvektorok hash-ei egyeznek; párhuzamos írási teszt: a `seq` folytonos marad; a tranzakció hibájánál sem bejegyzés, sem vetület nem marad.
   - Spec: Láncolt napló.
 
-- [ ] **M3-12 Bejegyzés-építők típusonként**
+- [x] **M3-12 Bejegyzés-építők típusonként**
   - Mit: függvények a hat típus payloadjának összeállításához; koordináta → `lat_e7` / `lng_e7`, pontosság → `accuracy_dm` (egész kerekítéssel); `media: [{id, sha256}]`.
   - Kész, ha: Jest tesztek; a kimenet validál a `@waypost/schema` láncsémáin.
 
