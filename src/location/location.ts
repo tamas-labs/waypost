@@ -25,6 +25,12 @@ export async function hasLocationPermission(): Promise<boolean> {
   return (await getForegroundPermissionsAsync()).granted;
 }
 
+/** The foreground permission, and whether the system still shows its request (if not, only the app's settings can grant it). */
+export async function getLocationPermission(): Promise<{ granted: boolean; canAskAgain: boolean }> {
+  const { granted, canAskAgain } = await getForegroundPermissionsAsync();
+  return { granted, canAskAgain };
+}
+
 /** Asks for the foreground location permission; never asked during a scan. */
 export async function requestLocationPermission(): Promise<boolean> {
   return (await requestForegroundPermissionsAsync()).granted;

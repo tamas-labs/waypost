@@ -5,10 +5,10 @@ import { useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
 import { siteUser, shifts, users } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
-import { GUARD, local, OTHER_GUARD, SITE } from '@/domain/testing';
+import { GUARD, local, OTHER_GUARD, ROUTE_A, ROUTE_B, SITE } from '@/domain/testing';
 import type { ClockReading } from '@/time/clock';
 
-import { loadPinScreenInfo, signInWithPin } from './login';
+import { loadPinScreenInfo, loadShiftStartInfo, signInWithPin } from './login';
 import { requestSchedulerStep } from './scheduler';
 import { seedSite } from './testing';
 
@@ -67,7 +67,7 @@ describe('signing in with a PIN', () => {
     const result = await signInWithPin(db, vector('basic').pin, readClock);
     expect(result).toMatchObject({ status: 'ok', role: 'guard', user: { id: GUARD, name: 'Kovács Péter' }, login: { outcome: 'started' } });
     expect(openShifts()).toEqual([{ guard_id: GUARD, closed_by: null }]);
-    expect(useSession.getState().activeUser).toEqual({ id: GUARD, role: 'guard' });
+    expect(useSession.getState()).toMatchObject({ activeUser: { id: GUARD, role: 'guard' }, shiftStart: { handover: null } });
     // The rounds due now open at once.
     expect(requestSchedulerStep).toHaveBeenCalledWith('shift_started');
   });
@@ -79,13 +79,15 @@ describe('signing in with a PIN', () => {
     jest.mocked(requestSchedulerStep).mockClear();
     await expect(signInWithPin(db, vector('basic').pin, readClock)).resolves.toMatchObject({ login: { outcome: 'continued' } });
     expect(requestSchedulerStep).not.toHaveBeenCalled();
+    // The same guard goes on at the shift home.
+    expect(useSession.getState().shiftStart).toBeNull();
     useSession.setState({ activeUser: null });
     await expect(signInWithPin(db, vector('all-nines').pin, readClock)).resolves.toMatchObject({ login: { outcome: 'handover' } });
     expect(openShifts()).toEqual([
       { guard_id: GUARD, closed_by: 'handover' },
       { guard_id: OTHER_GUARD, closed_by: null },
     ]);
-    expect(useSession.getState().activeUser).toEqual({ id: OTHER_GUARD, role: 'guard' });
+    expect(useSession.getState()).toMatchObject({ activeUser: { id: OTHER_GUARD, role: 'guard' }, shiftStart: { handover: { guard_name: 'Kovács Péter', at: now } } });
   });
 
   it('opens the supervisor mode for a supervisor’s PIN, without touching the shift', async () => {
@@ -98,5 +100,24 @@ describe('signing in with a PIN', () => {
     await expect(signInWithPin(db, '000000', readClock)).resolves.toEqual({ status: 'wrong', failures: 1, remaining_ms: 0 });
     expect(useSession.getState().activeUser).toBeNull();
     expect(openShifts()).toEqual([]);
+  });
+});
+
+describe('the shift start information', () => {
+  it('has the guard and the night with its routes by name', async () => {
+    await seedSite(db);
+    addUser(GUARD, 'Kovács Péter', 'guard', 'basic');
+    expect(loadShiftStartInfo(db, GUARD, readClock)).toMatchObject({
+      timezone: 'Europe/Budapest',
+      guard_name: 'Kovács Péter',
+      day: {
+        first_at: local('20:00'),
+        last_at: local('23:00'),
+        routes: [
+          { route_id: ROUTE_A, name: `Útvonal ${ROUTE_A.slice(-2)}`, checkpoints: 3, rounds: 4 },
+          { route_id: ROUTE_B, name: `Útvonal ${ROUTE_B.slice(-2)}`, checkpoints: 2, rounds: 2 },
+        ],
+      },
+    });
   });
 });

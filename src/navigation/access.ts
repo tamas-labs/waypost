@@ -2,7 +2,7 @@ import type { Href } from 'expo-router';
 
 import type { SessionState } from '@/auth/session';
 
-type Session = Pick<SessionState, 'mode' | 'activeUser'>;
+type Session = Pick<SessionState, 'mode' | 'activeUser'> & Partial<Pick<SessionState, 'shiftStart'>>;
 
 /** Which route groups the session may open (the guards of Stack.Protected). */
 export function routeAccess({ mode, activeUser }: Session) {
@@ -22,7 +22,7 @@ export function homeHref(session: Session): Href | null {
   const access = routeAccess(session);
   if (access.login) return '/login';
   if (access.pin) return '/pin';
-  if (access.guard) return '/home';
+  if (access.guard) return session.shiftStart == null ? '/home' : '/shift-start';
   if (access.supervisor) return '/sites';
   return null;
 }

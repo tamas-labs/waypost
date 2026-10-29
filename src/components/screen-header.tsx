@@ -13,17 +13,19 @@ export interface ScreenHeaderProps {
   subtitle?: string;
   /** Shows the 48 dp back button. */
   onBack?: () => void;
+  /** What the back button does, if not just "Vissza" (e.g. it logs out). */
+  backLabel?: string;
   /** The right side; default: the sync indicator, which is on every screen (a status badge goes next to it). */
   right?: ReactNode;
 }
 
 /** The header of a screen (DESIGN_HANDOFF 6): below the safe area, back button, title (20/800) and subtitle (13/600), sync indicator at the right. */
-export function ScreenHeader({ title, subtitle, onBack, right = <SyncStatusIndicator /> }: ScreenHeaderProps) {
+export function ScreenHeader({ title, subtitle, onBack, backLabel = t('common.back'), right = <SyncStatusIndicator /> }: ScreenHeaderProps) {
   const { color, typography, space, size } = useTheme();
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.header, { paddingTop: insets.top + space.s, paddingHorizontal: space.l, paddingBottom: space.s, gap: space.m }]}>
-      {onBack !== undefined && <IconButton icon="back" accessibilityLabel={t('common.back')} onPress={onBack} />}
+      {onBack !== undefined && <IconButton icon="back" accessibilityLabel={backLabel} onPress={onBack} />}
       {/* As high as the back button, with or without it. */}
       <View style={[styles.titles, { minHeight: size.touchMin }]}>
         {title !== undefined && (

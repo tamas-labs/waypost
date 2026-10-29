@@ -1,6 +1,6 @@
-import { closeShiftByGuard, guardLogin, nextRound } from './shift';
+import { closeShiftByGuard, guardLogin, nextRound, shiftDay } from './shift';
 import { DomainError } from './state';
-import { C1, GUARD, guardState, idSequence, local, OPEN_SHIFT, OTHER_GUARD, round, ROUTE_A, SHIFT, SITE } from './testing';
+import { C1, GUARD, guardState, idSequence, local, OPEN_SHIFT, OTHER_GUARD, round, ROUTE_A, ROUTE_B, SCHEDULES, SHIFT, SITE } from './testing';
 
 describe('shift state machine', () => {
   it('starts a shift when a guard logs in without an open shift', () => {
@@ -21,6 +21,7 @@ describe('shift state machine', () => {
     const closed = round('A', '19:00', { status: 'missed' });
     const login = guardLogin(guardState({ shift: OPEN_SHIFT, rounds: [closed, scanned, unscanned] }), OTHER_GUARD, local('20:40'), idSequence());
     expect(login.outcome).toBe('handover');
+    expect(login.closed_shift).toEqual(OPEN_SHIFT);
     expect(login.drafts).toEqual([
       { type: 'round_closed', payload: { round_id: scanned.id, status: 'incomplete', finished_at: local('20:40') }, gnss_time: null },
       { type: 'round_closed', payload: { round_id: unscanned.id, status: 'missed', finished_at: local('20:40') }, gnss_time: null },
@@ -52,5 +53,33 @@ describe('the next round', () => {
     const routes = guardState().routes.map((route) => (route.id === ROUTE_A ? { ...route, active: false } : route));
     expect(nextRound(guardState({ routes }), local('19:40'))).toEqual({ scheduled_at: local('20:30'), starts_shift: true });
     expect(nextRound(guardState({ schedules: [] }), local('19:40'))).toBeNull();
+  });
+});
+
+describe('the shift day', () => {
+  const tonight = {
+    start_day: '2026-11-03',
+    first_at: local('20:00'),
+    last_at: local('23:00'),
+    routes: [
+      { route_id: ROUTE_A, checkpoints: 3, rounds: 4, schedules: [SCHEDULES[0]] },
+      { route_id: ROUTE_B, checkpoints: 2, rounds: 2, schedules: [SCHEDULES[1]] },
+    ],
+  };
+
+  it('is the night ahead before its first round, and the running one until its last', () => {
+    expect(shiftDay(guardState(), local('19:40'))).toEqual(tonight);
+    expect(shiftDay(guardState(), local('21:15'))).toEqual(tonight);
+    expect(shiftDay(guardState(), local('23:00'))).toEqual(tonight);
+  });
+
+  it('is the next night after the last round', () => {
+    expect(shiftDay(guardState(), local('23:10'))).toMatchObject({ start_day: '2026-11-04', first_at: local('20:00', '2026-11-04') });
+  });
+
+  it('leaves out routes without rounds, and is null without any', () => {
+    const routes = guardState().routes.map((route) => (route.id === ROUTE_B ? { ...route, current_version_id: null } : route));
+    expect(shiftDay(guardState({ routes }), local('19:40'))?.routes.map((route) => route.route_id)).toEqual([ROUTE_A]);
+    expect(shiftDay(guardState({ schedules: [] }), local('19:40'))).toBeNull();
   });
 });

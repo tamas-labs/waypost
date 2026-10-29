@@ -86,7 +86,7 @@ describe('loadSession', () => {
   it('is not enrolled on a fresh install', async () => {
     const { db } = await createTestDatabase();
     expect(await loadSession(db)).toBe('unassigned');
-    expect(useSession.getState()).toEqual({ mode: 'unassigned', deviceId: null, activeUser: null });
+    expect(useSession.getState()).toEqual({ mode: 'unassigned', deviceId: null, activeUser: null, shiftStart: null });
   });
 
   it("is a supervisor's own phone with a stored supervisor token", async () => {

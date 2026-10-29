@@ -8,14 +8,18 @@ import { pinLogin, type PinLoginResult } from '@/auth/pin';
 import { useSession } from '@/auth/session';
 import { appendDecidedEntries } from '@/chain/writer';
 import type { Database } from '@/db/database';
-import { sites, users } from '@/db/schema';
-import { guardLogin, nextRound, type GuardLogin, type NextRound } from '@/domain/shift';
+import { routes, sites, users } from '@/db/schema';
+import { guardLogin, nextRound, shiftDay, type GuardLogin, type NextRound, type ShiftDay, type ShiftDayRoute } from '@/domain/shift';
 import { uuidv7 } from '@/id/uuidv7';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 import { trustedTime } from '@/time/trusted-time';
 
 import { requestSchedulerStep } from './scheduler';
 import { loadGuardState } from './state';
+
+function userName(db: Database, id: string): string | null {
+  return db.select({ name: users.name }).from(users).where(eq(users.id, id)).get()?.name ?? null;
+}
 
 /** What the PIN screen shows above the keypad. */
 export interface PinScreenInfo {
@@ -34,8 +38,7 @@ export function loadPinScreenInfo(db: Database, readClock: ReadClock = readDevic
   const state = loadGuardState(db, now);
   if (state === null) return null;
   const site = db.select({ name: sites.name }).from(sites).where(eq(sites.id, state.site_id)).get();
-  const guard = state.shift === null ? undefined : db.select({ name: users.name }).from(users).where(eq(users.id, state.shift.guard_id)).get();
-  return { site_name: site?.name ?? '', timezone: state.timezone, now, on_shift: guard?.name ?? null, next_round: nextRound(state, now) };
+  return { site_name: site?.name ?? '', timezone: state.timezone, now, on_shift: state.shift === null ? null : userName(db, state.shift.guard_id), next_round: nextRound(state, now) };
 }
 
 export type PinSignInResult =
@@ -63,12 +66,38 @@ export async function signInWithPin(db: Database, pin: string, readClock: ReadCl
       const now = trustedTime(db, readClock()).time;
       const state = loadGuardState(db, now);
       if (state === null) throw new Error('The site of the phone is not pulled yet');
-      return guardLogin(state, id, now, uuidv7);
+      return { ...guardLogin(state, id, now, uuidv7), now };
     },
     { readClock },
   );
-  useSession.setState({ activeUser: { id, role } });
+  const closed = decision.closed_shift;
+  const handover = closed === undefined ? null : { guard_name: userName(db, closed.guard_id) ?? '', at: decision.now };
+  // A new shift goes through the shift start screen (G2); the same guard's shift goes on at the shift home.
+  useSession.setState({ activeUser: { id, role }, shiftStart: decision.outcome === 'continued' ? null : { handover } });
   // A new shift may have rounds due right away.
   if (decision.outcome !== 'continued') requestSchedulerStep('shift_started');
-  return { status: 'ok', role, user: { id, name }, login: decision };
+  const { now: _now, ...login } = decision;
+  return { status: 'ok', role, user: { id, name }, login };
+}
+
+/** What the shift start screen (G2) shows of the shift's night. */
+export interface ShiftStartInfo {
+  timezone: string;
+  /** The logged-in guard's name. */
+  guard_name: string;
+  /** Null if no route has rounds within a day. */
+  day: (Omit<ShiftDay, 'routes'> & { routes: (ShiftDayRoute & { name: string })[] }) | null;
+}
+
+export function loadShiftStartInfo(db: Database, guardId: string, readClock: ReadClock = readDeviceClock): ShiftStartInfo | null {
+  const now = trustedTime(db, readClock()).time;
+  const state = loadGuardState(db, now);
+  if (state === null) return null;
+  const day = shiftDay(state, now);
+  const names = new Map(db.select({ id: routes.id, name: routes.name }).from(routes).where(eq(routes.site_id, state.site_id)).all().map((route) => [route.id, route.name]));
+  return {
+    timezone: state.timezone,
+    guard_name: userName(db, guardId) ?? '',
+    day: day === null ? null : { ...day, routes: day.routes.map((route) => ({ ...route, name: names.get(route.route_id) ?? '' })) },
+  };
 }
