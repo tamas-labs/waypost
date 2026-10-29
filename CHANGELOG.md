@@ -27,6 +27,7 @@ A formátum a [Keep a Changelog](https://keepachangelog.com/hu/1.1.0/) ajánlás
 - Kör-állapotgép és ütemező lépés: esedékes és kimaradt körök megnyitása, zárás határidőnél vagy a következő időpontnál, útvonalanként egy nyitott kör (M3-17).
 - Leolvasás feloldása (NFC, QR) és jelölései: ismeretlen címke, ismétlés, körön kívül, rossz sorrend, kör teljesítése (M3-18).
 - Kézi rögzítés (leolvasás + sérült címke esemény) és esemény a legközelebbi ponttal (M3-19).
+- Ütemező futtató: a kör-ütemező lépése induláskor, előtérbe kerüléskor, értesítéskor és előtérben 30 másodpercenként, a megbízható idővel; az állapot beolvasása és a bejegyzések írása egy záron belül, így egy kör nem nyílhat kétszer; az automatikus műszakzárás azonnal szinkronizál (M3-23).
 - Függőség: `@react-native-community/netinfo` (natív: új development build kell).
 - Függőség: `react-native-quick-crypto` (a `react-native-nitro-modules` és a `react-native-quick-base64` csomaggal; natív: új development build kell).
 

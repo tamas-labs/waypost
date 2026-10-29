@@ -50,45 +50,65 @@ async function readDeviceSecret(): Promise<string | null> {
   return (await getDeviceCredentials())?.secret ?? null;
 }
 
+/** Appends the drafts in one transaction; the caller holds the chain lock. */
+async function writeDrafts(db: Database, drafts: readonly ChainEntryDraft[], options: ChainWriterOptions): Promise<ChainEntry[]> {
+  if (drafts.length === 0) return [];
+  const readClock = options.readClock ?? readDeviceClock;
+  const secret = await (options.readSecret ?? readDeviceSecret)();
+  if (secret === null) throw new ChainWriteError('No device secret: the phone is not enrolled');
+
+  const written = db.transaction((tx) => {
+    const deviceId = getKv(tx, 'device.id');
+    if (deviceId === null) throw new ChainWriteError('No device ID: the phone is not enrolled');
+    const last = tx.select({ seq: chainEntries.seq, hash: chainEntries.hash }).from(chainEntries).where(eq(chainEntries.device_id, deviceId)).orderBy(desc(chainEntries.seq)).limit(1).get();
+    const reference = chainTimeReference(getTimeReference(tx));
+    let seq = last?.seq ?? 0;
+    let prevHash = last?.hash ?? GENESIS_HASH;
+
+    return drafts.map((draft) => {
+      const clock = readClock();
+      seq += 1;
+      const entry = signChainEntry(
+        { id: uuidv7(), device_id: deviceId, seq, type: draft.type, payload: draft.payload, ...clock, gnss_time: draft.gnss_time, ...reference, prev_hash: prevHash } as Omit<ChainEntry, 'hash'>,
+        secret,
+      ) as ChainEntry;
+      if (__DEV__) {
+        const errors = schemaErrors('chain/entry', entry);
+        if (errors.length > 0) throw new ChainWriteError(`Invalid ${entry.type} entry: ${errors.join('; ')}`);
+      }
+      tx.insert(chainEntries).values(entry).run();
+      applyProjection(tx, entry);
+      prevHash = entry.hash;
+      return entry;
+    });
+  });
+
+  notifyChainEntry();
+  return written;
+}
+
 /**
  * Appends the drafts to the chain in one transaction, applying each to the projections; returns the signed entries.
  * Throws (and writes nothing) if the phone is not enrolled, an entry is invalid or a projection does not fit.
  */
 export function appendChainEntries(db: Database, drafts: readonly ChainEntryDraft[], options: ChainWriterOptions = {}): Promise<ChainEntry[]> {
-  const readClock = options.readClock ?? readDeviceClock;
+  return withChainLock(() => writeDrafts(db, drafts, options));
+}
+
+/** What a rule decided: the entries to write, and whatever else its caller needs (e.g. what the screen shows). */
+export interface ChainDecision {
+  drafts: readonly ChainEntryDraft[];
+}
+
+/**
+ * Runs decide under the chain lock, then appends its drafts as appendChainEntries does. No other entry is written
+ * between reading the state in decide and writing what was decided from it, so two rules cannot act on the same
+ * round at once (e.g. a scan completing it while the scheduler closes it). decide reads synchronously.
+ */
+export function appendDecidedEntries<D extends ChainDecision>(db: Database, decide: () => D, options: ChainWriterOptions = {}): Promise<{ decision: D; entries: ChainEntry[] }> {
   return withChainLock(async () => {
-    if (drafts.length === 0) return [];
-    const secret = await (options.readSecret ?? readDeviceSecret)();
-    if (secret === null) throw new ChainWriteError('No device secret: the phone is not enrolled');
-
-    const written = db.transaction((tx) => {
-      const deviceId = getKv(tx, 'device.id');
-      if (deviceId === null) throw new ChainWriteError('No device ID: the phone is not enrolled');
-      const last = tx.select({ seq: chainEntries.seq, hash: chainEntries.hash }).from(chainEntries).where(eq(chainEntries.device_id, deviceId)).orderBy(desc(chainEntries.seq)).limit(1).get();
-      const reference = chainTimeReference(getTimeReference(tx));
-      let seq = last?.seq ?? 0;
-      let prevHash = last?.hash ?? GENESIS_HASH;
-
-      return drafts.map((draft) => {
-        const clock = readClock();
-        seq += 1;
-        const entry = signChainEntry(
-          { id: uuidv7(), device_id: deviceId, seq, type: draft.type, payload: draft.payload, ...clock, gnss_time: draft.gnss_time, ...reference, prev_hash: prevHash } as Omit<ChainEntry, 'hash'>,
-          secret,
-        ) as ChainEntry;
-        if (__DEV__) {
-          const errors = schemaErrors('chain/entry', entry);
-          if (errors.length > 0) throw new ChainWriteError(`Invalid ${entry.type} entry: ${errors.join('; ')}`);
-        }
-        tx.insert(chainEntries).values(entry).run();
-        applyProjection(tx, entry);
-        prevHash = entry.hash;
-        return entry;
-      });
-    });
-
-    notifyChainEntry();
-    return written;
+    const decision = decide();
+    return { decision, entries: await writeDrafts(db, decision.drafts, options) };
   });
 }
 

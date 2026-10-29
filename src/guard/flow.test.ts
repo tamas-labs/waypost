@@ -1,21 +1,20 @@
-// The domain's output written by the chain writer: the entries fit the projections, and the projections read back
-// give the state of the next step.
-import { chainVectors } from '@waypost/schema/vectors';
-import { asc, isNotNull, isNull } from 'drizzle-orm';
+// The domain's output written by the chain writer: the entries fit the projections, and the projections loaded
+// back (loadGuardState) give the state of the next step.
+import { asc } from 'drizzle-orm';
 
 import { appendChainEntries } from '@/chain/writer';
-import { setDeviceCredentials } from '@/auth/credentials';
 import type { Database } from '@/db/database';
-import { setKv } from '@/db/kv';
-import { chainEntries, incidents, rounds, scans, shifts } from '@/db/schema';
+import { chainEntries, incidents, rounds, shifts } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
+import { schedulerStep } from '@/domain/rounds';
+import { manualScan, resolveScan } from '@/domain/scan';
+import { guardLogin } from '@/domain/shift';
+import type { GuardState } from '@/domain/state';
+import { C1, C2, C3, GUARD, idSequence, local, OTHER_GUARD } from '@/domain/testing';
 import type { ClockReading } from '@/time/clock';
 
-import { schedulerStep } from './rounds';
-import { manualScan, resolveScan } from './scan';
-import { guardLogin } from './shift';
-import type { GuardState, RoundInfo } from './state';
-import { C1, C2, C3, GUARD, guardState, idSequence, local, OTHER_GUARD, ROUTE_A, ROUTE_B, VERSION_A1 } from './testing';
+import { loadGuardState } from './state';
+import { seedSite } from './testing';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn() }));
@@ -26,25 +25,13 @@ const readClock = (): ClockReading => ({ device_time: now, uptime_ms: 1000, boot
 const newId = idSequence();
 const write = (drafts: Parameters<typeof appendChainEntries>[1]) => appendChainEntries(db, drafts, { readClock });
 
-/** The domain state from the projections (what the runner of M3-23 will do). */
-function loadState(): GuardState {
-  const shift = db.select().from(shifts).where(isNull(shifts.ended_at)).get() ?? null;
-  const roundRows = db.select().from(rounds).orderBy(asc(rounds.scheduled_at)).all();
-  const scanRows = db.select().from(scans).where(isNotNull(scans.checkpoint_id)).all();
-  const roundInfos: RoundInfo[] = roundRows.map((row) => ({
-    ...row,
-    route_id: row.route_version_id === VERSION_A1 ? ROUTE_A : ROUTE_B,
-    scans: scanRows.filter((s) => s.round_id === row.id).map((s) => ({ checkpoint_id: s.checkpoint_id!, scanned_at: s.scanned_at })),
-  }));
-  return guardState({ shift: shift === null ? null : { id: shift.id, guard_id: shift.guard_id, started_at: shift.started_at }, rounds: roundInfos });
-}
+const loadState = (): GuardState => loadGuardState(db, now)!;
 
 const roundStatuses = () => db.select({ scheduled_at: rounds.scheduled_at, status: rounds.status }).from(rounds).orderBy(asc(rounds.scheduled_at)).all();
 
 beforeEach(async () => {
   ({ db } = await createTestDatabase());
-  setKv(db, 'device.id', '019a2b3c-4d5e-7f00-8a00-000000000004');
-  await setDeviceCredentials({ token: 'device-token', secret: chainVectors.key_base64 });
+  await seedSite(db);
 });
 
 describe('a night on the site phone', () => {

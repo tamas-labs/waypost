@@ -1,5 +1,5 @@
 // What the domain rules see of the site phone: the configuration and the projections of the chain, loaded from the
-// database by the runner (M3-23). The rules are pure functions of this state and the time; their output is the
+// database by src/guard/state.ts. The rules are pure functions of this state and the time; their output is the
 // chain entries to write (src/chain/writer.ts), which update the projections in turn.
 import type { Timestamp } from '@waypost/schema';
 

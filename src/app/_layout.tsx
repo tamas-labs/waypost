@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { loadSession } from '@/auth/session';
 import { StartupError } from '@/components/startup-error';
 import { getDatabase, openDatabase } from '@/db/open';
+import { startScheduler } from '@/guard/scheduler';
 import { AppStack } from '@/navigation/app-stack';
 import { startSync } from '@/sync/runtime';
 import { ThemeProvider, useTheme } from '@/theme/theme-provider';
@@ -59,8 +60,14 @@ export default function RootLayout() {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
 
-  // The sync runs while the app does, from the start (specification, Szinkron protokoll / Mikor fut).
-  useEffect(() => (startup.state === 'ready' ? startSync(getDatabase()) : undefined), [startup.state]);
+  // The sync and the scheduler run while the app does, from the start (specification, Szinkron protokoll / Mikor
+  // fut; Állapotgépek / Kör).
+  useEffect(() => {
+    if (startup.state !== 'ready') return undefined;
+    const db = getDatabase();
+    const stops = [startSync(db), startScheduler(db)];
+    return () => stops.forEach((stop) => stop());
+  }, [startup.state]);
 
   if (!ready) return null;
   return (

@@ -14,7 +14,7 @@ import type { ClockReading } from '@/time/clock';
 import { GENESIS_HASH, verifyChainEntry } from './hmac';
 import { incident, roundClosed, roundOpened, scan, shiftClosed, shiftStarted } from './payloads';
 import { ProjectionError } from './projection';
-import { appendChainEntries, appendChainEntry, ChainWriteError, type ChainWriterOptions } from './writer';
+import { appendChainEntries, appendChainEntry, appendDecidedEntries, ChainWriteError, type ChainWriterOptions } from './writer';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn() }));
@@ -170,6 +170,27 @@ describe('chain writer', () => {
     await expect(startShift()).resolves.toMatchObject({ seq: 1 });
     await expect(appendChainEntries(db, [], options)).resolves.toEqual([]);
     expect(notifyChainEntry).toHaveBeenCalledTimes(1);
+  });
+
+  it('decides under the lock: a decision reads the state the earlier writes left', async () => {
+    await startShift();
+    const slowSecret = () => new Promise<string>((resolve) => setTimeout(() => resolve(KEY), 5));
+    // Two rules wanting to open the same round at once: the second sees the first one's round and opens none.
+    const openOnce = () =>
+      appendDecidedEntries(
+        db,
+        () => {
+          const exists = db.select().from(rounds).all().length > 0;
+          return { exists, drafts: exists ? [] : [roundOpened({ round_id: uuidv7(), shift_id: SHIFT, ...ROUND_FIELDS })] };
+        },
+        { readClock, readSecret: slowSecret },
+      );
+    const [first, second] = await Promise.all([openOnce(), openOnce()]);
+
+    expect(first.decision.exists).toBe(false);
+    expect(first.entries).toEqual([expect.objectContaining({ seq: 2, type: 'round_opened' })]);
+    expect(second).toEqual({ decision: { exists: true, drafts: [] }, entries: [] });
+    expect(db.select().from(rounds).all()).toHaveLength(1);
   });
 
   it('starts a new chain for a newly enrolled device', async () => {

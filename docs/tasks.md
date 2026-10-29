@@ -338,7 +338,7 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
   - Mit: Androidon előtérbeli figyelés csak a kör és a betanítás képernyőjén (máshol a címke nem csinál semmit); iOS-en gombra induló munkamenet; a QR-olvasó csak `waypost:cp:` kódot fogad el; haptika és hang: siker / hiba (két rövid rezgés) / figyelmeztetés.
   - Spec: Mobilapp / NFC és QR; DESIGN_HANDOFF 7.
 
-- [ ] **M3-23 Ütemező futtató**
+- [x] **M3-23 Ütemező futtató**
   - Mit: a domain ütemező lépésének futtatása induláskor, előtérbe kerüléskor, minden értesítéskor és előtérben 30 másodpercenként; a kimenetének láncba írása.
 
 - [ ] **M3-24 Ébresztés-ütemezés**
