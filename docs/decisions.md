@@ -203,3 +203,29 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - Kipróbálva a `laravel-waypost` workbench-én (`composer serve`, demó-telephely): belépés, telephelylista, hozzárendelés, kijelentkezés és teljes pull a valódi szerverrel, minden válasz sémaellenőrzéssel (Node-ból, a Jest-környezetben). Telefonon még nem futott; ez a `device-test.md` M3-as I1–I5 tétele.
 - **Indok:** Az M3 offline teszteléséhez hozzárendelt telefon kell (M3-40).
 - **Érintett:** `src/app/dev/`, `src/auth/enrollment.ts`, `src/api/`, M3-06, M3-07, M5-09, Q7.
+
+## 2026-10-29 – Pull (M3-07)
+
+- **Kérdés:** Oldalanként vagy egyben kerüljön-e a pull a helyi adatbázisba? Mi törlődjön a `reset` jelzésű (teljes állapotot kezdő) oldalnál? Mi legyen, ha a szerver nem ismeri a kurzort?
+- **Döntés:**
+  - Az app előbb **minden oldalt** lekéri (amíg `has_more` igaz), és csak utána írja be őket sorrendben, **egyetlen SQLite-tranzakcióban**, a végső kurzorral és a `server_time`-mal együtt. Ha bármelyik kérés vagy az írás elbukik, semmi nem változik, a kurzor nem lép. A megbízható idő alapja az utolsó oldal `server_time`-ja, azzal az óraállással (uptime, boot ID), amely a válasz megérkezésekor volt.
+  - **`reset`:** a tranzakción belül, az oldal alkalmazása előtt törlődik a helyi konfiguráció (`sites`, `users`, `site_user`, `devices`, `checkpoints`, `routes`, `schedules`, `report_subscriptions`). Az **útvonalverziók és pontjaik maradnak**: nem változnak, a szerver sem törli őket, és egy futó kör a megnyitáskor rögzített verziót használja végig. Az eszközön keletkezett adat (lánc, vetületek, média, outbox) érintetlen.
+  - Felhasználónál a `site_ids` a `site_user` táblába kerül: a felhasználó minden frissítése lecseréli a sorait; törölt felhasználó vagy telephely sorai is törlődnek.
+  - Ha a szerver a kurzort elutasítja (422 `validation_failed`, `cursor` részlettel – pl. a szerver újratelepítése után), az app kurzor nélkül, teljes állapottal kezdi újra. Ha `has_more` igaz, de a kurzor nem mozdult, a pull hibával áll le (végtelen ciklus helyett).
+  - A sikeres, valamit módosító pull után esemény megy a többi modulnak (`onConfigurationPulled`, `src/sync/events.ts`) az összegzéssel (`reset`, listánként a módosított és törölt rekordok száma); az ébresztés-ütemezés (M3-24) erre iratkozik fel.
+- **Indok:** Specifikáció *Szinkron protokoll / Pull*. Az egy tranzakció miatt az őr soha nem dolgozik félig új konfigurációval (pl. új pontok új útvonalverzió nélkül); a telephely teljes állapota néhány száz rekord, a memóriában tartása nem gond.
+- **Érintett:** `src/sync/pull.ts`, `src/sync/events.ts`, `src/db/kv.ts`, M3-07, M3-24.
+
+## 2026-10-29 – Szinkron-vezérlő és szinkronállapot (M3-08, M3-09)
+
+- **Kérdés:** Hogyan működjön a mutex, ha szinkron közben új kérés jön? Mit jelent a „2 mp-es késleltetés összevonással”? Honnan tudja az app, hogy online?
+- **Döntés:**
+  - **Mutex:** egyszerre egy szinkron fut. A futás közben érkező kérések (bármennyi) egyetlen további szinkronba olvadnak, amely a futó után azonnal indul – így a közben írt láncbejegyzés sem marad a következő indítóig. A `sync()` sosem dob: az eredmény `ok`, `skipped` (hozzárendeletlen telefon, nincs API-cím vagy token) vagy `failed` a hibázó lépéssel.
+  - **Sorrend:** push → média → outbox → pull; az első hibánál a többi lépés nem fut. A push és a média az M4-ben, az outbox az M5-ben kap tartalmat, most üres lépések.
+  - **Késleltetés:** láncbejegyzés után 2 mp, és minden újabb bejegyzés újraindítja (trailing debounce), így a gyors leolvasások egy szinkronba kerülnek.
+  - **Indítók** (`src/sync/runtime.ts`, a gyökér-layout indítja, ha az adatbázis és a munkamenet betöltött): indulás; előtérbe kerülés (`AppState`); a hálózat visszatérése (NetInfo: offline → online); előtérben 5 percenként (háttérben az időzítő áll); a munkamenet módjának változása (pl. hozzárendelés után azonnal teljes pull); `notifyChainEntry()` (a láncíró hívja, M3-11) és `requestSync('shift_closed')` (műszakzárás, M3-16).
+  - **Token:** a telephelyi telefonon az eszköztoken (a PIN-nel belépett supervisor nevében is), a supervisor saját telefonján a supervisortoken.
+  - **NetInfo:** `@react-native-community/netinfo` (a specifikáció NetInfót ír). Online, ha `isConnected` igaz és `isInternetReachable` nem hamis. Natív csomag: **új development build kell**. A Jestben a csomag saját mockja fut (`jest.setup.ts`).
+  - **Szinkronállapot** (`useSyncStatus`, `src/sync/status.ts`): online/offline, fut-e szinkron, feltöltetlen tételek száma (nyugtázatlan láncbejegyzés + fel nem töltött fotó + outbox-sor), az utolsó sikeres szinkron ideje (megbízható idő, a `kv` táblában is, hogy újraindítás után is látszódjon), az utolsó hiba (fajta: `network`, `unauthenticated`, `device_revoked`, `rate_limited`, `server`, `invalid_response`, `unknown`; lépés; üzenet; időpont) és a „Szinkron most” művelet. A feliratokat a szinkronjelző (M3-28) rendeli a fajtákhoz.
+- **Indok:** Specifikáció *Szinkron protokoll / Mikor fut*. A vezérlő I/O nélküli, ezért a mutex, a debounce és a sorrend Jestben pontosan tesztelhető.
+- **Érintett:** `src/sync/controller.ts`, `src/sync/runtime.ts`, `src/sync/status.ts`, `src/sync/pending.ts`, `src/app/_layout.tsx`, `jest.setup.ts`, M3-08, M3-09, M3-11, M3-16, M3-28, M4-09 – M4-11, M5-03.

@@ -258,17 +258,17 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
 
 ### Szinkron (pull rész)
 
-- [ ] **M3-07 Pull**
+- [x] **M3-07 Pull**
   - Mit: lapozás a kurzorral, amíg `has_more` igaz; egy tranzakcióban upsert és a `deleted` szerinti törlés; a kurzor, a `server_time` és a hozzá tartozó uptime/boot ID mentése a `kv` táblába; esemény a többi modulnak (ébresztés újraütemezése).
   - Kész, ha: Jest tesztek (teljes, inkrementális, lapozott, törléses pull; hiba esetén a tranzakció visszagördül, a kurzor nem lép).
   - Spec: Szinkron protokoll / Pull.
 
-- [ ] **M3-08 Szinkron-vezérlő**
+- [x] **M3-08 Szinkron-vezérlő**
   - Mit: mutex (egyszerre egy szinkron); a sorrend: push → média → outbox → pull (az első három itt még üres lépés, M4-ben és M5-ben töltődik fel); indítók: app indulás, előtérbe kerülés, NetInfo „online”, 2 mp-es késleltetés láncbejegyzés után (összevonással), műszakzárás, előtérben 5 percenként.
   - Kész, ha: Jest tesztek a mutexre, a debounce-ra és a sorrendre.
   - Spec: Szinkron protokoll / Mikor fut.
 
-- [ ] **M3-09 Szinkronállapot-tár (Zustand)**
+- [x] **M3-09 Szinkronállapot-tár (Zustand)**
   - Mit: online/offline, feltöltetlen tételek száma, utolsó sikeres szinkron ideje, utolsó hiba; „Szinkron most” művelet.
 
 ### Lánc

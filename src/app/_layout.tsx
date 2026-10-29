@@ -11,8 +11,9 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { loadSession } from '@/auth/session';
 import { StartupError } from '@/components/startup-error';
-import { openDatabase } from '@/db/open';
+import { getDatabase, openDatabase } from '@/db/open';
 import { AppStack } from '@/navigation/app-stack';
+import { startSync } from '@/sync/runtime';
 import { ThemeProvider, useTheme } from '@/theme/theme-provider';
 
 // The splash screen stays until the fonts are loaded and the session is known (DESIGN_HANDOFF 3).
@@ -57,6 +58,9 @@ export default function RootLayout() {
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
+
+  // The sync runs while the app does, from the start (specification, Szinkron protokoll / Mikor fut).
+  useEffect(() => (startup.state === 'ready' ? startSync(getDatabase()) : undefined), [startup.state]);
 
   if (!ready) return null;
   return (

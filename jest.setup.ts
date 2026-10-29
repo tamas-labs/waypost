@@ -8,3 +8,6 @@ jest.mock('expo-crypto', () => ({
     return array;
   },
 }));
+
+// NetInfo is a native module; its package ships a Jest mock (always connected).
+jest.mock('@react-native-community/netinfo', () => require('@react-native-community/netinfo/jest/netinfo-mock.js'));

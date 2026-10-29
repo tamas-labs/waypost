@@ -16,6 +16,8 @@ export interface KvValues {
   'sync.cursor': string;
   /** The ref_* fields of chain entries and the base of the trusted time (time/trusted-time.ts). */
   'sync.time_ref': TimeReference;
+  /** Trusted time (time/trusted-time.ts) when the last sync finished without an error. */
+  'sync.last_success_at': string;
   /** ID of this phone as the site phone (devices.id); absent while not enrolled. */
   'device.id': string;
   /** Development builds only: API base URL entered on the developer enrollment screen. */

@@ -59,6 +59,7 @@ Importban a `@/…` alias a `src/…`-ra mutat.
 
 ## Parancsok
 
+- `make` – a gyakori parancsok rövidítései (ellenőrzés, helyi Android-build EAS nélkül, adb); a lista: `make help`.
 - `npm install` – függőségek (Node ≥ 22). A `@waypost/schema` symlink a `../waypost-schema`-ra; ott előbb `npm install` sem kell (nincs futásidejű függősége).
 - `npm start` – Metro dev szerver a development buildhez.
 - `npm run typecheck` – `tsc --noEmit`.
