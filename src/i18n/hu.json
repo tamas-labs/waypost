@@ -35,7 +35,26 @@
       "fieldPlaceholder": "Írd ide…",
       "fieldError": "Ez a mező kötelező.",
       "switchLabel": "Kapcsoló",
-      "pressed": "Megnyomva: {{label}}"
+      "pressed": "Megnyomva: {{label}}",
+      "sync": "Szinkronjelző",
+      "points": "Pontlista",
+      "progress": "Haladás",
+      "timeline": "Kör-idővonal",
+      "photosAndCategories": "Fotók és kategóriák",
+      "pin": "PIN-billentyűzet",
+      "results": "Leolvasás eredménye",
+      "resultSuccess": "Siker",
+      "resultUnknown": "Ismeretlen címke",
+      "resultOrder": "Rossz sorrend",
+      "pointMetaManual": "22:09 · Kézi – nem igazolt",
+      "pointMetaSuspicious": "időgyanús: túl gyors (40 mp, mért 3:10)",
+      "pointBoiler": "Kazánház",
+      "pointRoof": "Tetőfeljáró",
+      "pointYard": "Hulladékudvar",
+      "pointStore": "Raktár 2 – vészkijárat",
+      "instruction": "ellenőrizd, hogy a tetőajtó zárva van-e.",
+      "tagId": "NFC · 04:A2:19:6B:3C:51:80",
+      "shake": "Rázás"
     },
     "enroll": {
       "title": "Telefon hozzárendelése",
@@ -177,6 +196,13 @@
     "gpsRecorded": "GPS rögzítve · ±{{accuracy}} m · {{time}}",
     "points": "pont",
     "minutes": "perc"
+  },
+  "components": {
+    "scanned": "Leolvasva",
+    "progress": "{{done}} / {{total}} pont kész",
+    "timeline": "Körök idővonala: {{items}}",
+    "timelineLater": "a többi később",
+    "photo": "{{n}}. fotó"
   },
   "theme": {
     "title": "Téma",

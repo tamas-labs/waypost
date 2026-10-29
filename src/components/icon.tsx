@@ -8,6 +8,9 @@ import Clock from 'lucide-react-native/icons/clock';
 import CloudOff from 'lucide-react-native/icons/cloud-off';
 import CloudUpload from 'lucide-react-native/icons/cloud-upload';
 import Delete from 'lucide-react-native/icons/delete';
+import DoorOpen from 'lucide-react-native/icons/door-open';
+import Droplet from 'lucide-react-native/icons/droplet';
+import Ellipsis from 'lucide-react-native/icons/ellipsis';
 import Eye from 'lucide-react-native/icons/eye';
 import EyeOff from 'lucide-react-native/icons/eye-off';
 import Flag from 'lucide-react-native/icons/flag';
@@ -23,6 +26,7 @@ import Pencil from 'lucide-react-native/icons/pencil';
 import Plus from 'lucide-react-native/icons/plus';
 import Shield from 'lucide-react-native/icons/shield';
 import TriangleAlert from 'lucide-react-native/icons/triangle-alert';
+import User from 'lucide-react-native/icons/user';
 import X from 'lucide-react-native/icons/x';
 import type { ComponentType } from 'react';
 import Svg, { Path } from 'react-native-svg';
@@ -72,6 +76,12 @@ const ICONS = {
   bell: Bell,
   navigation: Navigation,
   mic: Mic,
+  // incident categories (B-Esemeny)
+  vandalism: pathIcon(['M4 4h16v16H4z', 'M4 4l7 7-3 3 5 6M20 9l-6 3']),
+  door: DoorOpen,
+  water: Droplet,
+  person: User,
+  more: Ellipsis,
   // other controls
   plus: Plus,
   eye: Eye,

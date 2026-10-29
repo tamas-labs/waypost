@@ -15,6 +15,8 @@ export interface ButtonProps {
   /** Primary only: 72 dp for the main action of a screen (Leolvasás, Indulok, Tovább) instead of 68. */
   hero?: boolean;
   icon?: IconName;
+  /** The icon in its own colour, e.g. the warn flag of "Esemény ennél a pontnál" (default: the label's colour). */
+  iconColor?: keyof ColorTokens;
   disabled?: boolean;
   accessibilityHint?: string;
   style?: StyleProp<ViewStyle>;
@@ -54,7 +56,7 @@ function variantStyle(theme: Theme, variant: ButtonVariant, hero: boolean): Vari
 }
 
 /** The buttons of DESIGN_HANDOFF 5.1: pressed → 0.85 opacity and 0.98 scale, disabled → 0.4 opacity. */
-export function Button({ label, onPress, variant = 'primary', hero = false, icon, disabled = false, accessibilityHint, style, testID }: ButtonProps) {
+export function Button({ label, onPress, variant = 'primary', hero = false, icon, iconColor, disabled = false, accessibilityHint, style, testID }: ButtonProps) {
   const theme = useTheme();
   const { color, typography, radius, space, press } = theme;
   const v = variantStyle(theme, variant, hero);
@@ -86,7 +88,7 @@ export function Button({ label, onPress, variant = 'primary', hero = false, icon
     >
       {shownIcon !== undefined && (
         <View importantForAccessibility="no-hide-descendants">
-          <Icon name={shownIcon} size={v.iconSize} color={fg} />
+          <Icon name={shownIcon} size={v.iconSize} color={iconColor === undefined ? fg : color[iconColor]} />
         </View>
       )}
       <Text style={[typography[v.text], { color: fg }]}>{label}</Text>

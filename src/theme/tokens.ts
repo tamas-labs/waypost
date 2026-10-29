@@ -7,7 +7,8 @@
  *
  * Átvéve: docs/orjarat-design-handoff/src/theme/tokens.ts. Eltérések: a statusStyle és a syncStyle
  * feliratai a src/i18n/hu.json kulcsai (label → t(label)), nem magyar szövegek; a komponensekhez
- * (M3-26) új kulcsok: knob szín, a DESIGN_HANDOFF 5. méretei (typography, size, iconSize, border, press).
+ * (M3-26, M3-27) új kulcsok: knob szín, a DESIGN_HANDOFF 5. méretei (typography, size, iconSize, border,
+ * press, motion).
  */
 
 import type { TranslationKey } from '@/i18n';
@@ -111,6 +112,13 @@ export const typography = {
   badge:     { fontSize: 13, lineHeight: 16, fontFamily: fontFamily.extrabold },                      // állapotjelvény
   segment:   { fontSize: 15, lineHeight: 20, fontFamily: fontFamily.extrabold },                      // szegmens (aktív; inaktív: bold)
   banner:    { fontSize: 14, lineHeight: 20, fontFamily: fontFamily.semibold },                       // információs sáv
+  tile:      { fontSize: 15, lineHeight: 20, fontFamily: fontFamily.bold },                           // kategóriacsempe (kijelölve: extrabold)
+  pinKey:    { fontSize: 30, lineHeight: 36, fontFamily: fontFamily.bold },                           // PIN-billentyű
+  ringValue: { fontSize: 26, lineHeight: 28, fontFamily: fontFamily.extrabold },                      // haladásgyűrű „5/9”
+  ringValueSm: { fontSize: 24, lineHeight: 26, fontFamily: fontFamily.extrabold },                    // kis gyűrű mellett
+  unit:      { fontSize: 12, lineHeight: 16, fontFamily: fontFamily.semibold },                       // „pont”, jelmagyarázat
+  resultLine: { fontSize: 16, lineHeight: 22, fontFamily: fontFamily.bold },                          // eredmény állapotsora
+  resultBody: { fontSize: 17, lineHeight: 25, fontFamily: fontFamily.semibold },                      // eredmény magyarázata
   micro:     { fontSize: 11, lineHeight: 14, fontFamily: fontFamily.bold },                           // idővonal óra-feliratok (minimum)
 } as const;
 
@@ -124,6 +132,9 @@ export const radius = {
   card: 24,   // kártyák, térképkeret
   item: 18,   // listaelem, beviteli mező, fotó-csempe, információs sáv
   tile: 12,   // ikoncsempe (36×36)
+  cell: 10,   // kör-idővonal cellája (kompakt: 8)
+  cellSm: 8,
+  swatch: 3,  // jelmagyarázat négyzete
   round: 9999 // kör: állapotjel, ikon gomb (vagy width/2)
 } as const;
 
@@ -150,18 +161,31 @@ export const size = {
   segmentPadding: 4,
   switchW: 56, switchH: 34, switchKnob: 28,
   resultRingOuter: 196, resultRingInner: 132, // leolvasás eredmény kör
+  pinDot: 18,            // PIN-pötty
+  syncDot: 8,            // szinkronjelző pötty
+  progressRing: 96, progressRingSm: 52,       // haladásgyűrű (lista, térkép-fejléc)
+  progressRingStroke: 10, progressRingStrokeSm: 14, // a 104-es viewBoxban
+  progressSegment: 8,    // haladás szegmens magassága (rés 4, radius 4)
+  timelineCell: 40, timelineCellCompact: 28, timelineCellMini: 8, // kör-idővonal cellája
+  timelineGap: 3,
+  legendSwatch: 10,      // jelmagyarázat négyzete
+  photoTile: 92,         // fotócsempe (92–132)
+  photoCheck: 22,        // kész fotó pipája
+  categoryTile: 76, categoryTileWide: 56,     // esemény kategória
   alarmRing: [232, 180, 128],                 // ébresztés koncentrikus körök
 } as const;
 
 /** Ikonméretek (lucide, 24-es rács) */
 export const iconSize = {
-  badge: 14,      // állapotjelvény
+  badge: 14,      // állapotjelvény; idővonal cellája
+  sync: 15,       // szinkronjelző
   dot: 16,        // állapotjel kör (32) közepe
   banner: 18,     // információs sáv
   field: 22,      // mezőben (jelszó szem)
   button: 24,     // gomb felirata előtt, ikon gomb (48)
   buttonHero: 26, // hero gomb
-  large: 28,      // nagy ikon gomb (72)
+  large: 28,      // nagy ikon gomb (72), PIN-billentyűzet ikonjai
+  result: 72,     // leolvasás eredménye
 } as const;
 
 /** Vonalvastagságok: keret és ikon */
@@ -174,6 +198,12 @@ export const iconStroke = { regular: 2, bold: 2.8 } as const; // bold: kis kör�
 
 /** Gomb lenyomva / letiltva (DESIGN_HANDOFF 5.1) */
 export const press = { opacity: 0.85, scale: 0.98, disabledOpacity: 0.4 } as const;
+
+/** Animációk (DESIGN_HANDOFF 5.16, 7): hibás PIN rázása, eredményképernyő megjelenése */
+export const motion = {
+  shakeOffset: 10, shakeStepMs: 50, shakeRepeats: 3,
+  resultMs: 200, resultScaleFrom: 0.96,
+} as const;
 
 /** Állapotok → token kulcsok + ikon + felirat (hu.json kulcs). A szöveg mindig megjelenik a szín mellett. */
 export type RoundStatus = 'completed' | 'in_progress' | 'incomplete' | 'missed' | 'open';
@@ -205,6 +235,6 @@ export const syncStyle = {
 export const theme = (name: ThemeName) => ({
   name,
   color: palette[name] as ColorTokens,
-  typography, space, radius, size, fontFamily, iconSize, border, iconStroke, press,
+  typography, space, radius, size, fontFamily, iconSize, border, iconStroke, press, motion,
 });
 export type Theme = ReturnType<typeof theme>;

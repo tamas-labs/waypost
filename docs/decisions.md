@@ -326,3 +326,21 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **Bemutató:** `/dev/components` (csak fejlesztői build) a komponensekkel és a témaváltóval, a `T-Komponensek.dc.html`-lel való összevetéshez.
 - **Indok:** DESIGN_HANDOFF 2, 4, 5.1–5.5, 5.10–5.13, 8; a CLAUDE.md token- és feliratszabálya.
 - **Érintett:** `src/components/`, `src/theme/tokens.ts`, `src/app/dev/`, `src/i18n/hu.json`, `package.json`, `eslint.config.js`, M3-27 – M3-38, M5.
+
+## 2026-10-29 – Alapkomponensek II. (M3-27)
+
+- **Kérdés:** Hogyan viselkedjenek a design 13 körre rajzolt elemei más számú körnél, mit csinálnak a komponensek és mit a képernyők, és hogyan fut a Reanimated a Jestben?
+- **Döntés:**
+  - **`RoundTimeline`:** annyi oszlop, ahány kör (a design 13-at rajzol). 13 körig ikonok és minden óra felirata; fölötte ikon nélkül, és csak minden n-edik cella kap órafeliratot (n = ⌈körök / 13⌉), mert a cellák keskenyek. Állapotok: teljesítve, hiányos, elmaradt, következik (csengő), később. A futó kört a képernyő „következik”-ként adja át. Változatok: `full` (40 dp, jelmagyarázattal), `compact` (28 dp, műszakzárás), `mini` (8 dp, telephelykártya). A képernyőolvasó egy szövegként kapja: „Körök idővonala: 20:00 Teljesítve, 21:00 Hiányos, 22:00 Következik, a többi később”.
+  - **`SyncIndicator`:** csak a chip (állapot, várakozó tételek száma, koppintás). Offline és feltöltés közben ikon (felhő áthúzva / feltöltés), a többi állapotban pötty, ahogy a képernyők referenciái. A `useSyncStatus`-ból való levezetés és a lenyíló részletek az M3-28 feladata. A 30 dp-s chip `hitSlop`-pal éri el a 48 dp-t.
+  - **`PointListItem`:** hat állapot (leolvasva, kézi, időgyanús, rossz sorrend, hátravan, hiányzik). A meta sort („22:03 · NFC”) a képernyő állítja össze; kötött sorrendnél a hátralévő pont számozott pöttyöt kap. A sor egy akadálymentes elem: „név, állapot, meta”.
+  - **`ProgressRing`:** a referencia 104-es viewBoxában rajzolva; a nagy (96 dp) változatban a „5/9 pont” középen, a kicsiben (52 dp) mellette. `progressbar` szerepű, értékkel. A `ProgressSegments` díszítés, a mellette lévő szám a szöveg.
+  - **`PinPad` + `PinDots`:** a billentyűzet csak számjegyet, törlést és a supervisor gombot adja tovább; a PIN összegyűjtése, ellenőrzése, a zárolás és a hiba haptikája (`playFeedback('error')`) a PIN-képernyőé (M3-29). A rázást a `shakeKey` változása indítja (Reanimated, 3 × 10 dp oda-vissza). A supervisor gomb nélkül a helye üres marad.
+  - **`PhotoSlot` / `PhotoAdd`:** a kép `expo-image`-dzsel, `cover` kitöltéssel; a csempe szélessége a rácsé (a képernyő teszi 3 oszlopba). Hogy a koppintás mit csinál (pl. törlés), azt a képernyő mondja meg (`accessibilityHint`).
+  - **`CategoryTile`:** általános (ikon + felirat + kijelölés); a kategória → ikon leképezés az esemény képernyőjén lesz (M3-37). Az esemény-kategóriák ikonjai: rongálás a design rajzából, a többi lucide (`DoorOpen`, `Droplet`, `User`, `Ellipsis`).
+  - **`ResultScreen`:** az elrendezés (két kör, állapotsor, cím, magyarázat, tartalom, gombok) és a megjelenés animációja (fade + scale 0,96 → 1, 200 ms, Reanimated `Keyframe`). A tartalmat (haladás kártya, utasítás, leolvasott azonosító, sorrend-összevetés), a gombokat, a 3 mp-es visszaszámlálást és a haptikát az M3-35 adja.
+  - **`Button`:** `iconColor` a saját színű ikonhoz („Esemény ennél a pontnál” zászlója `warn`, a kézi rögzítés ceruzája `manual`).
+  - **Új tokenek:** tipográfia (`tile`, `pinKey`, `ringValue`, `ringValueSm`, `unit`, `resultLine`, `resultBody`), méretek (PIN-pötty, szinkronpötty, gyűrűk, szegmens, idővonal-cellák, jelmagyarázat, fotócsempe, kategóriacsempe), lekerekítés (`cell`, `cellSm`, `swatch`), ikonméret (`sync`, `result`), `motion` (rázás, eredményképernyő).
+  - **Jest:** a `react-native-reanimated/jest/resolver` (a csomag saját resolvere: a natív helyett a webes megvalósítást tölti be); így a komponensek a valódi Reanimateddel futnak a tesztekben, mock nélkül.
+- **Indok:** DESIGN_HANDOFF 5.3, 5.6–5.9, 5.14–5.17, 7, 8; a képernyő-referenciák (`B-Kor`, `B-Kezdolap`, `B-Zaras`, `B-PIN`, `B-Esemeny`, `B-Siker`, `B-Ismeretlen`, `B-Sorrend`).
+- **Érintett:** `src/components/`, `src/theme/tokens.ts`, `src/i18n/hu.json`, `src/app/dev/components.tsx`, `package.json` (Jest), M3-28 – M3-38, M5.

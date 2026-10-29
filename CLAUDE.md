@@ -68,7 +68,7 @@ Importban a `@/…` alias a `src/…`-ra mutat.
 - `npm start` – Metro dev szerver a development buildhez.
 - `npm run typecheck` – `tsc --noEmit`.
 - `npm run lint` – `expo lint` (ESLint, `eslint-config-expo`).
-- `npm test` – Jest (`jest-expo` preset). A `jest.modulePaths` azért kell, mert a symlinkelt `@waypost/schema` fájljait a Jest a valódi útvonalukon fordítja, és a Babel-segédeket innen kell feloldani. A `jest.moduleNameMapper` a lucide-ikonokat a CommonJS-változatukra irányítja (az ESM-változat a Jestben nem fut).
+- `npm test` – Jest (`jest-expo` preset). A `jest.modulePaths` azért kell, mert a symlinkelt `@waypost/schema` fájljait a Jest a valódi útvonalukon fordítja, és a Babel-segédeket innen kell feloldani. A `jest.moduleNameMapper` a lucide-ikonokat a CommonJS-változatukra irányítja (az ESM-változat a Jestben nem fut). A `jest.resolver` a Reanimated saját resolvere (a natív helyett a webes megvalósítás fut).
 - `npx expo-doctor` – függőségek és konfiguráció ellenőrzése.
 - `npm run db:generate` – a `src/db/schema.ts` változása után új migráció a `src/db/migrations/` alá (`drizzle-kit generate`); a generált fájlokat commitoljuk, kézzel nem szerkesztjük. A `.sql` fájlokat a `babel-plugin-inline-import` fordítja be; ha a Metro régi migrációt mutat, `npm start -- --clear`.
 - API-cím: `EXPO_PUBLIC_WAYPOST_API_URL` (előtaggal, pl. `https://example.com/api/waypost/v1`); fejlesztői buildben a `/dev/enroll` képernyőn is megadható.

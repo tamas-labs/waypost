@@ -80,6 +80,7 @@
     "modulePaths": [
       "<rootDir>/node_modules"
     ],
+    "resolver": "react-native-reanimated/jest/resolver",
     "moduleNameMapper": {
       "^lucide-react-native/icons/(.*)$": "<rootDir>/node_modules/lucide-react-native/dist/cjs/icons/$1.js"
     },

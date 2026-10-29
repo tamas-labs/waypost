@@ -360,7 +360,8 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
 - [x] **M3-26 Alapkomponensek I.**: `Button`, `IconButton`, `StatusDot`, `StatusBadge`, `Card`, `InfoBanner`, `TextField` / `TextArea`, `Switch`, `SegmentedControl`. (DESIGN_HANDOFF 5.; referencia: `T-Komponensek.dc.html`.)
   - Megjegyzés (2026-10-29): `src/components/`; ikonok: `Icon` (lucide-react-native + react-native-svg, natív változás, új dev build kell); új tokenek a `tokens.ts`-ben; bemutató: `/dev/components`.
 
-- [ ] **M3-27 Alapkomponensek II.**: `SyncIndicator`, `PointListItem`, `ProgressRing`, `ProgressSegments`, `RoundTimeline`, `PhotoSlot` / `PhotoAdd`, `CategoryTile`, `PinPad` + `PinDots`, `ResultScreen`. Akadálymentesség a DESIGN_HANDOFF 8. szerint.
+- [x] **M3-27 Alapkomponensek II.**: `SyncIndicator`, `PointListItem`, `ProgressRing`, `ProgressSegments`, `RoundTimeline`, `PhotoSlot` / `PhotoAdd`, `CategoryTile`, `PinPad` + `PinDots`, `ResultScreen`. Akadálymentesség a DESIGN_HANDOFF 8. szerint.
+  - Megjegyzés (2026-10-29): `src/components/`; a `SyncIndicator` csak a megjelenítés (állapot + szám), a szinkronállapotból való levezetés és a lenyíló részletek az M3-28. A PIN-pöttyök rázása és az eredményképernyő megjelenése Reanimateddel; a hibás PIN haptikája a képernyőé (`playFeedback`, M3-29). Bemutató: `/dev/components`.
 
 - [ ] **M3-28 Szinkronjelző a fejlécben**
   - Mit: online / offline / „N tétel vár feltöltésre”; koppintásra az utolsó sikeres szinkron ideje és „Szinkron most” gomb; minden képernyőn.
