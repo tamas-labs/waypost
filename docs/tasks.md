@@ -289,37 +289,37 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
 
 ### Domain (tiszta TS függvények, `src/domain`)
 
-- [ ] **M3-13 Menetrend-kibontás** `⚠ Q5`
+- [x] **M3-13 Menetrend-kibontás** `⚠ Q5`
   - Mit: menetrend + időszak → várt időpontok a telephely időzónájában (`list`, `interval`, éjfélen átnyúló ablak, `weekdays` a kezdő napra, DST).
   - Kész, ha: a `schedule/test-vectors.json` minden esete zöld.
   - Spec: Állapotgépek / Menetrend → körök.
 
-- [ ] **M3-14 Időkeret és határidő**
+- [x] **M3-14 Időkeret és határidő**
   - Mit: időkeret-alapérték (`ceil(walk_duration_s × 1,5 / 300) × 5`, különben 20 perc); határidő: `scheduled_at + time_limit_min`; időkeret nélkül az útvonal következő körének időpontja; a nap utolsó körénél `scheduled_at + 60 perc`.
   - Kész, ha: Jest tesztek minden ágra.
   - Spec: Állapotgépek / Kör.
 
-- [ ] **M3-15 PIN-ellenőrzés és zárolás** `⚠ Q6`
+- [x] **M3-15 PIN-ellenőrzés és zárolás** `⚠ Q6`
   - Mit: PBKDF2 a react-native-quick-crypto natív implementációjával; a beírt PIN-hez tartozó felhasználó megkeresése a telephely felhasználói között; szerep (őr / supervisor); 5 hiba után 5 perc zárolás, utána minden hibánál duplázódik; a számláló SQLite-ban, az eltelt idő uptime alapján.
   - Kész, ha: Jest tesztek (a PIN-tesztvektor az M2-09-ből; zárolás, duplázás, feloldás, inaktív felhasználó).
   - Spec: Azonosítás / PIN-kód.
 
-- [ ] **M3-16 Műszak-állapotgép**
+- [x] **M3-16 Műszak-állapotgép**
   - Mit: belépés őrként → `shift_started`; ugyanaz az őr → folytatás; másik őr → a nyitott körök zárása, `shift_closed (handover)`, `shift_started`; zárás az őr döntésével (`guard`), nyitott kör esetén annak zárásával; automatikus zárás a nap utolsó ütemezett körének zárása után 60 perccel (`auto`). `⚠ Q10`
   - Kész, ha: Jest tesztek minden átmenetre; a kimenet a létrehozandó láncbejegyzések listája.
   - Spec: Állapotgépek / Műszak.
 
-- [ ] **M3-17 Kör-állapotgép és ütemező lépés**
+- [x] **M3-17 Kör-állapotgép és ütemező lépés**
   - Mit: az ütemező lépés (bemenet: állapot, idő) megnyitja az esedékes köröket (`round_opened`), ha van nyitott műszak; a kimaradt időpontot az eredeti `scheduled_at` értékkel nyitja meg, és ha a határidő is lejárt, azonnal zárja; útvonalanként legfeljebb egy nyitott kör (új időpontnál az előző zárul); `in_progress` az első érvényes leolvasásnál; `completed` azonnal, ha minden pont megvan (a kézi is számít); a határidőnél `incomplete` vagy `missed`; az egy futó kör nem vált útvonalverziót.
   - Kész, ha: Jest tesztek minden állapotátmenetre és a kimaradt időpontokra.
   - Spec: Állapotgépek / Kör.
 
-- [ ] **M3-18 Leolvasás feloldása és jelölései**
+- [x] **M3-18 Leolvasás feloldása és jelölései**
   - Mit: NFC: UID → pont a telephelyen; QR: teljes payload → pont; nincs találat → `unknown_tag` és hibaképernyő; ismétlés a körben → nincs bejegyzés, „Már leolvasva HH:MM-kor”; nincs nyitott kör vagy a pont nincs az útvonalon → `round_id = null`, `out_of_round`; kötött sorrendnél a legkisebb `position`-ú hiányzó pont a várt, eltérésnél `out_of_order` (de számít); `mock_location` jelölés.
   - Kész, ha: Jest tesztek minden esetre.
   - Spec: Állapotgépek / Leolvasás; Láncolt napló / Jelölések.
 
-- [ ] **M3-19 Kézi rögzítés és esemény a domainben**
+- [x] **M3-19 Kézi rögzítés és esemény a domainben**
   - Mit: kézi rögzítés → `scan` (`method = manual`, `manual` jelölés) + `incident` (`damaged_tag`, `scan_id`-val), a fotó és a megjegyzés kötelező; esemény: kategória, megjegyzés, 0–5 fotó, legközelebbi pont.
   - Kész, ha: Jest tesztek (a fotó vagy a megjegyzés hiánya hiba).
 
@@ -596,11 +596,11 @@ Ezeket célszerű a megfelelő feladat előtt eldönteni és a `decisions.md`-be
 - **Q3 – Törlések a pullban.** A `deleted` listához tudni kell, mi törlődött. Soft delete (`deleted_at`) csak a `users` és a `sites` táblán van; a `checkpoints`, `routes` és `schedules` táblán csak `active` mező van. Javaslat: `deleted_at` minden szinkronizált táblára, vagy egy közös törlésnapló-tábla. **Eldöntve (2026-10-28): `deleted_at` (soft delete) és `updated_at` minden szinkronizált táblán; részletek: `laravel-waypost/docs/decisions.md`.**
 - **Q4 – Idempotencia-kulcsok tárolása.** Az adatmodellben nincs rá tábla. Javaslat: `waypost_idempotency_keys` (M2-04). **Eldöntve (2026-10-28): a javaslat szerint, hívónként egyedi kulccsal; részletek: `laravel-waypost/docs/decisions.md`.**
 - **Q5 – DST-szabály a menetrendben.** Mi legyen a tavaszi váltáskor nem létező (02:30) és az őszi váltáskor kétszer előforduló helyi időponttal? És az intervallum lépései faliórás időpontok (20:00, 21:00 … helyi idő szerint) vagy valós eltelt percek? Javaslat: faliórás időpontok; a nem létező időpontot a váltás utáni első érvényes időre toljuk, a kétszer előfordulónál az elsőt vesszük. Ez a tesztvektorokat (M0-08) is meghatározza. **Eldöntve (2026-10-27): a javaslat szerint; részletek: `waypost-schema/docs/decisions.md`.**
-- **Q6 – PIN-zárolás újraindítás után.** A zárolás az uptime-ot méri, ami újraindításkor nulláz. Javaslat: ha a boot ID megváltozott, a zárolás a teljes, eredeti időtartammal újraindul (így újraindítással nem lehet megkerülni).
+- **Q6 – PIN-zárolás újraindítás után.** A zárolás az uptime-ot méri, ami újraindításkor nulláz. Javaslat: ha a boot ID megváltozott, a zárolás a teljes, eredeti időtartammal újraindul (így újraindítással nem lehet megkerülni). **A javaslat szerint megvalósítva (2026-10-29, M3-15), jóváhagyásra vár; részletek: `docs/decisions.md`.**
 - **Q7 – Eszköztoken M3-ban.** Az M3 offline tesztjéhez hozzárendelt telefon kell, de a hozzárendelés felülete csak M5-ben készül. Javaslat: fejlesztői hozzárendelő képernyő (M3-06). **Eldöntve (2026-10-28): a javaslat szerint, `/dev/enroll`, csak fejlesztői buildben; részletek: `docs/decisions.md`.**
 - **Q8 – Sanctum token gazdája.** Az eszköztoken a `Device` modellhez tartozzon (javaslat), vagy egy technikai felhasználóhoz? **Eldöntve (2026-10-28): a `Device`-hoz, a csomag saját tokentáblájában (`waypost_personal_access_tokens`); részletek: `laravel-waypost/docs/decisions.md`.**
 - **Q9 – A supervisor saját telefonjának pullja.** Az összes hozzárendelt telephely adatát kapja, PIN-hashekkel együtt? Javaslat: igen, de a PIN-mezők nélkül (neki nincs szüksége offline PIN-ellenőrzésre). **Eldöntve (2026-10-28): a javaslat szerint, a CRUD-válaszokban és a pullban (M2-23); részletek: `laravel-waypost/docs/decisions.md`.**
-- **Q10 – „A nap utolsó ütemezett köre” több útvonalnál.** Az automatikus műszakzárás a telephely összes útvonalának utolsó köréhez igazodik? Javaslat: igen, a legkésőbbi határidejű kör zárása + 60 perc.
+- **Q10 – „A nap utolsó ütemezett köre” több útvonalnál.** Az automatikus műszakzárás a telephely összes útvonalának utolsó köréhez igazodik? Javaslat: igen, a legkésőbbi határidejű kör zárása + 60 perc. **A javaslat szerint megvalósítva (2026-10-29, M3-17), jóváhagyásra vár; részletek: `docs/decisions.md`.**
 - **Q11 – Közös PIN-tesztvektor.** A specifikáció nem írja elő, de a PBKDF2-paraméterek eltérése csendes hibát okozna. Javaslat: egy PIN-vektor a `waypost-schema` repóba (pl. `pin/test-vectors.json`). **Eldöntve (2026-10-28): a javaslat szerint, `waypost-schema/pin/test-vectors.json`; részletek: `waypost-schema/docs/decisions.md`.**
 - **Q12 – Az app neve.** A design „Őrjárat”, a specifikáció „Waypost”. Mi jelenjen meg a telefonon és az e-mailekben? **Eldöntve (2026-10-27): „Waypost”; bundle ID / package name `com.tamaslabs.waypost`; részletek: `docs/decisions.md`.**
 - **Q13 – Rossz sorrend visszajelzése.** A specifikáció hibánál két rövid rezgést és piros jelzést ír; a design a rossz sorrendre „Warning” haptikát ad (mert a leolvasás számít). Javaslat: a designé.

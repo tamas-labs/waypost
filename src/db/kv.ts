@@ -1,5 +1,7 @@
 import { eq } from 'drizzle-orm';
 
+import type { PinLockout } from '@/domain/pin-lockout';
+
 import type { Database } from './database';
 import { kv } from './schema';
 
@@ -18,6 +20,8 @@ export interface KvValues {
   'sync.time_ref': TimeReference;
   /** Trusted time (time/trusted-time.ts) when the last sync finished without an error. */
   'sync.last_success_at': string;
+  /** Wrong PINs and the running lock (domain/pin-lockout.ts). */
+  'pin.lockout': PinLockout;
   /** ID of this phone as the site phone (devices.id); absent while not enrolled. */
   'device.id': string;
   /** Development builds only: API base URL entered on the developer enrollment screen. */
