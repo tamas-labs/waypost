@@ -1,7 +1,7 @@
-import { render, screen } from '@testing-library/react-native';
-import { Text } from 'react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Pressable, Text } from 'react-native';
 
-import { resolveThemeName, ThemeProvider, useTheme } from '@/theme/theme-provider';
+import { resolveThemeName, ThemeProvider, useTheme, useThemePreference } from '@/theme/theme-provider';
 
 function ThemeName() {
   return <Text testID="name">{useTheme().name}</Text>;
@@ -22,6 +22,25 @@ test('the provider gives the chosen theme', async () => {
     </ThemeProvider>,
   );
   expect(screen.getByTestId('name')).toHaveTextContent('light');
+});
+
+function ChooseLight() {
+  const { setPreference } = useThemePreference();
+  return <Pressable testID="light" onPress={() => setPreference('light')} />;
+}
+
+test('a new choice switches the theme and is handed over for storing', async () => {
+  const onPreferenceChange = jest.fn();
+  await render(
+    <ThemeProvider initialPreference="dark" onPreferenceChange={onPreferenceChange}>
+      <ThemeName />
+      <ChooseLight />
+    </ThemeProvider>,
+  );
+  expect(screen.getByTestId('name')).toHaveTextContent('dark');
+  await act(async () => fireEvent.press(screen.getByTestId('light')));
+  expect(screen.getByTestId('name')).toHaveTextContent('light');
+  expect(onPreferenceChange).toHaveBeenCalledWith('light');
 });
 
 test('useTheme() outside the provider throws', async () => {

@@ -1,9 +1,9 @@
 import { Link, Stack, type Href } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useSession } from '@/auth/session';
 import { t, type TranslationKey } from '@/i18n';
-import { useTheme } from '@/theme/theme-provider';
+import { useTheme, useThemePreference, type ThemePreference } from '@/theme/theme-provider';
 
 const SCREENS: { href: Href; title: TranslationKey }[] = [
   { href: '/dev/enroll', title: 'dev.screens.enroll' },
@@ -14,10 +14,13 @@ const SCREENS: { href: Href; title: TranslationKey }[] = [
   { href: '/prototype/field', title: 'prototype.screens.field' },
 ];
 
-// Developer tools: the developer enrollment (M3-06) and the device test screens of the M1 prototype (and of
-// the location and the photo, M3-20 / M3-21).
+const THEME_PREFERENCES: ThemePreference[] = ['system', 'dark', 'light'];
+
+// Developer tools: the developer enrollment (M3-06), the device test screens of the M1 prototype (and of
+// the location and the photo, M3-20 / M3-21), and the theme choice until the app has a settings screen (M3-25).
 export default function DevToolsScreen() {
   const { color, typography, space, radius, size } = useTheme();
+  const { preference, setPreference } = useThemePreference();
   const mode = useSession((session) => session.mode);
   return (
     <ScrollView style={{ backgroundColor: color.bg }} contentContainerStyle={{ padding: space.l, gap: space.m }}>
@@ -37,10 +40,37 @@ export default function DevToolsScreen() {
           </Pressable>
         </Link>
       ))}
+      <Text style={[typography.label, { color: color.text2, marginTop: space.l }]}>{t('theme.title')}</Text>
+      <View accessibilityRole="radiogroup" style={[styles.row, { gap: space.s }]}>
+        {THEME_PREFERENCES.map((option) => {
+          const selected = option === preference;
+          return (
+            <Pressable
+              key={option}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              onPress={() => setPreference(option)}
+              style={[
+                styles.option,
+                {
+                  backgroundColor: selected ? color.runBg : color.surface,
+                  borderColor: selected ? color.accent : color.cardBorder,
+                  borderRadius: radius.pill,
+                  minHeight: size.touchMin,
+                },
+              ]}
+            >
+              <Text style={[typography.buttonSm, { color: color.text }]}>{t(`theme.${option}`)}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   item: { borderWidth: 1, justifyContent: 'center' },
+  row: { flexDirection: 'row' },
+  option: { flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
 });

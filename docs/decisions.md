@@ -299,3 +299,14 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **Engedélyek:** az expo-audio mikrofon- és háttérlejátszás-engedélyei, valamint az expo-file-system külső tárhely-engedélyei kikerültek (`blockedPermissions`).
 - **Indok:** Specifikáció *Állapotgépek / Leolvasás 6*, *Láncolt napló* (`gnss_time`, `mock_location`, `media`), *Repo és technológiai stack (Fotó)*, *Mobilapp / NFC és QR*; DESIGN_HANDOFF 7; „az eszközön létrejött adat a szinkron előtt nem módosul és nem törlődik” – ezért születik a sor csak a bejegyzéssel együtt.
 - **Érintett:** `src/location/`, `src/photo/`, `src/nfc/`, `src/feedback/`, `src/chain/media.ts`, `src/chain/writer.ts`, `src/chain/payloads.ts`, `modules/waypost-clock/`, `src/app/_layout.tsx`, `src/app/prototype/` (`field.tsx`, `nfc.tsx`, `qr.tsx`), `app.json`, `assets/sounds/`, M3-20 – M3-22, M3-33, M3-35 – M3-37, M4-10, M4-12, M5-10, M5-12, M5-13, Q13.
+
+## 2026-10-29 – A téma kézi választása (M3-25)
+
+- **Kérdés:** Hol tárolódik a kézi témaválasztás (Rendszer / Sötét / Világos), és hol lehet átállítani, ha a designban nincs beállítások képernyő? (Az M1-02 döntése a tárolást a beállítások képernyőjére hagyta.)
+- **Döntés:**
+  - A választás a `kv` táblába kerül (`ui.theme_preference`, `src/theme/preference.ts`); ha nincs (vagy ismeretlen az értéke), a téma a rendszert követi, a rendszer világos módja nélkül sötét. A választás telefonra szól, nem felhasználóra: a telephelyi telefont több őr használja.
+  - Induláskor a session mellett töltődik be, így már az első képernyő a választott témával jelenik meg. Ha az indulás hibával áll le (nincs adatbázis), a téma a rendszert követi, és a választás nem tárolódik.
+  - A `ThemeProvider` `onPreferenceChange` propot kapott; a tárolást a gyökér-layout köti be, így a provider adatbázis nélkül is tesztelhető.
+  - Átállítani egyelőre a fejlesztői eszközök képernyőjén lehet. A végleges helye a supervisor felületén lesz, a telefon beállításainál (M5-10), mert a telephelyi telefonon az őr ne változtassa.
+- **Indok:** DESIGN_HANDOFF 2.1 és 3; az M1-02 döntése.
+- **Érintett:** `src/theme/`, `src/db/kv.ts`, `src/app/_layout.tsx`, `src/app/dev/index.tsx`, `src/i18n/hu.json` (`theme.*`), M3-25, M5-10.

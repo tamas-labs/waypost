@@ -352,9 +352,10 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
 
 ### Felület (őr mód)
 
-- [ ] **M3-25 ThemeProvider és betűtípus**
+- [x] **M3-25 ThemeProvider és betűtípus**
   - Mit: sötét / világos téma rendszer szerint, kézi felülírással; Manrope betűtípus; a `tokens.ts` használata.
   - Spec: DESIGN_HANDOFF 3.
+  - Megjegyzés (2026-10-29): a provider, a betűtípus és a tokenek az M1-02-ből; most a kézi választás tárolása (`ui.theme_preference`, `src/theme/preference.ts`). A választó egyelőre a fejlesztői eszközök képernyőjén, a végleges helye az M5-10.
 
 - [ ] **M3-26 Alapkomponensek I.**: `Button`, `IconButton`, `StatusDot`, `StatusBadge`, `Card`, `InfoBanner`, `TextField` / `TextArea`, `Switch`, `SegmentedControl`. (DESIGN_HANDOFF 5.; referencia: `T-Komponensek.dc.html`.)
 
@@ -495,7 +496,7 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
   - Mit: a valódi folyamat (felváltja az M3-06 fejlesztői képernyőt): `POST /devices/enroll`, a token és a titok mentése, a supervisortoken törlése erről a telefonról, azonnali teljes pull, utána a PIN-képernyő.
   - Spec: Azonosítás / Telephelyi telefon hozzárendelése.
 
-- [ ] **M5-10 Telefon beállítása – ellenőrzőlista (`device-setup`)**: értesítések, pontos riasztás (Android), akkumulátor-optimalizálás kikapcsolva (Android), helymeghatározás (`hasLocationPermission` / `requestLocationPermission`, M3-20), kamera, NFC; zöld pipák; minden tételhez a rendszerbeállítás megnyitása.
+- [ ] **M5-10 Telefon beállítása – ellenőrzőlista (`device-setup`)**: értesítések, pontos riasztás (Android), akkumulátor-optimalizálás kikapcsolva (Android), helymeghatározás (`hasLocationPermission` / `requestLocationPermission`, M3-20), kamera, NFC; zöld pipák; minden tételhez a rendszerbeállítás megnyitása; a téma választása (Rendszer / Sötét / Világos, `useThemePreference`, M3-25).
 
 - [ ] **M5-11 Betanítás – domain**
   - Mit: piszkozat, amely csak mentéskor lesz új útvonalverzió; `walk_duration_s` = utolsó − első leolvasás; `walk_time_from_prev_s`; ugyanaz a címke nem lehet két ponté (helyi ellenőrzés és a szerver 409-e).

@@ -18,23 +18,30 @@ import { startScheduler } from '@/guard/scheduler';
 import { startTagEvents } from '@/nfc/tag-events';
 import { AppStack } from '@/navigation/app-stack';
 import { startSync } from '@/sync/runtime';
-import { ThemeProvider, useTheme } from '@/theme/theme-provider';
+import { loadThemePreference, saveThemePreference } from '@/theme/preference';
+import { ThemeProvider, useTheme, type ThemePreference } from '@/theme/theme-provider';
 
 // The splash screen stays until the fonts are loaded and the session is known (DESIGN_HANDOFF 3).
 void SplashScreen.preventAutoHideAsync();
 
-type Startup = { state: 'loading' } | { state: 'ready' } | { state: 'failed'; error: unknown };
+type Startup = { state: 'loading' } | { state: 'ready'; themePreference: ThemePreference } | { state: 'failed'; error: unknown };
 
-/** Opens and migrates the database, then reads the device mode (specification, Mobilapp: three start states). */
+/**
+ * Opens and migrates the database, then reads the device mode (specification, Mobilapp: three start states) and the
+ * stored theme choice, so the first screen already has the chosen theme.
+ */
 function useStartup(): [Startup, () => void] {
   const [startup, setStartup] = useState<Startup>({ state: 'loading' });
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let current = true;
     openDatabase()
-      .then(loadSession)
+      .then(async (db) => {
+        await loadSession(db);
+        return loadThemePreference(db);
+      })
       .then(
-        () => current && setStartup({ state: 'ready' }),
+        (themePreference) => current && setStartup({ state: 'ready', themePreference }),
         (error: unknown) => current && setStartup({ state: 'failed', error }),
       );
     return () => {
@@ -74,11 +81,19 @@ export default function RootLayout() {
 
   if (!ready) return null;
   return (
-    <ThemeProvider>
+    // Without a database (failed start) the theme follows the system and a choice is not stored.
+    <ThemeProvider
+      initialPreference={startup.state === 'ready' ? startup.themePreference : 'system'}
+      onPreferenceChange={startup.state === 'ready' ? storeThemePreference : undefined}
+    >
       <ThemedStatusBar />
       {startup.state === 'failed' ? <StartupError error={startup.error} onRetry={retry} /> : <AppStack />}
     </ThemeProvider>
   );
+}
+
+function storeThemePreference(preference: ThemePreference) {
+  saveThemePreference(getDatabase(), preference);
 }
 
 function ThemedStatusBar() {

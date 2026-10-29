@@ -1,5 +1,5 @@
 import * as SystemUI from 'expo-system-ui';
-import { createContext, use, useEffect, useState, type ReactNode } from 'react';
+import { createContext, use, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { theme, type Theme, type ThemeName } from './tokens';
@@ -21,9 +21,24 @@ export function resolveThemeName(preference: ThemePreference, systemScheme: stri
   return systemScheme === 'light' ? 'light' : 'dark';
 }
 
-export function ThemeProvider({ children, initialPreference = 'system' }: { children: ReactNode; initialPreference?: ThemePreference }) {
+interface ThemeProviderProps {
+  children: ReactNode;
+  /** The stored choice (theme/preference.ts); read once, when the provider mounts. */
+  initialPreference?: ThemePreference;
+  /** Called with every new choice, to store it. */
+  onPreferenceChange?: (preference: ThemePreference) => void;
+}
+
+export function ThemeProvider({ children, initialPreference = 'system', onPreferenceChange }: ThemeProviderProps) {
   const systemScheme = useColorScheme();
-  const [preference, setPreference] = useState<ThemePreference>(initialPreference);
+  const [preference, setPreferenceState] = useState<ThemePreference>(initialPreference);
+  const setPreference = useCallback(
+    (next: ThemePreference) => {
+      setPreferenceState(next);
+      onPreferenceChange?.(next);
+    },
+    [onPreferenceChange],
+  );
   const current = theme(resolveThemeName(preference, systemScheme));
 
   // Android draws edge-to-edge: the root view's colour shows behind the system bars and during transitions.

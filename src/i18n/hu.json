@@ -162,6 +162,12 @@
     "points": "pont",
     "minutes": "perc"
   },
+  "theme": {
+    "title": "Téma",
+    "system": "Rendszer",
+    "dark": "Sötét",
+    "light": "Világos"
+  },
   "sync": {
     "synced": "Szinkronizálva",
     "online": "Online",

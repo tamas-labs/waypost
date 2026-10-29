@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 
 import type { PinLockout } from '@/domain/pin-lockout';
+import type { ThemePreference } from '@/theme/theme-provider';
 
 import type { Database } from './database';
 import { kv } from './schema';
@@ -24,6 +25,8 @@ export interface KvValues {
   'pin.lockout': PinLockout;
   /** ID of this phone as the site phone (devices.id); absent while not enrolled. */
   'device.id': string;
+  /** The manual theme choice (System / Dark / Light, theme/preference.ts); absent = follow the system. */
+  'ui.theme_preference': ThemePreference;
   /** Development builds only: API base URL entered on the developer enrollment screen. */
   'dev.api_base_url': string;
 }
