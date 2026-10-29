@@ -24,6 +24,7 @@ import Mic from 'lucide-react-native/icons/mic';
 import Navigation from 'lucide-react-native/icons/navigation';
 import Pencil from 'lucide-react-native/icons/pencil';
 import Plus from 'lucide-react-native/icons/plus';
+import RefreshCw from 'lucide-react-native/icons/refresh-cw';
 import Shield from 'lucide-react-native/icons/shield';
 import TriangleAlert from 'lucide-react-native/icons/triangle-alert';
 import User from 'lucide-react-native/icons/user';
@@ -89,6 +90,7 @@ const ICONS = {
   info: Info,
   warning: TriangleAlert,
   delete: Delete,
+  refresh: RefreshCw,
 } satisfies Record<string, ComponentType<StrokeIconProps>>;
 
 export type IconName = keyof typeof ICONS;

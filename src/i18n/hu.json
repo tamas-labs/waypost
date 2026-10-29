@@ -213,12 +213,30 @@
   "sync": {
     "synced": "Szinkronizálva",
     "online": "Online",
+    "onlineQueued": "Online · {{count}} vár",
     "offline": "Offline",
     "offlineQueued": "Offline · {{count}} vár",
     "uploading": "Feltöltés… {{count}}",
     "error": "Szinkronhiba · újra",
     "syncNow": "Szinkronizálás most",
-    "lastSync": "Utolsó szinkron: {{time}}"
+    "running": "Szinkronizálás…",
+    "lastSync": "Utolsó szinkron: {{time}}",
+    "lastSyncNever": "Még nem volt szinkron",
+    "dateTime": "{{month}}. {{day}}. {{time}}",
+    "pending": "{{count}} tétel vár feltöltésre",
+    "pendingNone": "Nincs feltöltésre váró tétel",
+    "offlineDetail": "Nincs hálózati kapcsolat. Minden működik tovább, a tételek a kapcsolat visszatérésekor feltöltődnek.",
+    "detailsHint": "Megnyitja a szinkron részleteit",
+    "close": "Szinkron részleteinek bezárása",
+    "errors": {
+      "network": "A szerver nem érhető el.",
+      "unauthenticated": "A szerver nem fogadta el a telefon azonosítását.",
+      "device_revoked": "Ezt a telefont egy másik váltotta fel a telephelyen.",
+      "rate_limited": "A szerver túl sok kérést kapott. A szinkron később újra próbálkozik.",
+      "server": "Szerverhiba. A szinkron később újra próbálkozik.",
+      "invalid_response": "A szerver váratlan választ adott.",
+      "unknown": "Váratlan hiba történt a szinkron közben."
+    }
   },
   "status": {
     "completed": "Teljesítve",

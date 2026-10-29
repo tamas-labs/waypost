@@ -7,7 +7,7 @@
  *
  * Átvéve: docs/orjarat-design-handoff/src/theme/tokens.ts. Eltérések: a statusStyle és a syncStyle
  * feliratai a src/i18n/hu.json kulcsai (label → t(label)), nem magyar szövegek; a komponensekhez
- * (M3-26, M3-27) új kulcsok: knob szín, a DESIGN_HANDOFF 5. méretei (typography, size, iconSize, border,
+ * (M3-26 – M3-28) új kulcsok: knob szín, a DESIGN_HANDOFF 5. méretei (typography, size, iconSize, border,
  * press, motion).
  */
 
@@ -163,6 +163,7 @@ export const size = {
   resultRingOuter: 196, resultRingInner: 132, // leolvasás eredmény kör
   pinDot: 18,            // PIN-pötty
   syncDot: 8,            // szinkronjelző pötty
+  syncPanel: 320,        // a szinkronjelző lenyíló részletei (legfeljebb; keskeny képernyőn a margókig)
   progressRing: 96, progressRingSm: 52,       // haladásgyűrű (lista, térkép-fejléc)
   progressRingStroke: 10, progressRingStrokeSm: 14, // a 104-es viewBoxban
   progressSegment: 8,    // haladás szegmens magassága (rés 4, radius 4)
@@ -226,7 +227,7 @@ export const statusStyle = {
  */
 export const syncStyle = {
   synced:    { fg: 'text2', bg: 'surface', dot: 'ok',    label: 'sync.synced' },
-  online:    { fg: 'text2', bg: 'surface', dot: 'ok',    label: 'sync.online' },
+  online:    { fg: 'text2', bg: 'surface', dot: 'ok',    label: 'sync.online', labelQueued: 'sync.onlineQueued' },
   offline:   { fg: 'offFg', bg: 'offBg',   dot: 'offFg', label: 'sync.offline', labelQueued: 'sync.offlineQueued' },
   uploading: { fg: 'run',   bg: 'runBg',   dot: 'run',   label: 'sync.uploading' },
   error:     { fg: 'miss',  bg: 'missBg',  dot: 'miss',  label: 'sync.error' },

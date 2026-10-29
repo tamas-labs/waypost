@@ -363,8 +363,9 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
 - [x] **M3-27 Alapkomponensek II.**: `SyncIndicator`, `PointListItem`, `ProgressRing`, `ProgressSegments`, `RoundTimeline`, `PhotoSlot` / `PhotoAdd`, `CategoryTile`, `PinPad` + `PinDots`, `ResultScreen`. Akadálymentesség a DESIGN_HANDOFF 8. szerint.
   - Megjegyzés (2026-10-29): `src/components/`; a `SyncIndicator` csak a megjelenítés (állapot + szám), a szinkronállapotból való levezetés és a lenyíló részletek az M3-28. A PIN-pöttyök rázása és az eredményképernyő megjelenése Reanimateddel; a hibás PIN haptikája a képernyőé (`playFeedback`, M3-29). Bemutató: `/dev/components`.
 
-- [ ] **M3-28 Szinkronjelző a fejlécben**
+- [x] **M3-28 Szinkronjelző a fejlécben**
   - Mit: online / offline / „N tétel vár feltöltésre”; koppintásra az utolsó sikeres szinkron ideje és „Szinkron most” gomb; minden képernyőn.
+  - Megjegyzés (2026-10-29): `SyncStatusIndicator` (`src/components/sync-status-indicator.tsx`: az állapot a `useSyncStatus`-ból, a lenyíló részletek) és `ScreenHeader` (`src/components/screen-header.tsx`, jobbra alapból a szinkronjelző); a képernyők (M3-29 –) erre a fejlécre épülnek. A push az M4-ben jön, addig a láncbejegyzések „vár” állapotban maradnak.
 
 - [ ] **M3-29 PIN-képernyő (G1, `B-PIN`)**: telephely neve, 6 jegyű billentyűzet, szinkronállapot, zárolásnál visszaszámlálás, az engedélyekre figyelmeztető sáv (`getAlarmPermissions`, `allAlarmPermissionsGranted`, `src/alarms/permissions.ts`; M3-24).
 

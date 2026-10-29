@@ -5,11 +5,12 @@ import type { ColorTokens } from '@/theme/tokens';
 
 import { Icon, type IconName } from './icon';
 
-export type InfoBannerVariant = 'info' | 'warn' | 'offline' | 'manual' | 'success';
+export type InfoBannerVariant = 'info' | 'warn' | 'error' | 'offline' | 'manual' | 'success';
 
 const VARIANTS: Record<InfoBannerVariant, { bg: keyof ColorTokens; fg: keyof ColorTokens; icon: IconName }> = {
   info: { bg: 'runBg', fg: 'run', icon: 'info' },
   warn: { bg: 'warnBg', fg: 'warn', icon: 'warning' },
+  error: { bg: 'missBg', fg: 'miss', icon: 'warning' },
   offline: { bg: 'offBg', fg: 'offFg', icon: 'cloudUpload' },
   manual: { bg: 'manualBg', fg: 'manual', icon: 'pencil' },
   success: { bg: 'okBg', fg: 'ok', icon: 'check' },

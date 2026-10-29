@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import type { Ref } from 'react';
+import { Pressable, StyleSheet, Text, View, type HostInstance } from 'react-native';
 
 import { t } from '@/i18n';
 import { useTheme } from '@/theme/theme-provider';
@@ -15,8 +16,13 @@ export interface SyncIndicatorProps {
   state: SyncState;
   /** Items waiting for upload: "Offline · 2 vár", "Feltöltés… 3". */
   count?: number;
-  /** Opens the details (last sync, "Szinkronizálás most"; M3-28). */
+  /** Opens the details (last sync, "Szinkronizálás most"; SyncStatusIndicator). */
   onPress?: () => void;
+  /** The details are open. */
+  expanded?: boolean;
+  accessibilityHint?: string;
+  /** For measuring where the chip is (the details open below it). */
+  ref?: Ref<HostInstance>;
 }
 
 /** The text of the chip: the label of the state, with the waiting count where it has one (tokens.ts syncStyle). */
@@ -27,15 +33,18 @@ export function syncLabel(state: SyncState, count = 0): string {
 }
 
 /** The sync chip at the right of the header (DESIGN_HANDOFF 2.4, 5.3): always visible, discreet. */
-export function SyncIndicator({ state, count = 0, onPress }: SyncIndicatorProps) {
+export function SyncIndicator({ state, count = 0, onPress, expanded, accessibilityHint, ref }: SyncIndicatorProps) {
   const { color, typography, size, space, radius, border, iconSize } = useTheme();
   const style = syncStyle[state];
   const icon = STATE_ICON[state];
   const label = syncLabel(state, count);
   return (
     <Pressable
+      ref={ref}
       accessibilityRole={onPress === undefined ? 'text' : 'button'}
       accessibilityLabel={label}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={expanded === undefined ? undefined : { expanded }}
       disabled={onPress === undefined}
       onPress={onPress}
       // The 30 dp chip reaches the 48 dp touch minimum.
