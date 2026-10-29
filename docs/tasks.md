@@ -367,7 +367,8 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
   - Mit: online / offline / „N tétel vár feltöltésre”; koppintásra az utolsó sikeres szinkron ideje és „Szinkron most” gomb; minden képernyőn.
   - Megjegyzés (2026-10-29): `SyncStatusIndicator` (`src/components/sync-status-indicator.tsx`: az állapot a `useSyncStatus`-ból, a lenyíló részletek) és `ScreenHeader` (`src/components/screen-header.tsx`, jobbra alapból a szinkronjelző); a képernyők (M3-29 –) erre a fejlécre épülnek. A push az M4-ben jön, addig a láncbejegyzések „vár” állapotban maradnak.
 
-- [ ] **M3-29 PIN-képernyő (G1, `B-PIN`)**: telephely neve, 6 jegyű billentyűzet, szinkronállapot, zárolásnál visszaszámlálás, az engedélyekre figyelmeztető sáv (`getAlarmPermissions`, `allAlarmPermissionsGranted`, `src/alarms/permissions.ts`; M3-24).
+- [x] **M3-29 PIN-képernyő (G1, `B-PIN`)**: telephely neve, 6 jegyű billentyűzet, szinkronállapot, zárolásnál visszaszámlálás, az engedélyekre figyelmeztető sáv (`getAlarmPermissions`, `allAlarmPermissionsGranted`, `src/alarms/permissions.ts`; M3-24).
+  - Megjegyzés (2026-10-29): a belépés `signInWithPin` (`src/guard/login.ts`): őrnél a műszak-állapotgép (új műszak / folytatás / átadás) a láncba íródik, mielőtt a munkamenet megnyílik; a supervisor PIN-je a supervisor módot nyitja. Az eredmény (`login.outcome`, átadásnál) a G2-nek (M3-30) kell. A képernyőn a következő kör / műszakkezdés a `nextRound` (`src/domain/shift.ts`).
 
 - [ ] **M3-30 Műszakkezdés képernyő (G2, `B-Muszakkezdes`)** `⚠ Q1`: a design szerint; a specifikációban nincs külön képernyő, a döntés a `decisions.md`-be kerül.
 

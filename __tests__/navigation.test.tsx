@@ -12,6 +12,8 @@ import DevLayout from '@/app/dev/_layout';
 import DevToolsScreen from '@/app/dev/index';
 import Index from '@/app/index';
 import { useSession, type SessionState } from '@/auth/session';
+import { getDatabase } from '@/db/open';
+import { createTestDatabase } from '@/db/testing';
 import { AppStack } from '@/navigation/app-stack';
 import { ThemeProvider } from '@/theme/theme-provider';
 
@@ -38,6 +40,19 @@ const ROUTES = {
   'prototype/_layout': DevLayout,
   'prototype/clock': () => null,
 };
+
+// The PIN screen reads the database (nothing pulled: the screen waits for the site) and the alarm settings.
+jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
+jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
+jest.mock('@/alarms/permissions', () => ({
+  ...jest.requireActual<object>('@/alarms/permissions'),
+  getAlarmPermissions: () => Promise.resolve({ notifications: { granted: true, canAskAgain: true }, exactAlarms: true, batteryExempt: true }),
+}));
+
+beforeEach(async () => {
+  const { db } = await createTestDatabase();
+  jest.mocked(getDatabase).mockReturnValue(db);
+});
 
 const GUARD = { id: '01900000-0000-7000-8000-0000000000a1', role: 'guard' as const };
 

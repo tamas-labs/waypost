@@ -1,6 +1,6 @@
-import { closeShiftByGuard, guardLogin } from './shift';
+import { closeShiftByGuard, guardLogin, nextRound } from './shift';
 import { DomainError } from './state';
-import { C1, GUARD, guardState, idSequence, local, OPEN_SHIFT, OTHER_GUARD, round, SHIFT, SITE } from './testing';
+import { C1, GUARD, guardState, idSequence, local, OPEN_SHIFT, OTHER_GUARD, round, ROUTE_A, SHIFT, SITE } from './testing';
 
 describe('shift state machine', () => {
   it('starts a shift when a guard logs in without an open shift', () => {
@@ -37,5 +37,20 @@ describe('shift state machine', () => {
     ]);
     expect(closeShiftByGuard(guardState({ shift: OPEN_SHIFT }), local('20:10'))).toEqual([{ type: 'shift_closed', payload: { shift_id: SHIFT, closed_by: 'guard' }, gnss_time: null }]);
     expect(() => closeShiftByGuard(guardState(), local('20:10'))).toThrow(new DomainError('no_shift', 'There is no open shift'));
+  });
+});
+
+describe('the next round', () => {
+  it('starts the shift with the first round of the day, later ones are just the next round', () => {
+    expect(nextRound(guardState(), local('19:40'))).toEqual({ scheduled_at: local('20:00'), starts_shift: true });
+    expect(nextRound(guardState(), local('20:00'))).toEqual({ scheduled_at: local('20:30'), starts_shift: false });
+    // After the last round of the night (B 22:30, A 23:00): the next day's first.
+    expect(nextRound(guardState(), local('23:10'))).toEqual({ scheduled_at: local('20:00', '2026-11-04'), starts_shift: true });
+  });
+
+  it('skips routes without rounds, and is null without any', () => {
+    const routes = guardState().routes.map((route) => (route.id === ROUTE_A ? { ...route, active: false } : route));
+    expect(nextRound(guardState({ routes }), local('19:40'))).toEqual({ scheduled_at: local('20:30'), starts_shift: true });
+    expect(nextRound(guardState({ schedules: [] }), local('19:40'))).toBeNull();
   });
 });

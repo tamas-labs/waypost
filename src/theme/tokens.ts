@@ -7,7 +7,7 @@
  *
  * Átvéve: docs/orjarat-design-handoff/src/theme/tokens.ts. Eltérések: a statusStyle és a syncStyle
  * feliratai a src/i18n/hu.json kulcsai (label → t(label)), nem magyar szövegek; a komponensekhez
- * (M3-26 – M3-28) új kulcsok: knob szín, a DESIGN_HANDOFF 5. méretei (typography, size, iconSize, border,
+ * (M3-26 – M3-29) új kulcsok: knob szín, a DESIGN_HANDOFF 5. méretei (typography, size, iconSize, border,
  * press, motion).
  */
 
@@ -107,6 +107,7 @@ export const typography = {
   body:      { fontSize: 16, lineHeight: 22, fontFamily: fontFamily.bold },                           // listaelem név
   bodyRegular: { fontSize: 16, lineHeight: 23, fontFamily: fontFamily.semibold },                     // mező tartalom, magyarázó szöveg
   small:     { fontSize: 13, lineHeight: 18, fontFamily: fontFamily.semibold },                       // meta sor (idő · mód)
+  siteName:  { fontSize: 15, lineHeight: 20, fontFamily: fontFamily.semibold },                       // telephely neve a PIN-képernyőn
   label:     { fontSize: 14, lineHeight: 18, fontFamily: fontFamily.extrabold },                      // szekció- és mezőcímke
   chip:      { fontSize: 13, lineHeight: 16, fontFamily: fontFamily.bold },                           // szinkronjelző
   badge:     { fontSize: 13, lineHeight: 16, fontFamily: fontFamily.extrabold },                      // állapotjelvény

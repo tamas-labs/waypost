@@ -5,7 +5,10 @@ import type { Timestamp } from '@waypost/schema';
 import { shiftClosed, shiftStarted } from '@/chain/payloads';
 import type { ChainEntryDraft } from '@/chain/writer';
 
-import { closeRound } from './rounds';
+import { parseTimestamp } from '@/time/timestamp';
+import { DAY_MS } from '@/time/zone';
+
+import { closeRound, expectedSlots } from './rounds';
 import { DomainError, isOpen, type GuardState, type NewId } from './state';
 
 export interface GuardLogin {
@@ -37,4 +40,23 @@ export function guardLogin(state: GuardState, guardId: string, now: Timestamp, n
 export function closeShiftByGuard(state: GuardState, now: Timestamp): ChainEntryDraft[] {
   if (state.shift === null) throw new DomainError('no_shift', 'There is no open shift');
   return [...closeOpenRounds(state, now), shiftClosed({ shift_id: state.shift.id, closed_by: 'guard' })];
+}
+
+export interface NextRound {
+  scheduled_at: Timestamp;
+  /** The first round of its schedule day (a night from 20:00 to 08:00 is one day): the shift starts with it. */
+  starts_shift: boolean;
+}
+
+/** The next round time after now on the routes that have rounds (for the PIN screen); null if there is none within a day. */
+export function nextRound(state: GuardState, now: Timestamp): NextRound | null {
+  const nowMs = parseTimestamp(now);
+  // The slots around the day ahead start a day earlier, so the earlier rounds of the next one's day are there too.
+  const slots = expectedSlots(state, nowMs, nowMs + DAY_MS);
+  const next = slots.find((slot) => {
+    const at = parseTimestamp(slot.scheduled_at);
+    return at > nowMs && at <= nowMs + DAY_MS;
+  });
+  if (next === undefined) return null;
+  return { scheduled_at: next.scheduled_at, starts_shift: slots.find((slot) => slot.start_day === next.start_day) === next };
 }
