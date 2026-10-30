@@ -39,6 +39,7 @@ describe('scan resolution', () => {
     const outcome = resolveScan(context({ rounds: [open] }, NEAR_C2), nfc('04:a1:b2:c3:d4:e5:01'));
     expect(outcome).toEqual({
       kind: 'recorded',
+      scan_id: '019a2b3c-4d5e-7f00-8a00-000000001000',
       checkpoint_id: C1,
       round_id: open.id,
       out_of_order: false,

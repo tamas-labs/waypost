@@ -32,9 +32,9 @@ export async function recordTagRead(db: Database, read: TagRead, readClock: Read
   return decision;
 }
 
-/** How a scan feels at once. A wrong order counts, so it only warns (Q13: as the design says; decided in M3-35). */
+/** How a scan feels at once. A wrong order counts, so it only warns (Q13); a scan out of round is recorded, but counts for no round. */
 export function scanFeedback(outcome: ScanOutcome): FeedbackKind {
   if (outcome.kind === 'unknown_tag') return 'error';
-  if (outcome.kind === 'already_scanned' || outcome.out_of_order) return 'warning';
+  if (outcome.kind === 'already_scanned' || outcome.out_of_order || outcome.round_id === null) return 'warning';
   return 'success';
 }

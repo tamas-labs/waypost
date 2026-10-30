@@ -27,6 +27,7 @@ export type ScanOutcome =
   | { kind: 'already_scanned'; checkpoint_id: string; round_id: string; scanned_at: Timestamp; drafts: [] }
   | {
       kind: 'recorded';
+      scan_id: string;
       checkpoint_id: string;
       /** Null: out of round (no open round has this checkpoint). */
       round_id: string | null;
@@ -102,7 +103,7 @@ function recordCheckpoint(context: ScanContext, checkpointId: string, rounds: re
     completed = closingStatus({ scans }, versionOf(context.state, round.route_version_id).checkpoint_ids) === 'completed';
     if (completed) drafts.push(roundClosed({ round_id: round.id, status: 'completed', finished_at: context.now }));
   }
-  return { kind: 'recorded', checkpoint_id: checkpointId, round_id: round?.id ?? null, out_of_order: outOfOrder, completed, drafts };
+  return { kind: 'recorded', scan_id: scanId, checkpoint_id: checkpointId, round_id: round?.id ?? null, out_of_order: outOfOrder, completed, drafts };
 }
 
 function readFields(read: TagRead | null) {

@@ -394,7 +394,6 @@
     "cameraFailed": "Nem indult el a kamera."
   },
   "scanResult": {
-    "screenTitle": "Leolvasás eredménye",
     "successLine": "Leolvasva · {{time}} · {{method}}",
     "progress": "{{done}} / {{total}} pont",
     "progressRest": "még {{left}} · {{time}} van hátra",
@@ -412,7 +411,10 @@
     "youScanned": "Leolvastad",
     "expected": "Következő lett volna",
     "orderBody": "A(z) {{expected}} pontot ettől még leolvashatod. A jelentésben a sorrendeltérés látszani fog.",
-    "ok": "Értem, tovább"
+    "ok": "Értem, tovább",
+    "alreadyLine": "Már leolvasva {{time}}-kor",
+    "alreadyBody": "Ez a pont ebben a körben már megvan, új leolvasás nem keletkezett.",
+    "outOfRoundBody": "Ez a pont most egyik nyitott körhöz sem tartozik, ezért körön kívüli leolvasásként rögzült."
   },
   "manual": {
     "screenTitle": "Kézi rögzítés",

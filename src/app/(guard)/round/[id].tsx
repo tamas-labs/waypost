@@ -96,7 +96,7 @@ export default function RoundScreen() {
   const { id = '' } = useLocalSearchParams<{ id: string }>();
   const info = useRoundInfo(id);
   const focused = useIsFocused();
-  const scanner = useScanRecorder('push');
+  const scanner = useScanRecorder('push', id);
   // Android: what "Leolvasás" says while tags are read anyway.
   const [hint, setHint] = useState(false);
   const [invalidTag, setInvalidTag] = useState(false);
@@ -122,7 +122,7 @@ export default function RoundScreen() {
   const reader = useTagReader(onTag);
   const status = reader.status;
 
-  const openQr = () => router.push('/qr');
+  const openQr = () => router.push({ pathname: '/qr', params: { round_id: id } });
   const scan = () => {
     setHint(false);
     if (status?.supported === false) openQr();

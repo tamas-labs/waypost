@@ -1,5 +1,5 @@
 import { useCameraPermissions } from 'expo-camera';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Linking, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,7 +25,8 @@ export default function QrScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [torch, setTorch] = useState(false);
   const [cameraFailed, setCameraFailed] = useState(false);
-  const scanner = useScanRecorder('replace');
+  const { round_id = '' } = useLocalSearchParams<{ round_id: string }>();
+  const scanner = useScanRecorder('replace', round_id);
 
   if (permission === null || !permission.granted) {
     // Asked again only while the system allows it; after a final refusal only the settings can grant it.

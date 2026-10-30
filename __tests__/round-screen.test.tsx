@@ -131,7 +131,7 @@ it('records a touched tag, gives feedback, and goes to the result', async () => 
   await touch(tagOf(C1));
   expect(state().rounds[0]!.status).toBe('in_progress');
   expect(playFeedback).toHaveBeenCalledWith('success');
-  expect(router.push).toHaveBeenCalledWith({ pathname: '/scan-result', params: { kind: 'recorded', checkpoint_id: C1, round_id: roundId, out_of_order: 'false', completed: 'false' } });
+  expect(router.push).toHaveBeenCalledWith({ pathname: '/scan-result', params: { kind: 'recorded', scan_id: expect.any(String), checkpoint_id: C1, round_id: roundId, out_of_order: 'false', completed: 'false' } });
   expect(screen.getByRole('progressbar', { name: '1 / 3 pont kész' })).toBeOnTheScreen();
   expect(screen.getByLabelText('Pont 1, Leolvasva, 20:00 · NFC')).toBeOnTheScreen();
 });
@@ -218,7 +218,7 @@ describe('the Leolvasás button', () => {
     await renderScreen();
     expect(screen.getByText(/nincs NFC/)).toBeOnTheScreen();
     await press();
-    expect(router.push).toHaveBeenCalledWith('/qr');
+    expect(router.push).toHaveBeenCalledWith({ pathname: '/qr', params: { round_id: roundId } });
   });
 
   it('tells when an NFC reading failed', async () => {

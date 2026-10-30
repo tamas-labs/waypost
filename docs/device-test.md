@@ -121,6 +121,18 @@ Sablon (egy futáshoz másold le, és a fejlécbe írd a dátumot és a mérföl
 | T5 | Repülőgép üzemmód, korábban nem nézett környéken. | Üres háttéren is látszanak a jelölők és a vonal. |
 | T6 | Android, kulcs nélküli build: „Térkép”. | Nincs összeomlás, a térkép helyén üzenet; a Lista és a leolvasás működik. |
 
+### M3 – Leolvasás eredménye (M3-35, a kör képernyőjéről)
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| E1 | Helyes pont leolvasása, utasítással. | Zöld képernyő (fade + scale), egy rövid rezgés; név, utasítás, haladás; „Tovább · 3” visszaszámol, és magától visszalép a körre. Az utasítás 3 mp alatt elolvasható-e? |
+| E2 | Az utolsó pont leolvasása. | „Teljesítve”, a visszalépés után a kör helyett a kezdőlap. |
+| E3 | Ismeretlen címke, NFC-vel és QR-rel. | Piros képernyő, két rövid rezgés, a leolvasott azonosító; „Újra próbálom” NFC-nél a körre, QR-nél az olvasóra visz; a „Sérült címke” a kézi rögzítésre. |
+| E4 | Már leolvasott pont újra. | „Már leolvasva ÓÓ:PP-kor”, egy hosszabb rezgés; nincs új bejegyzés, nem lép vissza magától. |
+| E5 | Kötött sorrendnél rossz pont. | „Rossz sorrend”, egy hosszabb rezgés, a két pont sorszámmal; a listán a pont jelölve. |
+| E6 | Más útvonal pontja, nyitott kör nélküli címke. | „Rögzítve, jelöléssel”, körön kívüli szöveg, egy hosszabb rezgés. |
+| E7 | Ébresztés a siker képernyője alatt; kis képernyő, nagy betűméret, hosszú utasítás. | Az ébresztés felül marad, a visszaszámlálás megáll, és utána folytatódik. A tartalom görgethető, a gombok a helyükön. |
+
 ### ÉÉÉÉ-HH-NN – M1
 
 | # | Android | iPhone | Megjegyzés |

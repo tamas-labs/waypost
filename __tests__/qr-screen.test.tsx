@@ -10,7 +10,7 @@ import { ThemeProvider } from '@/theme/theme-provider';
 const mockCameraView = jest.fn();
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 jest.mock('expo-camera', () => ({ useCameraPermissions: jest.fn(), CameraView: (props: unknown) => mockCameraView(props) }));
-jest.mock('expo-router', () => ({ router: { replace: jest.fn(), back: jest.fn() }, useIsFocused: () => true }));
+jest.mock('expo-router', () => ({ router: { replace: jest.fn(), back: jest.fn() }, useIsFocused: () => true, useLocalSearchParams: () => ({ round_id: 'round-1' }) }));
 jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
 jest.mock('@/feedback/feedback', () => ({ playFeedback: jest.fn() }));
 jest.mock('@/guard/scan', () => ({ ...jest.requireActual<object>('@/guard/scan'), recordTagRead: jest.fn() }));
@@ -59,7 +59,7 @@ it('records a Waypost code and gives way to its result', async () => {
   await renderScreen();
   await scanned(PAYLOAD);
   expect(recordTagRead).toHaveBeenCalledWith(undefined, { method: 'qr', qr_payload: PAYLOAD });
-  expect(router.replace).toHaveBeenCalledWith({ pathname: '/scan-result', params: { kind: 'unknown_tag' } });
+  expect(router.replace).toHaveBeenCalledWith({ pathname: '/scan-result', params: { kind: 'unknown_tag', method: 'qr', read_id: PAYLOAD, round_id: 'round-1' } });
 });
 
 it('ignores other codes', async () => {

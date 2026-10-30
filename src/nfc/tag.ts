@@ -40,6 +40,11 @@ export function normalizeTagUid(value: string): string | null {
   return TAG_UID.test(uid) ? uid : null;
 }
 
+/** A normalised UID as people read it: 04:A2:19:6B. */
+export function formatTagUid(uid: string): string {
+  return uid.match(/.{1,2}/g)?.join(':') ?? uid;
+}
+
 /** Android sends the record ID as a hex string, iOS as a byte array. */
 function toBytes(value: number[] | string | undefined, hex: boolean): number[] {
   if (value === undefined) return [];

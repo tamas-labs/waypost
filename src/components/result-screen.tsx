@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { Keyframe } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -52,7 +52,8 @@ export function ResultScreen({ tone, icon, statusLine, title, body, header, chil
       ]}
     >
       {header}
-      <View style={[styles.center, { gap: space.xl }]}>
+      {/* A long instruction or a large font scrolls, and the buttons stay. */}
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.center, { gap: space.xl }]}>
         <View
           importantForAccessibility="no-hide-descendants"
           accessibilityElementsHidden
@@ -70,7 +71,7 @@ export function ResultScreen({ tone, icon, statusLine, title, body, header, chil
           {body !== undefined && <Text style={[typography.resultBody, styles.text, { color: color.text2 }]}>{body}</Text>}
         </View>
         {children}
-      </View>
+      </ScrollView>
       <View style={{ gap: space.m }}>{actions}</View>
     </Animated.View>
   );
@@ -78,7 +79,8 @@ export function ResultScreen({ tone, icon, statusLine, title, body, header, chil
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  center: { flex: 1, alignItems: 'stretch', justifyContent: 'center' },
+  scroll: { flex: 1 },
+  center: { flexGrow: 1, alignItems: 'stretch', justifyContent: 'center' },
   ring: { alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
   texts: { alignItems: 'center' },
   text: { textAlign: 'center', fontVariant: ['tabular-nums'] },

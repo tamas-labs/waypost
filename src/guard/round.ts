@@ -6,7 +6,7 @@ import { and, eq, isNotNull } from 'drizzle-orm';
 import type { Database } from '@/db/database';
 import { checkpoints, scans } from '@/db/schema';
 import { deadlineOfRound } from '@/domain/rounds';
-import { isOpen, versionOf } from '@/domain/state';
+import { isOpen, versionOf, type GuardState } from '@/domain/state';
 import { coordinateOfE7, type Coordinate } from '@/location/coordinate';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 import { trustedTime } from '@/time/trusted-time';
@@ -40,8 +40,14 @@ export interface RoundScreenInfo {
 export function loadRoundScreenInfo(db: Database, roundId: string, readClock: ReadClock = readDeviceClock): RoundScreenInfo | null {
   const now = trustedTime(db, readClock()).time;
   const state = loadGuardState(db, now);
-  const round = state?.rounds.find((r) => r.id === roundId);
-  if (state === null || round === undefined || !isOpen(round)) return null;
+  if (state === null || !state.rounds.some((round) => round.id === roundId && isOpen(round))) return null;
+  return roundDetailsOf(db, state, roundId);
+}
+
+/** The round whatever its status (the scan that completes it still shows its progress); null if it is not known. */
+export function roundDetailsOf(db: Database, state: GuardState, roundId: string): RoundScreenInfo | null {
+  const round = state.rounds.find((r) => r.id === roundId);
+  if (round === undefined) return null;
 
   const details = new Map(db.select({ id: checkpoints.id, name: checkpoints.name, lat_e7: checkpoints.lat_e7, lng_e7: checkpoints.lng_e7 }).from(checkpoints).where(eq(checkpoints.site_id, state.site_id)).all().map((point) => [point.id, point]));
   const scanRows = db

@@ -6,14 +6,15 @@ import type { ScanOutcome, TagRead } from '@/domain/scan';
 import { playFeedback } from '@/feedback/feedback';
 import { recordTagRead, scanFeedback } from '@/guard/scan';
 
-function resultParams(outcome: ScanOutcome): Record<string, string> {
+/** The params of the result screen. An unknown tag has no round of its own: it belongs to the round the guard was on. */
+export function scanResultParams(outcome: ScanOutcome, read: TagRead, roundId: string): Record<string, string> {
   switch (outcome.kind) {
     case 'unknown_tag':
-      return { kind: outcome.kind };
+      return { kind: outcome.kind, method: read.method, read_id: read.method === 'nfc' ? read.tag_uid : read.qr_payload, round_id: roundId };
     case 'already_scanned':
       return { kind: outcome.kind, checkpoint_id: outcome.checkpoint_id, round_id: outcome.round_id, scanned_at: outcome.scanned_at };
     case 'recorded':
-      return { kind: outcome.kind, checkpoint_id: outcome.checkpoint_id, ...(outcome.round_id === null ? {} : { round_id: outcome.round_id }), out_of_order: String(outcome.out_of_order), completed: String(outcome.completed) };
+      return { kind: outcome.kind, scan_id: outcome.scan_id, checkpoint_id: outcome.checkpoint_id, ...(outcome.round_id === null ? {} : { round_id: outcome.round_id }), out_of_order: String(outcome.out_of_order), completed: String(outcome.completed) };
   }
 }
 
@@ -25,7 +26,7 @@ export interface ScanRecorder {
 }
 
 /** The way from a tag read to the result screen (G7–G9), for the round's screen (push) and the QR reader over it (replace). */
-export function useScanRecorder(navigate: 'push' | 'replace'): ScanRecorder {
+export function useScanRecorder(navigate: 'push' | 'replace', roundId: string): ScanRecorder {
   const [recording, setRecording] = useState(false);
   const [failed, setFailed] = useState(false);
   const busy = useRef(false);
@@ -39,7 +40,7 @@ export function useScanRecorder(navigate: 'push' | 'replace'): ScanRecorder {
       try {
         const outcome = await recordTagRead(getDatabase(), read);
         playFeedback(scanFeedback(outcome));
-        router[navigate]({ pathname: '/scan-result', params: resultParams(outcome) });
+        router[navigate]({ pathname: '/scan-result', params: scanResultParams(outcome, read, roundId) });
       } catch (error) {
         if (__DEV__) console.warn('Recording a scan failed', error);
         playFeedback('error');
@@ -49,7 +50,7 @@ export function useScanRecorder(navigate: 'push' | 'replace'): ScanRecorder {
         setRecording(false);
       }
     },
-    [navigate],
+    [navigate, roundId],
   );
   return { record, recording, failed };
 }

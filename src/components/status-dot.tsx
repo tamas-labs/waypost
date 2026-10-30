@@ -16,6 +16,8 @@ export type StatusDotProps =
   | {
       /** Numbered variant (training, fixed order): the position of the point. */
       number: number;
+      /** run: as a point left in the list; warn: scanned out of order; next: the point expected (ring). */
+      tone?: 'run' | 'warn' | 'next';
     };
 
 /**
@@ -27,9 +29,12 @@ export function StatusDot(props: StatusDotProps) {
   const circle = { width: size.statusDot, height: size.statusDot, borderRadius: size.statusDot / 2 };
 
   if ('number' in props) {
+    const tone = props.tone ?? 'run';
+    const fill = tone === 'next' ? { borderWidth: border.ring, borderColor: color.accent } : { backgroundColor: tone === 'warn' ? color.warnBg : color.runBg };
+    const fg = tone === 'next' ? color.accent : tone === 'warn' ? color.warn : color.run;
     return (
-      <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[styles.dot, circle, { backgroundColor: color.runBg }]}>
-        <Text style={[typography.label, styles.number, { color: color.run }]}>{props.number}</Text>
+      <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[styles.dot, circle, fill]}>
+        <Text style={[typography.label, styles.number, { color: fg }]}>{props.number}</Text>
       </View>
     );
   }

@@ -117,6 +117,9 @@ describe('recording a read', () => {
     expect(scanFeedback(await recordTagRead(db, nfc(C2), readClock))).toBe('warning');
     expect(scanFeedback(await recordTagRead(db, nfc(C2), readClock))).toBe('warning');
     expect(scanFeedback(await recordTagRead(db, { method: 'nfc', tag_uid: 'FFFFFFFF', ndef_raw: null }, readClock))).toBe('error');
+    now = local('20:20');
+    await write(schedulerStep(state(), now, newId));
+    expect(scanFeedback(await recordTagRead(db, nfc(C1), readClock))).toBe('warning');
   });
 
   it('fails while the site is not pulled', async () => {
