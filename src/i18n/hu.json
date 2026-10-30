@@ -322,6 +322,7 @@
     "nextRound": "Következő kör: {{time}}",
     "startsIn": "múlva indul · ébresztő szól",
     "remaining": "van hátra · határidő {{time}}",
+    "openRound": "Kör megnyitása",
     "noMoreRounds": "Nincs több kör ebben a műszakban",
     "autoClose": "A műszak {{time}}-kor automatikusan zárul.",
     "noRounds": "Ehhez a műszakhoz nincs ütemezett kör.",
@@ -355,13 +356,21 @@
     }
   },
   "round": {
-    "screenTitle": "Kör folyamatban",
     "title": "{{time}}-s kör",
     "remaining": "Hátralévő idő",
     "deadline": "Határidő {{time}}",
     "list": "Lista",
     "map": "Térkép",
     "scan": "Leolvasás",
+    "recording": "Rögzítés…",
+    "qr": "QR",
+    "tagUnreadable": "Címke nem olvasható",
+    "nfcHint": "Érintsd a telefon hátát a címkéhez. Amíg ez a képernyő nyitva van, gomb nélkül is olvas.",
+    "nfcOff": "Az NFC ki van kapcsolva. A Leolvasás gombbal bekapcsolhatod, vagy olvass QR-kóddal.",
+    "nfcMissing": "Ezen a telefonon nincs NFC: QR-kóddal olvass.",
+    "readFailed": "Nem sikerült a leolvasás. Próbáld újra.",
+    "tagInvalid": "Ezt a címkét nem lehet leolvasni. Próbáld újra, vagy használd a „Címke nem olvasható” gombot.",
+    "recordFailed": "Nem sikerült rögzíteni a leolvasást. Próbáld újra.",
     "recordIncident": "Esemény rögzítése",
     "anyOrder": "bármilyen sorrendben",
     "walked": "Megtett út · {{from}}–{{to}}",
@@ -369,7 +378,19 @@
     "youAreHere": "Itt vagy",
     "manualNotVerified": "Kézi – nem igazolt"
   },
+  "qr": {
+    "title": "QR-kód olvasása",
+    "hint": "Tartsd a pont QR-kódját a keretbe.",
+    "permissionNeeded": "A QR-kód olvasásához engedélyezni kell a kamerát.",
+    "permissionDenied": "A kamera használata nincs engedélyezve. A beállításokban kapcsolhatod be.",
+    "allow": "Kamera engedélyezése",
+    "openSettings": "Beállítások megnyitása",
+    "torchOff": "Lámpa",
+    "torchOn": "Lámpa ki",
+    "cameraFailed": "Nem indult el a kamera."
+  },
   "scanResult": {
+    "screenTitle": "Leolvasás eredménye",
     "successLine": "Leolvasva · {{time}} · {{method}}",
     "progress": "{{done}} / {{total}} pont",
     "progressRest": "még {{left}} · {{time}} van hátra",
@@ -390,6 +411,7 @@
     "ok": "Értem, tovább"
   },
   "manual": {
+    "screenTitle": "Kézi rögzítés",
     "title": "Kézi rögzítés",
     "point": "Pont",
     "reasonMissing": "Címke hiányzik",

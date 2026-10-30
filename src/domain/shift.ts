@@ -143,7 +143,7 @@ export interface ShiftHome {
   /** The time of the first round not opened yet (a moment after its time it may still be waiting for the scheduler). */
   next_at: Timestamp | null;
   /** The earliest open round, with its deadline. */
-  running: { scheduled_at: Timestamp; deadline: Timestamp } | null;
+  running: { round_id: string; scheduled_at: Timestamp; deadline: Timestamp } | null;
   auto_close_at: Timestamp | null;
 }
 
@@ -217,7 +217,7 @@ export function shiftHome(state: GuardState, now: Timestamp): ShiftHome | null {
   return {
     rounds,
     next_at: nextAt,
-    running: open === undefined ? null : { scheduled_at: open.scheduled_at, deadline: toTimestamp(deadlineOf(state, open, slots)) },
+    running: open === undefined ? null : { round_id: open.id, scheduled_at: open.scheduled_at, deadline: toTimestamp(deadlineOf(state, open, slots)) },
     auto_close_at: autoCloseMs === null ? null : toTimestamp(autoCloseMs),
   };
 }

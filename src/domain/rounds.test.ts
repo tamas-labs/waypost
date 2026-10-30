@@ -1,6 +1,6 @@
 import type { ChainEntryDraft } from '@/chain/writer';
 
-import { autoCloseTime, closingStatus, schedulerStep, slotsAround } from './rounds';
+import { autoCloseTime, closingStatus, deadlineOfRound, schedulerStep, slotsAround } from './rounds';
 import { C1, C2, C3, guardState, idSequence, local, OPEN_SHIFT, round, ROUTE_A, ROUTE_B, SCHEDULE_A, SCHEDULE_B, SCHEDULES, SHIFT, VERSION_A1, VERSION_A2, VERSION_B1 } from './testing';
 import type { GuardState } from './state';
 
@@ -30,6 +30,13 @@ describe('round closing status', () => {
     expect(closingStatus({ scans: [scan(C1), scan(C3), scan(C2)] }, [C1, C2, C3])).toBe('completed');
     expect(closingStatus({ scans: [scan(C2)] }, [C1, C2, C3])).toBe('incomplete');
     expect(closingStatus({ scans: [] }, [C1, C2, C3])).toBe('missed');
+  });
+});
+
+describe('deadline of a round', () => {
+  it('is the time limit after its time, or without one the route\'s next round', () => {
+    expect(deadlineOfRound(guardState(), round('A', '20:00'))).toBe(local('20:20'));
+    expect(deadlineOfRound(guardState(), round('B', '20:30'))).toBe(local('22:30'));
   });
 });
 

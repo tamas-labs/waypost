@@ -131,7 +131,7 @@ describe('the shift home', () => {
   it('shows a running round with its deadline', () => {
     const running = round('A', '21:00', { status: 'in_progress', scans: [scan(C1, '21:03')] });
     const home = shiftHome(guardState({ shift: OPEN_SHIFT, rounds: [round('A', '20:00', { status: 'missed' }), round('B', '20:30', { status: 'missed' }), running] }), local('21:05'))!;
-    expect(home.running).toEqual({ scheduled_at: local('21:00'), deadline: local('21:20') });
+    expect(home.running).toEqual({ round_id: running.id, scheduled_at: local('21:00'), deadline: local('21:20') });
     expect(home.rounds.find((r) => r.scheduled_at === local('21:00'))).toMatchObject({ state: 'running', scanned: 1, total: 3 });
   });
 

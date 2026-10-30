@@ -10,7 +10,10 @@ import GuardLayout from '@/app/(guard)/_layout';
 import AlarmScreen from '@/app/(guard)/alarm';
 import HomeScreen from '@/app/(guard)/home';
 import NewIncidentScreen from '@/app/(guard)/incident/new';
+import ManualEntryScreen from '@/app/(guard)/manual/index';
+import QrScreen from '@/app/(guard)/qr';
 import RoundScreen from '@/app/(guard)/round/[id]';
+import ScanResultScreen from '@/app/(guard)/scan-result';
 import ShiftCloseScreen from '@/app/(guard)/shift/close';
 import ShiftStartScreen from '@/app/(guard)/shift-start';
 import SupervisorLayout from '@/app/(supervisor)/_layout';
@@ -49,7 +52,10 @@ const ROUTES = {
   '(guard)/alarm': AlarmScreen,
   '(guard)/home': HomeScreen,
   '(guard)/incident/new': NewIncidentScreen,
+  '(guard)/manual/index': ManualEntryScreen,
+  '(guard)/qr': QrScreen,
   '(guard)/round/[id]': RoundScreen,
+  '(guard)/scan-result': ScanResultScreen,
   '(guard)/shift/close': ShiftCloseScreen,
   '(guard)/shift-start': ShiftStartScreen,
   '(supervisor)/_layout': SupervisorLayout,
@@ -65,6 +71,10 @@ jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBo
 jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
 jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn(), requestSync: jest.fn() }));
 jest.mock('expo-keep-awake', () => ({ useKeepAwake: jest.fn() }));
+jest.mock('expo-camera', () => ({ useCameraPermissions: () => [null, jest.fn()] }));
+// The tag reader is native.
+jest.mock('@/nfc/use-tag-reader', () => ({ useTagReader: () => ({ status: null, listening: false, reading: false, read: jest.fn(), error: null }) }));
+jest.mock('@/nfc/reader', () => ({ openNfcSettings: jest.fn() }));
 // The readiness check stays pending (NFC is native).
 jest.mock('@/guard/readiness', () => ({ getReadiness: () => new Promise(() => {}), readinessRows: () => [], fixReadiness: jest.fn() }));
 jest.mock('@/alarms/permissions', () => ({
@@ -221,6 +231,8 @@ describe('the round alarm', () => {
     // Back from the round: the screen under it, not the alarm or a second round.
     await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Vissza' })));
     expect(screen).toHavePathname('/home');
+    // And it stays there: the round's screen is shown once by itself, then by the button.
+    expect(screen.getByRole('button', { name: 'Kör megnyitása' })).toBeOnTheScreen();
   });
 
   it('leaves the alarm screen when the round closes', async () => {
@@ -247,6 +259,45 @@ describe('the round alarm', () => {
     await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Indulok' })));
     expect(screen).toHavePathname('/alarm');
     expect(screen.getByRole('header', { name: 'Indul a\n20:30-s kör' })).toBeOnTheScreen();
+  });
+
+  it('goes from the shift home to a round that opens, once', async () => {
+    await startAsGuard();
+    await act(async () => void (await write(schedulerStep(loadGuardState(db, now())!, now(), newId))));
+    const round = loadGuardState(db, now())!.rounds[0]!;
+    expect(screen).toHavePathname(`/round/${round.id}`);
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Vissza' })));
+    expect(screen).toHavePathname('/home');
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Kör megnyitása' })));
+    expect(screen).toHavePathname(`/round/${round.id}`);
+  });
+
+  it('lets the alarm go first when a round opens under it', async () => {
+    await startAsGuard();
+    await act(async () => raiseAlarm(db, alarmData('20:00')));
+    await act(async () => void (await write(schedulerStep(loadGuardState(db, now())!, now(), newId))));
+    expect(screen).toHavePathname('/alarm');
+  });
+
+  it('opens the QR reader, the manual entry and the incident from the round, and leaves it when it closes', async () => {
+    await startAsGuard();
+    await act(async () => void (await write(schedulerStep(loadGuardState(db, now())!, now(), newId))));
+    const round = loadGuardState(db, now())!.rounds[0]!;
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'QR' })));
+    expect(screen).toHavePathname('/qr');
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Vissza' })));
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Címke nem olvasható' })));
+    expect(screen).toHavePathname('/manual');
+    expect(screen).toHaveSearchParams({ round_id: round.id });
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Vissza' })));
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Esemény rögzítése' })));
+    expect(screen).toHavePathname('/incident/new');
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Vissza' })));
+    expect(screen).toHavePathname(`/round/${round.id}`);
+
+    setNow(local('20:20'));
+    await act(async () => void (await write(schedulerStep(loadGuardState(db, now())!, now(), newId))));
+    expect(screen).toHavePathname('/home');
   });
 
   it('stays on the PIN screen without a logged-in guard', async () => {

@@ -1,9 +1,10 @@
 import type { Timestamp } from '@waypost/schema';
-import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { router, useIsFocused } from 'expo-router';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useActiveAlarms } from '@/alarms/active-alarms';
 import { useSession } from '@/auth/session';
 import { onChainEntries } from '@/chain/events';
 import { Button } from '@/components/button';
@@ -13,26 +14,20 @@ import { RoundTimeline } from '@/components/round-timeline';
 import { ScreenHeader } from '@/components/screen-header';
 import { StatusDot } from '@/components/status-dot';
 import { getDatabase } from '@/db/open';
-import { loadShiftHomeInfo, trustedNowMs, type ShiftHomeInfo, type ShiftHomeRound } from '@/guard/home';
-import { requestSchedulerStep } from '@/guard/scheduler';
+import { loadShiftHomeInfo, type ShiftHomeInfo, type ShiftHomeRound } from '@/guard/home';
+import { forgetShownRounds, markRoundShown, wasRoundShown } from '@/guard/round';
+import { useCountdown } from '@/guard/use-countdown';
 import { t } from '@/i18n';
 import { onConfigurationPulled } from '@/sync/events';
 import { useTheme } from '@/theme/theme-provider';
 import { statusStyle } from '@/theme/tokens';
 import { parseTimestamp } from '@/time/timestamp';
+import { countdownText } from '@/time/countdown';
 import { localTimeOf, MINUTE_MS } from '@/time/zone';
 
 type ClosedRound = ShiftHomeRound & { state: 'completed' | 'incomplete' | 'missed' };
 
 const isClosed = (round: ShiftHomeRound): round is ClosedRound => round.state === 'completed' || round.state === 'incomplete' || round.state === 'missed';
-
-/** "07:48" within an hour, "1:23" (hours and minutes, rounded up) above it (DESIGN_HANDOFF 6, G3). */
-function countdownText(seconds: number): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  if (seconds < 3600) return `${pad(Math.floor(seconds / 60))}:${pad(seconds % 60)}`;
-  const minutes = Math.ceil(seconds / 60);
-  return `${Math.floor(minutes / 60)}:${pad(minutes % 60)}`;
-}
 
 /** The shift's rounds, reloaded after a chain entry (a round opened, a scan, a shift closed) and a pull. */
 function useShiftHomeInfo(guardId: string | null): ShiftHomeInfo | null {
@@ -47,8 +42,10 @@ function useShiftHomeInfo(guardId: string | null): ShiftHomeInfo | null {
 }
 
 // Shift home (G3, B-Kezdolap): the next round with a countdown, the rounds of the shift on a timeline, the closed ones
-// in a list, and the buttons of the incident and of closing the shift. The back button logs out to the PIN screen, so
-// another guard can take over (the shift stays open); a shift closed meanwhile (automatically) logs out by itself.
+// in a list, and the buttons of the incident and of closing the shift. A round open for the first time goes on to its
+// screen (G5); back from there, this screen stays, so the shift can be closed or handed over meanwhile. The back button
+// logs out to the PIN screen, so another guard can take over (the shift stays open); a shift closed meanwhile
+// (automatically) logs out by itself.
 export default function HomeScreen() {
   const { color, typography, space } = useTheme();
   const insets = useSafeAreaInsets();
@@ -62,6 +59,18 @@ export default function HomeScreen() {
   }, [shiftClosed, logOut]);
 
   const home = info?.home ?? null;
+  const runningId = home?.running?.round_id ?? null;
+  const focused = useIsFocused();
+  // An alarm goes first: its "Indulok" opens the round.
+  const alarmActive = useActiveAlarms(({ alarms }) => alarms.length > 0);
+  // This screen is mounted at a login: the guard's rounds are shown again.
+  useEffect(() => forgetShownRounds(), []);
+  useEffect(() => {
+    if (!focused || alarmActive || runningId === null || wasRoundShown(runningId)) return;
+    markRoundShown(runningId);
+    router.push({ pathname: '/round/[id]', params: { id: runningId } });
+  }, [focused, alarmActive, runningId]);
+
   const rounds = home?.rounds ?? [];
   const closed = rounds.filter(isClosed);
   const routes = [...new Set(rounds.map((round) => round.route_id))].map((routeId) => rounds.filter((round) => round.route_id === routeId));
@@ -73,7 +82,9 @@ export default function HomeScreen() {
       <ScreenHeader overline={info?.site_name} title={t('home.onShift', { name: info?.guard_name ?? '' })} onBack={logOut} backLabel={t('home.logout')} />
       <ScrollView style={styles.screen} contentContainerStyle={{ paddingHorizontal: space.l, paddingBottom: space.l, gap: space.m }}>
         {home !== null && home.running !== null ? (
-          <CountdownCard key={home.running.deadline} title={t('round.title', { time: time(home.running.scheduled_at) })} target={home.running.deadline} caption={t('home.remaining', { time: time(home.running.deadline) })} />
+          <CountdownCard key={home.running.deadline} title={t('round.title', { time: time(home.running.scheduled_at) })} target={home.running.deadline} caption={t('home.remaining', { time: time(home.running.deadline) })}>
+            <Button hero label={t('home.openRound')} onPress={() => router.push({ pathname: '/round/[id]', params: { id: home.running!.round_id } })} style={styles.wide} />
+          </CountdownCard>
         ) : home !== null && home.next_at !== null ? (
           <CountdownCard key={home.next_at} title={t('home.nextRound', { time: time(home.next_at) })} target={home.next_at} caption={t('home.startsIn')} />
         ) : (
@@ -122,20 +133,9 @@ export default function HomeScreen() {
 }
 
 /** The big card: what comes, how long until then, counted down every second. Keyed by the target, so it starts over with a new one. */
-function CountdownCard({ title, target, caption }: { title: string; target: Timestamp; caption: string }) {
+function CountdownCard({ title, target, caption, children }: { title: string; target: Timestamp; caption: string; children?: ReactNode }) {
   const { color, typography, space } = useTheme();
-  const read = useCallback(() => Math.max(0, Math.ceil((parseTimestamp(target) - trustedNowMs(getDatabase())) / 1000)), [target]);
-  const [seconds, setSeconds] = useState(read);
-  useEffect(() => {
-    const interval = setInterval(() => setSeconds(read()), 1000);
-    return () => clearInterval(interval);
-  }, [read]);
-
-  // The round opens (or closes) now, not at the next step of the scheduler.
-  const due = seconds === 0;
-  useEffect(() => {
-    if (due) requestSchedulerStep('round_due');
-  }, [due]);
+  const seconds = useCountdown(target);
 
   return (
     <Card style={[styles.centre, { paddingVertical: space.xxl, gap: space.xs }]}>
@@ -146,6 +146,7 @@ function CountdownCard({ title, target, caption }: { title: string; target: Time
         </Text>
         <Text style={[typography.siteName, styles.tabular, { color: color.text2 }]}>{caption}</Text>
       </View>
+      {children}
     </Card>
   );
 }
@@ -187,4 +188,5 @@ const styles = StyleSheet.create({
   texts: { flex: 1, minWidth: 0 },
   buttons: { flexDirection: 'row' },
   button: { flex: 1 },
+  wide: { alignSelf: 'stretch' },
 });

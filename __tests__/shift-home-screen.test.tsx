@@ -21,7 +21,7 @@ import { nowTimestamp } from '@/time/timestamp';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
-jest.mock('expo-router', () => ({ router: { push: jest.fn(), replace: jest.fn() } }));
+jest.mock('expo-router', () => ({ router: { push: jest.fn(), replace: jest.fn() }, useIsFocused: jest.fn(() => true) }));
 jest.mock('@/guard/scheduler', () => ({ requestSchedulerStep: jest.fn() }));
 jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn(), requestSync: jest.fn() }));
 
@@ -91,6 +91,29 @@ it('asks the scheduler for the round when the countdown runs out, and shows the 
   expect(screen.getByText('20:00', { exact: true })).toBeOnTheScreen();
   expect(screen.getByText('van hátra · határidő 20:20')).toBeOnTheScreen();
   expect(screen.getByLabelText(/20:00 Folyamatban/)).toBeOnTheScreen();
+});
+
+it('goes on to the screen of a round open for the first time, and offers it by a button after that', async () => {
+  const { router, useIsFocused } = jest.requireMock<{ router: { push: jest.Mock }; useIsFocused: jest.Mock }>('expo-router');
+  router.push.mockClear();
+  setNow(local('20:01'));
+  await step();
+  const round = loadGuardState(db, nowTimestamp())!.rounds[0]!;
+  const target = { pathname: '/round/[id]', params: { id: round.id } };
+
+  // Under another screen it waits.
+  useIsFocused.mockReturnValueOnce(false);
+  await renderScreen();
+  expect(router.push).not.toHaveBeenCalled();
+  await act(async () => screen.rerender(<SafeAreaProvider initialMetrics={METRICS}><ThemeProvider><HomeScreen /></ThemeProvider></SafeAreaProvider>));
+  expect(router.push).toHaveBeenCalledTimes(1);
+  expect(router.push).toHaveBeenLastCalledWith(target);
+
+  await act(async () => screen.rerender(<SafeAreaProvider initialMetrics={METRICS}><ThemeProvider><HomeScreen /></ThemeProvider></SafeAreaProvider>));
+  expect(router.push).toHaveBeenCalledTimes(1);
+  fireEvent.press(screen.getByRole('button', { name: 'Kör megnyitása' }));
+  expect(router.push).toHaveBeenCalledTimes(2);
+  expect(router.push).toHaveBeenLastCalledWith(target);
 });
 
 it('lists the closed rounds, newest on top, under the timelines of the routes', async () => {

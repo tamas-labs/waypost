@@ -49,6 +49,12 @@ export function deadlineOf(state: GuardState, round: Pick<RoundInfo, 'route_id' 
   return parseTimestamp(roundDeadline({ route_id: round.route_id, start_day: startDay, scheduled_at: round.scheduled_at, time_limit_min: round.time_limit_min }, slots));
 }
 
+/** The deadline of a round on its own, with the slots around it. */
+export function deadlineOfRound(state: GuardState, round: Pick<RoundInfo, 'route_id' | 'schedule_id' | 'scheduled_at' | 'time_limit_min'>): Timestamp {
+  const atMs = parseTimestamp(round.scheduled_at);
+  return toTimestamp(deadlineOf(state, round, expectedSlots(state, atMs, atMs)));
+}
+
 /**
  * When the shift closes automatically (Q10): 60 minutes after the latest deadline among the rounds of its day, on
  * every route. Its day is the window start day of the first round still running or ahead at the shift's start.

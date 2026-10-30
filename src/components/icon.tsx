@@ -24,6 +24,7 @@ import Mic from 'lucide-react-native/icons/mic';
 import Navigation from 'lucide-react-native/icons/navigation';
 import Pencil from 'lucide-react-native/icons/pencil';
 import Plus from 'lucide-react-native/icons/plus';
+import QrCode from 'lucide-react-native/icons/qr-code';
 import RefreshCw from 'lucide-react-native/icons/refresh-cw';
 import Shield from 'lucide-react-native/icons/shield';
 import TriangleAlert from 'lucide-react-native/icons/triangle-alert';
@@ -72,6 +73,7 @@ const ICONS = {
   map: MapIcon,
   list: List,
   camera: Camera,
+  qr: QrCode,
   image: ImageIcon,
   mapPin: MapPin,
   bell: Bell,

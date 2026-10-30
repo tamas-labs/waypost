@@ -49,14 +49,19 @@ function playSound(kind: FeedbackKind): void {
     });
 }
 
-/** Vibrates and plays the sound of the kind. Never throws: a failed feedback must not stop a scan. */
-export function playFeedback(kind: FeedbackKind): void {
+/** Only the vibration of the kind (e.g. the last 5 minutes of a round). Never throws. */
+export function playHaptic(kind: FeedbackKind): void {
   try {
     if (Platform.OS === 'android') Vibration.vibrate(ANDROID_VIBRATION[kind]);
     else void notificationAsync(IOS_HAPTICS[kind]).catch(() => {});
   } catch (error) {
     if (__DEV__) console.warn(`Vibration failed (${kind})`, error);
   }
+}
+
+/** Vibrates and plays the sound of the kind. Never throws: a failed feedback must not stop a scan. */
+export function playFeedback(kind: FeedbackKind): void {
+  playHaptic(kind);
   try {
     playSound(kind);
   } catch (error) {
