@@ -17,5 +17,6 @@ jest.mock('react-native-quick-crypto', () => require('react-native-quick-crypto/
 
 // expo-audio's player is native; a player that plays nothing.
 jest.mock('expo-audio', () => ({
+  setAudioModeAsync: jest.fn(() => Promise.resolve()),
   createAudioPlayer: jest.fn(() => ({ seekTo: jest.fn(() => Promise.resolve()), play: jest.fn(), remove: jest.fn() })),
 }));

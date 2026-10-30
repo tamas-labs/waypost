@@ -5,6 +5,7 @@ import { useSession } from '@/auth/session';
 import { useTheme } from '@/theme/theme-provider';
 
 import { routeAccess } from './access';
+import { useAlarmScreen } from './use-alarm-screen';
 
 /**
  * The root navigator: the route groups of the specification ((auth), (guard), (supervisor)), each open only in the
@@ -14,6 +15,7 @@ import { routeAccess } from './access';
 export function AppStack() {
   const { color } = useTheme();
   const access = useSession(useShallow(routeAccess));
+  useAlarmScreen();
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: color.bg } }}>
       <Stack.Screen name="index" />

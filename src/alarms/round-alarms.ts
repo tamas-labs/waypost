@@ -17,7 +17,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 import { onChainEntries } from '@/chain/events';
 import type { Database } from '@/db/database';
 import { routes } from '@/db/schema';
-import { alarmPlan, type PlannedAlarm } from '@/domain/alarms';
+import { alarmPlan, type AlarmSlot, type PlannedAlarm } from '@/domain/alarms';
 import { loadGuardState } from '@/guard/state';
 import { t } from '@/i18n';
 import { onConfigurationPulled } from '@/sync/events';
@@ -43,6 +43,9 @@ export interface RoundAlarmData extends Record<string, unknown> {
   fingerprint: string;
 }
 
+/** The identifier of an alarm's notification. */
+export const alarmIdentifier = (kind: PlannedAlarm['kind'], slot: AlarmSlot) => `${kind}:${slot.schedule_id}:${slot.scheduled_at}`;
+
 export type RoundAlarmRequest = NotificationRequestInput & { identifier: string; content: { data: RoundAlarmData } };
 
 export interface AlarmContext {
@@ -60,7 +63,7 @@ export function alarmRequests(plan: readonly PlannedAlarm[], context: AlarmConte
     const body = t(`alarm.notification.${alarm.kind}${alarm.login ? 'Login' : ''}`, { time });
     const date = new Date(parseTimestamp(alarm.fire_at) + context.clockOffsetMs);
     return {
-      identifier: `${alarm.kind}:${alarm.schedule_id}:${alarm.scheduled_at}`,
+      identifier: alarmIdentifier(alarm.kind, alarm),
       content: {
         title,
         body,

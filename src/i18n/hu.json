@@ -337,11 +337,13 @@
     "logout": "Kilépés a PIN-képernyőre"
   },
   "alarm": {
-    "title": "Indul a {{time}}-s kör",
-    "meta": "{{points}} pont · {{limit}} perc időkeret",
+    "title": "Indul a\n{{time}}-s kör",
+    "points": "{{count}} pont",
+    "limit": "{{minutes}} perc időkeret",
     "previous": "Előző kör ({{time}}) {{status}}",
     "go": "Indulok",
     "mute": "Hang némítása",
+    "muted": "Hang némítva",
     "timingNote": "Az időmérés az első leolvasással indul.",
     "channelName": "Körök ébresztése",
     "channelDescription": "Szól, amikor egy járőrkör indul.",
@@ -353,6 +355,7 @@
     }
   },
   "round": {
+    "screenTitle": "Kör folyamatban",
     "title": "{{time}}-s kör",
     "remaining": "Hátralévő idő",
     "deadline": "Határidő {{time}}",

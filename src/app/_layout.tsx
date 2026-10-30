@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 
+import { startAlarmScreen } from '@/alarms/active-alarms';
 import { startRoundAlarms } from '@/alarms/round-alarms';
 import { loadSession } from '@/auth/session';
 import { StartupError } from '@/components/startup-error';
@@ -75,7 +76,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (startup.state !== 'ready') return undefined;
     const db = getDatabase();
-    const stops = [startSync(db), startScheduler(db), startRoundAlarms(db), startTagEvents(), startFeedback()];
+    const stops = [startSync(db), startScheduler(db), startRoundAlarms(db), startAlarmScreen(db), startTagEvents(), startFeedback()];
     return () => stops.forEach((stop) => stop());
   }, [startup.state]);
 

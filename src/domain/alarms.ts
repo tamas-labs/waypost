@@ -6,7 +6,8 @@ import type { Timestamp } from '@waypost/schema';
 import { parseTimestamp, toTimestamp } from '@/time/timestamp';
 import { MINUTE_MS } from '@/time/zone';
 
-import { autoCloseTime, expectedSlots } from './rounds';
+import { autoCloseTime, deadlineOf, expectedSlots, type ClosedStatus } from './rounds';
+import { shiftHome } from './shift';
 import type { GuardState } from './state';
 
 export const ALARM_HORIZON_MS = 36 * 60 * MINUTE_MS;
@@ -50,4 +51,45 @@ export function alarmPlan(state: GuardState, now: Timestamp): PlannedAlarm[] {
     if (reminderMs > nowMs && (status === undefined || status === 'open')) alarms.push({ ...alarm, kind: 'reminder', fire_at: toTimestamp(reminderMs) });
   }
   return alarms.sort((a, b) => parseTimestamp(a.fire_at) - parseTimestamp(b.fire_at)).slice(0, MAX_ALARMS);
+}
+
+/** The round time an alarm belongs to. */
+export type AlarmSlot = Pick<PlannedAlarm, 'route_id' | 'schedule_id' | 'scheduled_at'>;
+
+/** What the alarm screen (G4) tells about the round. */
+export interface RoundAlarmInfo {
+  /** Null: the scheduler has not opened it yet. */
+  round_id: string | null;
+  checkpoints: number;
+  time_limit_min: number | null;
+  /** The round of the route before this one, if it has closed. */
+  previous: { scheduled_at: Timestamp; status: ClosedStatus } | null;
+}
+
+/**
+ * The round of an alarm, if the alarm still has something to say: there is an open shift, the round has not started or
+ * closed, its deadline is not over, and it is still on the schedule (or already open). Null otherwise, e.g. for an old
+ * notification tapped late.
+ */
+export function roundAlarmInfo(state: GuardState, slot: AlarmSlot, now: Timestamp): RoundAlarmInfo | null {
+  if (state.shift === null) return null;
+  const round = state.rounds.find((r) => r.schedule_id === slot.schedule_id && r.scheduled_at === slot.scheduled_at);
+  if (round !== undefined && round.status !== 'open') return null;
+
+  const nowMs = parseTimestamp(now);
+  const atMs = parseTimestamp(slot.scheduled_at);
+  const slots = expectedSlots(state, Math.min(atMs, parseTimestamp(state.shift.started_at)), Math.max(atMs, nowMs));
+  const timing = round ?? slots.find((s) => s.schedule_id === slot.schedule_id && s.scheduled_at === slot.scheduled_at);
+  if (timing === undefined || deadlineOf(state, timing, slots) <= nowMs) return null;
+
+  const versionId = round?.route_version_id ?? state.routes.find((route) => route.id === slot.route_id)?.current_version_id;
+  const previous = shiftHome(state, now)
+    ?.rounds.filter((r) => r.route_id === slot.route_id && r.scheduled_at < slot.scheduled_at)
+    .at(-1);
+  return {
+    round_id: round?.id ?? null,
+    checkpoints: state.versions.find((version) => version.id === versionId)?.checkpoint_ids.length ?? 0,
+    time_limit_min: timing.time_limit_min,
+    previous: previous !== undefined && (previous.state === 'completed' || previous.state === 'incomplete' || previous.state === 'missed') ? { scheduled_at: previous.scheduled_at, status: previous.state } : null,
+  };
 }

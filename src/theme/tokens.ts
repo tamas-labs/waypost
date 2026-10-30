@@ -46,6 +46,7 @@ export const palette = {
     time: '#F5D06B', timeBg: '#3A3216',         // időgyanús
     offFg: '#FFCF7A', offBg: '#2A2414',         // offline / feltöltésre vár
     pending: '#5A6788',                         // hátralévő pont gyűrűje
+    ring1: '#131B2C', ring2: '#1A2640',         // ébresztés koncentrikus körei
 
     // térkép
     mapBg: '#121A2A', mapRoad: '#1B2438', mapBuild: '#222D45', mapLabel: '#8E9BB6',
@@ -77,6 +78,7 @@ export const palette = {
     time: '#8A6100', timeBg: '#FBF0C9',
     offFg: '#8A5300', offBg: '#FDF0D5',
     pending: '#8592AD',
+    ring1: '#E1E8F5', ring2: '#CBD8F0',
 
     mapBg: '#E6ECF4', mapRoad: '#FFFFFF', mapBuild: '#D2DBE8', mapLabel: '#4F5B73',
     mapFence: '#9AA6BF', mapMarkerText: '#FFFFFF', mapMe: '#0F1726', mapMeHalo: 'rgba(47,107,219,0.22)',
@@ -98,6 +100,7 @@ export const fontFamily = {
 export const typography = {
   display:   { fontSize: 72, lineHeight: 72, fontFamily: fontFamily.extrabold, letterSpacing: -2 },   // kezdőlap visszaszámláló
   counter:   { fontSize: 44, lineHeight: 46, fontFamily: fontFamily.extrabold, letterSpacing: -0.9 }, // kör hátralévő idő, betanítás óra
+  alarmTime: { fontSize: 38, lineHeight: 38, fontFamily: fontFamily.extrabold, letterSpacing: -0.8 }, // ébresztés köreinek közepe
   alarm:     { fontSize: 36, lineHeight: 40, fontFamily: fontFamily.extrabold, letterSpacing: -0.4 }, // ébresztés cím
   result:    { fontSize: 34, lineHeight: 38, fontFamily: fontFamily.extrabold, letterSpacing: -0.3 }, // leolvasás eredmény cím
   title1:    { fontSize: 30, lineHeight: 36, fontFamily: fontFamily.extrabold, letterSpacing: -0.3 }, // képernyőcím
@@ -144,7 +147,8 @@ export const radius = {
 export const size = {
   touchMin: 48,          // minden érinthető elem minimum
   buttonPrimary: 68,     // fő gomb (űrlap alján)
-  buttonHero: 72,        // Leolvasás, Indulok, Tovább (76 az ébresztésen)
+  buttonHero: 72,        // Leolvasás, Tovább
+  buttonAlarm: 76,       // Indulok
   buttonSecondary: 54,   // másodlagos gomb (52–56)
   buttonDashed: 56,      // szaggatott „hozzáadás” gomb (56–60)
   buttonDanger: 52,      // veszélyes szöveggomb
