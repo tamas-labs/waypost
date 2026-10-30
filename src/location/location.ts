@@ -8,6 +8,7 @@ import {
   getForegroundPermissionsAsync,
   getLastKnownPositionAsync,
   requestForegroundPermissionsAsync,
+  watchPositionAsync,
   type LocationObject,
 } from 'expo-location';
 import { Platform } from 'react-native';
@@ -15,10 +16,14 @@ import { Platform } from 'react-native';
 import type { LocationFix } from '@/chain/payloads';
 import { toTimestamp } from '@/time/timestamp';
 
+import type { Coordinate } from './coordinate';
+
 /** A last known position up to this age is used as it is. */
 export const LAST_KNOWN_MAX_AGE_MS = 60_000;
 /** The longest a scan waits for its location, all steps included. */
 export const LOCATION_TIMEOUT_MS = 5_000;
+/** The position on a map moves after this much. */
+const WATCH_DISTANCE_M = 3;
 
 /** Whether the app may read the location (in the foreground). */
 export async function hasLocationPermission(): Promise<boolean> {
@@ -83,4 +88,25 @@ export async function currentLocation(): Promise<LocationFix | null> {
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Follows the phone's position for showing it on a map, until the returned function is called; nothing of it is stored.
+ * Never asks for the permission, and without it, or on any error, simply reports nothing.
+ */
+export function watchPosition(onPosition: (position: Coordinate) => void): () => void {
+  let stopped = false;
+  let stopWatching: (() => void) | undefined;
+  void (async () => {
+    if (!(await hasLocationPermission())) return;
+    const subscription = await watchPositionAsync({ accuracy: Accuracy.High, distanceInterval: WATCH_DISTANCE_M }, ({ coords }) => {
+      onPosition({ latitude: coords.latitude, longitude: coords.longitude });
+    });
+    if (stopped) subscription.remove();
+    else stopWatching = () => subscription.remove();
+  })().catch((error: unknown) => __DEV__ && console.warn('Following the position failed', error));
+  return () => {
+    stopped = true;
+    stopWatching?.();
+  };
 }

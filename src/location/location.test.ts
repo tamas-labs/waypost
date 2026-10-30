@@ -2,7 +2,7 @@ import { getGnssTimeMs } from '@modules/waypost-clock';
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 
-import { currentLocation, LAST_KNOWN_MAX_AGE_MS, LOCATION_TIMEOUT_MS } from './location';
+import { currentLocation, LAST_KNOWN_MAX_AGE_MS, LOCATION_TIMEOUT_MS, watchPosition } from './location';
 
 jest.mock('@modules/waypost-clock', () => ({ getGnssTimeMs: jest.fn() }));
 jest.mock('expo-location', () => ({
@@ -11,6 +11,7 @@ jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn(),
   getLastKnownPositionAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
+  watchPositionAsync: jest.fn(),
 }));
 
 const native = jest.mocked(Location);
@@ -102,5 +103,59 @@ describe('location of a scan', () => {
     gnss.mockReset();
     expect((await currentLocation())?.gnss_time).toBeNull();
     expect(gnss).not.toHaveBeenCalled();
+  });
+});
+
+describe('following the position', () => {
+  const remove = jest.fn();
+  const settle = async () => {
+    for (let i = 0; i < 5; i++) await Promise.resolve();
+  };
+
+  beforeEach(() => {
+    jest.useRealTimers();
+    remove.mockClear();
+    native.watchPositionAsync.mockReset();
+    native.getForegroundPermissionsAsync.mockResolvedValue({ granted: true } as Location.LocationPermissionResponse);
+  });
+
+  it('reports the position until it is stopped', async () => {
+    native.watchPositionAsync.mockImplementation(async (_options, callback) => {
+      void callback(fix(47.5));
+      return { remove };
+    });
+    const onPosition = jest.fn();
+    const stop = watchPosition(onPosition);
+    await settle();
+    expect(onPosition).toHaveBeenCalledWith({ latitude: 47.5, longitude: 19.0402 });
+    expect(remove).not.toHaveBeenCalled();
+    stop();
+    expect(remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops a watch that starts after it was stopped', async () => {
+    native.watchPositionAsync.mockResolvedValue({ remove });
+    const stop = watchPosition(jest.fn());
+    stop();
+    await settle();
+    expect(remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('never asks for the permission, and reports nothing without it', async () => {
+    native.getForegroundPermissionsAsync.mockResolvedValue({ granted: false } as Location.LocationPermissionResponse);
+    watchPosition(jest.fn());
+    await settle();
+    expect(native.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+    expect(native.watchPositionAsync).not.toHaveBeenCalled();
+  });
+
+  it('survives an error', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation();
+    native.watchPositionAsync.mockRejectedValue(new Error('location off'));
+    const onPosition = jest.fn();
+    expect(() => watchPosition(onPosition)()).not.toThrow();
+    await settle();
+    expect(onPosition).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

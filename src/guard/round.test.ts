@@ -8,7 +8,7 @@ import { C1, C2, C3, guardState, GUARD, idSequence, local, TIMEZONE } from '@/do
 import type { TagReading } from '@/nfc/tag';
 import type { ClockReading } from '@/time/clock';
 
-import { forgetShownRounds, loadRoundScreenInfo, markRoundShown, wasRoundShown } from './round';
+import { forgetShownRounds, loadRoundScreenInfo, markRoundShown, roundMapOf, wasRoundShown, type RoundPoint } from './round';
 import { recordTagRead, scanFeedback, tagReadOf } from './scan';
 import { loadGuardState } from './state';
 import { seedSite } from './testing';
@@ -54,9 +54,9 @@ describe('the round on its screen', () => {
       fixed_order: true,
       scanned: 0,
       points: [
-        { checkpoint_id: C1, name: 'Pont 1', position: 1, scan: null },
-        { checkpoint_id: C2, name: 'Pont 2', position: 2, scan: null },
-        { checkpoint_id: C3, name: 'Pont 3', position: 3, scan: null },
+        { checkpoint_id: C1, name: 'Pont 1', position: 1, location: { latitude: 47.4980, longitude: 19.0402 }, scan: null },
+        { checkpoint_id: C2, name: 'Pont 2', position: 2, location: { latitude: 47.4981, longitude: 19.0402 }, scan: null },
+        { checkpoint_id: C3, name: 'Pont 3', position: 3, location: { latitude: 47.4982, longitude: 19.0402 }, scan: null },
       ],
     });
   });
@@ -71,8 +71,8 @@ describe('the round on its screen', () => {
     const info = loadRoundScreenInfo(db, id, readClock)!;
     expect(info.scanned).toBe(2);
     expect(info.points.map((point) => [point.checkpoint_id, point.scan])).toEqual([
-      [C2, { scanned_at: local('20:03'), method: 'nfc', manual: false, out_of_order: true }],
-      [C1, { scanned_at: local('20:04'), method: 'manual', manual: true, out_of_order: false }],
+      [C2, { scanned_at: local('20:03'), method: 'nfc', manual: false, out_of_order: true, location: null, accuracy_m: null }],
+      [C1, { scanned_at: local('20:04'), method: 'manual', manual: true, out_of_order: false, location: null, accuracy_m: null }],
       [C3, null],
     ]);
   });
@@ -128,5 +128,57 @@ describe('recording a read', () => {
     const tag = { uid: '04A1B2C3', ndefRaw: 'AA==' } as TagReading;
     expect(tagReadOf(tag)).toEqual({ method: 'nfc', tag_uid: '04A1B2C3', ndef_raw: 'AA==' });
     expect(tagReadOf({ ...tag, uid: null })).toBeNull();
+  });
+});
+
+describe('the round on its map', () => {
+  const trained = { latitude: 47.1, longitude: 19.1 };
+  const gps = { latitude: 47.2, longitude: 19.2 };
+  const point = (position: number, location: RoundPoint['location'], scan: Partial<NonNullable<RoundPoint['scan']>> | null = null): RoundPoint => ({
+    checkpoint_id: `c${position}`,
+    name: `Pont ${position}`,
+    position,
+    location,
+    scan: scan === null ? null : { scanned_at: local('20:03'), method: 'nfc', manual: false, out_of_order: false, location: null, accuracy_m: null, ...scan },
+  });
+
+  it('puts a scanned point where it was scanned, and a point left where it was trained', () => {
+    const { points } = roundMapOf([point(2, trained, { location: gps, accuracy_m: 8 }), point(1, trained)]);
+    expect(points).toEqual([
+      { checkpoint_id: 'c2', name: 'Pont 2', position: 2, state: 'scanned', coordinate: gps, accuracy_m: null },
+      { checkpoint_id: 'c1', name: 'Pont 1', position: 1, state: 'pending', coordinate: trained, accuracy_m: null },
+    ]);
+  });
+
+  it('falls back to the trained place for a scan without a location, and leaves a point with neither off the map', () => {
+    const { points } = roundMapOf([point(1, trained, {}), point(2, null, {}), point(3, null)]);
+    expect(points.map((p) => [p.position, p.coordinate])).toEqual([[1, trained]]);
+  });
+
+  it('keeps the accuracy of a manual point only', () => {
+    const { points } = roundMapOf([point(1, null, { manual: true, method: 'manual', location: gps, accuracy_m: 12.5 }), point(2, null, { manual: true, method: 'manual', location: gps })]);
+    expect(points.map((p) => [p.state, p.accuracy_m])).toEqual([
+      ['manual', 12.5],
+      ['manual', null],
+    ]);
+  });
+
+  it('connects the located scans in time order, with their times', () => {
+    const second = { latitude: 47.3, longitude: 19.3 };
+    const map = roundMapOf([point(2, trained, { scanned_at: local('20:03'), location: gps }), point(3, trained, { scanned_at: local('20:05') }), point(1, trained, { scanned_at: local('20:09'), location: second }), point(4, trained)]);
+    expect(map.walked).toEqual([gps, second]);
+    expect(map.walked_between).toEqual({ from: local('20:03'), to: local('20:09') });
+  });
+
+  it('has no way walked before a located scan', () => {
+    expect(roundMapOf([point(1, trained, {}), point(2, trained)])).toMatchObject({ walked: [], walked_between: null });
+  });
+
+  it('reads the locations from the database', async () => {
+    const id = await openRound();
+    now = local('20:03');
+    await write(resolveScan({ state: state(), now, location: { latitude: 47.5, longitude: 19, accuracy_m: 8, mocked: false, gnss_time: null }, newId }, nfc(C1)).drafts);
+    const info = loadRoundScreenInfo(db, id, readClock)!;
+    expect(info.points[0]!.scan).toMatchObject({ location: { latitude: 47.5, longitude: 19 }, accuracy_m: 8 });
   });
 });

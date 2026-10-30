@@ -35,14 +35,15 @@ src/
   sync/       # pull, push, outbox, média
   chain/      # láncbejegyzés: kanonikus JSON, HMAC
   nfc/        # olvasás (reader.ts), Androidon az app-szintű figyelés (tag-events.ts), useTagReader a kör és a betanítás képernyőjére
-  qr/ alarms/ location/
+  qr/ alarms/
+  location/   # helyadat a leolvasáshoz (location.ts), saját helyzet a térképen (use-position.ts), térkép elérhetősége (maps.ts)
   photo/      # fotó: tömörítés, SHA-256, fájl a dokumentumok media/ mappájában (a media sort a láncíró írja)
   feedback/   # leolvasási visszajelzés: rezgés és hang (siker / hiba / figyelmeztetés)
   theme/      # tokens.ts (a design tokenjei), theme-provider.tsx: ThemeProvider, useTheme(), useThemePreference()
   i18n/       # hu.json (minden felirat), index.ts: t(key, params)
 modules/      # saját Expo-modulok: waypost-clock (getUptimeMs, getBootId, getGnssTimeMs), waypost-power (akkumulátor-optimalizálás, Android) – import: @modules/<név>
 __tests__/    # képernyőtesztek; a modulok tesztjei a modul mellett: src/<modul>/*.test.ts
-__mocks__/    # Jest: expo-secure-store memóriában (automatikus); jest.setup.ts: expo-crypto véletlenforrás, NetInfo, react-native-quick-crypto (node:crypto), expo-audio
+__mocks__/    # Jest: expo-secure-store memóriában, react-native-maps sima nézetekkel (automatikus); jest.setup.ts: expo-crypto véletlenforrás, NetInfo, react-native-quick-crypto (node:crypto), expo-audio
 assets/       # ikon, splash (egyelőre az Expo sablon helyőrzői), sounds/ (az ébresztés és a leolvasás hangjai, helyőrzők)
 ```
 
@@ -71,5 +72,6 @@ Importban a `@/…` alias a `src/…`-ra mutat.
 - `npm test` – Jest (`jest-expo` preset). A `jest.modulePaths` azért kell, mert a symlinkelt `@waypost/schema` fájljait a Jest a valódi útvonalukon fordítja, és a Babel-segédeket innen kell feloldani. A `jest.moduleNameMapper` a lucide-ikonokat a CommonJS-változatukra irányítja (az ESM-változat a Jestben nem fut). A `jest.resolver` a Reanimated saját resolvere (a natív helyett a webes megvalósítás fut).
 - `npx expo-doctor` – függőségek és konfiguráció ellenőrzése.
 - `npm run db:generate` – a `src/db/schema.ts` változása után új migráció a `src/db/migrations/` alá (`drizzle-kit generate`); a generált fájlokat commitoljuk, kézzel nem szerkesztjük. A `.sql` fájlokat a `babel-plugin-inline-import` fordítja be; ha a Metro régi migrációt mutat, `npm start -- --clear`.
+- Térkép Androidon: `GOOGLE_MAPS_ANDROID_API_KEY` (`.env.local`, EAS-en környezeti változó; az `app.config.ts` olvassa); változása után új natív build kell. Kulcs nélkül a build működik, a térkép helyén üzenet áll. iOS-en Apple Maps, kulcs nem kell.
 - API-cím: `EXPO_PUBLIC_WAYPOST_API_URL` (előtaggal, pl. `https://example.com/api/waypost/v1`); fejlesztői buildben a `/dev/enroll` képernyőn is megadható.
 - Development build (Expo-fiók kell): `npx eas-cli@latest build --profile development --platform android` (ill. `ios`; ahhoz Apple Developer fiók és regisztrált eszköz kell).

@@ -100,6 +100,7 @@ export const fontFamily = {
 export const typography = {
   display:   { fontSize: 72, lineHeight: 72, fontFamily: fontFamily.extrabold, letterSpacing: -2 },   // kezdőlap visszaszámláló
   counter:   { fontSize: 44, lineHeight: 46, fontFamily: fontFamily.extrabold, letterSpacing: -0.9 }, // kör hátralévő idő, betanítás óra
+  counterSm: { fontSize: 34, lineHeight: 36, fontFamily: fontFamily.extrabold, letterSpacing: -0.7 }, // hátralévő idő a térkép fejlécében
   alarmTime: { fontSize: 38, lineHeight: 38, fontFamily: fontFamily.extrabold, letterSpacing: -0.8 }, // ébresztés köreinek közepe
   alarm:     { fontSize: 36, lineHeight: 40, fontFamily: fontFamily.extrabold, letterSpacing: -0.4 }, // ébresztés cím
   result:    { fontSize: 34, lineHeight: 38, fontFamily: fontFamily.extrabold, letterSpacing: -0.3 }, // leolvasás eredmény cím
@@ -124,6 +125,8 @@ export const typography = {
   unit:      { fontSize: 12, lineHeight: 16, fontFamily: fontFamily.semibold },                       // „pont”, jelmagyarázat
   resultLine: { fontSize: 16, lineHeight: 22, fontFamily: fontFamily.bold },                          // eredmény állapotsora
   resultBody: { fontSize: 17, lineHeight: 25, fontFamily: fontFamily.semibold },                      // eredmény magyarázata
+  mapMarker: { fontSize: 12, lineHeight: 16, fontFamily: fontFamily.extrabold },                      // pontjelölő sorszáma
+  mapCapsule: { fontSize: 14, lineHeight: 18, fontFamily: fontFamily.bold },                          // „Megtett út” kapszula
   micro:     { fontSize: 11, lineHeight: 14, fontFamily: fontFamily.bold },                           // idővonal óra-feliratok (minimum)
 } as const;
 
@@ -177,6 +180,16 @@ export const size = {
   timelineCell: 40, timelineCellCompact: 28, timelineCellMini: 8, // kör-idővonal cellája
   timelineGap: 3,
   legendSwatch: 10,      // jelmagyarázat négyzete
+  legendDot: 12,         // térkép jelmagyarázatának köre
+  mapMarker: 28,         // pontjelölő
+  mapMarkerRing: 3,      // pontjelölő és saját helyzet kerete
+  mapMe: 16, mapHalo: 36, // saját helyzet és halója (B-Terkep: r 8 és r 18)
+  mapRoute: 5,           // megtett út
+  mapRouteSwatch: 18,    // megtett út a kapszulán
+  mapRouteAhead: 3,      // az utolsó leolvasástól a saját helyzetig
+  mapRouteAheadDash: [2, 6],
+  mapAccuracyDash: [4, 4], // kézi pont pontossági köre
+  mapCapsule: 36,        // „Megtett út” kapszula
   photoTile: 92,         // fotócsempe (92–132)
   photoCheck: 22,        // kész fotó pipája
   categoryTile: 76, categoryTileWide: 56,     // esemény kategória

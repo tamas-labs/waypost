@@ -110,6 +110,17 @@ A workbench demó-telephelye kell (`laravel-waypost`: `composer serve`), olyan c
 Sablon (egy futáshoz másold le, és a fejlécbe írd a dátumot és a mérföldkövet):
 
 ```markdown
+### M3 – Kör térképen (M3-34, a kör képernyője, „Térkép” nézet; új dev build, Androidon `GOOGLE_MAPS_ANDROID_API_KEY`-jel)
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| T1 | Nyitott körön „Térkép”, sötét és világos témában. | A térkép a pontokra áll, a színei a témáéi; a hátralévő pontok számozott, szaggatott körök; a Google-logó látszik a jelmagyarázat fölött. |
+| T2 | Pontok leolvasása a térkép nézetben. | Az eredmény után a jelölő zöld, sorszáma helyes, a vonal összeköti a leolvasásokat, a „Megtett út” ideje frissül. |
+| T3 | Kézi rögzítés (M3-36 után). | Lila jelölő, körülötte szaggatott pontossági kör. |
+| T4 | Saját helyzet: a szabadban, helyengedéllyel; a gomb. | Pötty és halo a helyünkön, mozgásra követi; a gomb odaáll; a szaggatott szakasz az utolsó leolvasástól vezet ide. Helyengedély nélkül nincs pötty, a gomb tiltott. |
+| T5 | Repülőgép üzemmód, korábban nem nézett környéken. | Üres háttéren is látszanak a jelölők és a vonal. |
+| T6 | Android, kulcs nélküli build: „Térkép”. | Nincs összeomlás, a térkép helyén üzenet; a Lista és a leolvasás működik. |
+
 ### ÉÉÉÉ-HH-NN – M1
 
 | # | Android | iPhone | Megjegyzés |

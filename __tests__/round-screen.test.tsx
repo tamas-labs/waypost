@@ -8,6 +8,7 @@ import { useSession } from '@/auth/session';
 import { appendChainEntries } from '@/chain/writer';
 import type { Database } from '@/db/database';
 import { getDatabase } from '@/db/open';
+import { checkpoints } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import { schedulerStep } from '@/domain/rounds';
 import { guardLogin } from '@/domain/shift';
@@ -15,6 +16,8 @@ import { C1, C2, C3, GUARD, idSequence, local } from '@/domain/testing';
 import { playFeedback, playHaptic } from '@/feedback/feedback';
 import { requestSchedulerStep } from '@/guard/scheduler';
 import { loadGuardState } from '@/guard/state';
+import { currentLocation, watchPosition } from '@/location/location';
+import { mapsConfigured } from '@/location/maps';
 import { seedSite } from '@/guard/testing';
 import { openNfcSettings, type NfcStatus } from '@/nfc/reader';
 import type { TagReading } from '@/nfc/tag';
@@ -27,10 +30,13 @@ jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
 jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn(), requestSync: jest.fn() }));
 jest.mock('@/guard/scheduler', () => ({ requestSchedulerStep: jest.fn() }));
 jest.mock('@/feedback/feedback', () => ({ playFeedback: jest.fn(), playHaptic: jest.fn() }));
-jest.mock('@/location/location', () => ({ currentLocation: jest.fn(() => Promise.resolve(null)) }));
+jest.mock('@/location/location', () => ({ currentLocation: jest.fn(() => Promise.resolve(null)), watchPosition: jest.fn(() => jest.fn()) }));
+jest.mock('@/location/maps', () => ({ mapsConfigured: jest.fn(() => true) }));
 jest.mock('@/nfc/reader', () => ({ openNfcSettings: jest.fn(() => Promise.resolve()) }));
 jest.mock('@/nfc/use-tag-reader', () => ({ useTagReader: jest.fn() }));
 jest.mock('expo-keep-awake', () => ({ useKeepAwake: jest.fn() }));
+// Named, so requireMock gets the instance the screen uses.
+jest.mock('react-native-maps');
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true) },
   useLocalSearchParams: jest.fn(),
@@ -219,5 +225,123 @@ describe('the Leolvasás button', () => {
     readerError = new Error('session');
     await renderScreen();
     expect(screen.getByText(/Nem sikerült a leolvasás/)).toBeOnTheScreen();
+  });
+});
+
+describe('the map', () => {
+  const FIX = { latitude: 47.6, longitude: 19.1, accuracy_m: 8, mocked: false, gnss_time: null };
+  const showMap = () => act(async () => fireEvent.press(screen.getByRole('radio', { name: 'Térkép' })));
+  const { animateCamera } = jest.requireMock<{ animateCamera: jest.Mock }>('react-native-maps');
+  const center = () => screen.getByRole('button', { name: 'Saját helyzet középre' });
+
+  beforeEach(() => {
+    jest.mocked(mapsConfigured).mockReturnValue(true);
+    jest.mocked(watchPosition).mockImplementation(() => jest.fn());
+  });
+
+  it('opens on the list, and the view can be chosen', async () => {
+    await renderScreen();
+    expect(screen.queryByTestId('map')).not.toBeOnTheScreen();
+    await showMap();
+    expect(screen.getByTestId('map')).toBeOnTheScreen();
+    await act(async () => fireEvent.press(screen.getByRole('radio', { name: 'Lista' })));
+    expect(screen.queryByTestId('map')).not.toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Címke nem olvasható' })).toBeOnTheScreen();
+  });
+
+  it('has the smaller header and bottom bar of the design', async () => {
+    await renderScreen();
+    await showMap();
+    expect(screen.queryByText('Határidő 20:20')).not.toBeOnTheScreen();
+    expect(screen.getByRole('progressbar', { name: '0 / 3 pont kész' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Címke nem olvasható' })).not.toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Leolvasás' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Esemény rögzítése' })).toBeOnTheScreen();
+  });
+
+  it('shows the points left, and no way walked yet', async () => {
+    await renderScreen();
+    await showMap();
+    expect(screen.getByTestId('map').props.accessibilityLabel).toBe('Telephely térképe a megtett úttal: 0 leolvasott pont, 3 hátralévő');
+    expect(screen.getAllByTestId('map-marker').map((marker) => marker.props.accessibilityLabel)).toEqual(['Pont 1, Hátravan', 'Pont 2, Hátravan', 'Pont 3, Hátravan']);
+    expect(screen.queryByTestId('map-polyline')).not.toBeOnTheScreen();
+    expect(screen.queryByText(/Megtett út/)).not.toBeOnTheScreen();
+  });
+
+  it('connects the scans, and a new scan shows without leaving the map', async () => {
+    jest.mocked(currentLocation).mockResolvedValue(FIX);
+    await renderScreen();
+    await showMap();
+    await touch(tagOf(C1));
+    expect(screen.getByLabelText('Pont 1, Leolvasva')).toBeOnTheScreen();
+    expect(screen.getByText('Megtett út · 20:00–20:00')).toBeOnTheScreen();
+    expect(screen.queryByTestId('map-polyline')).not.toBeOnTheScreen();
+    await act(async () => jest.advanceTimersByTime(3 * 60_000));
+    await touch(tagOf(C2));
+    expect(screen.getByTestId('map-polyline').props.coordinates).toHaveLength(2);
+    expect(screen.getByText('Megtett út · 20:00–20:03')).toBeOnTheScreen();
+    expect(screen.getByTestId('map').props.accessibilityLabel).toContain('2 leolvasott pont, 1 hátralévő');
+  });
+
+  it('follows the position only on the map and on top, and centres on it', async () => {
+    const stop = jest.fn();
+    let report: (position: { latitude: number; longitude: number }) => void = () => undefined;
+    jest.mocked(watchPosition).mockImplementation((onPosition) => {
+      report = onPosition;
+      return stop;
+    });
+    await renderScreen();
+    expect(watchPosition).not.toHaveBeenCalled();
+    await showMap();
+    expect(watchPosition).toHaveBeenCalledTimes(1);
+    expect(center()).toBeDisabled();
+
+    await act(async () => report({ latitude: 47.5, longitude: 19 }));
+    expect(screen.getByLabelText('Itt vagy')).toBeOnTheScreen();
+    await act(async () => fireEvent.press(center()));
+    expect(animateCamera).toHaveBeenCalledWith({ center: { latitude: 47.5, longitude: 19 } }, { duration: 300 });
+
+    expoRouter.useIsFocused.mockReturnValue(false);
+    await act(async () => screen.rerender(tree()));
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('draws a dashed line from the last scan to the position', async () => {
+    jest.mocked(currentLocation).mockResolvedValue(FIX);
+    jest.mocked(watchPosition).mockImplementation((onPosition) => {
+      onPosition({ latitude: 47.5, longitude: 19 });
+      return jest.fn();
+    });
+    await renderScreen();
+    await showMap();
+    await touch(tagOf(C1));
+    expect(screen.getByTestId('map-polyline').props.coordinates).toEqual([
+      { latitude: 47.6, longitude: 19.1 },
+      { latitude: 47.5, longitude: 19 },
+    ]);
+  });
+
+  it('does not vibrate again when the view changes in the last 5 minutes', async () => {
+    await renderScreen();
+    await act(async () => jest.advanceTimersByTime(15 * 60_000 + 1000));
+    expect(playHaptic).toHaveBeenCalledTimes(1);
+    await showMap();
+    expect(playHaptic).toHaveBeenCalledTimes(1);
+  });
+
+  it('says so when no point has a location', async () => {
+    db.update(checkpoints).set({ lat_e7: null, lng_e7: null }).run();
+    await renderScreen();
+    await showMap();
+    expect(screen.queryByTestId('map')).not.toBeOnTheScreen();
+    expect(screen.getByText(/A pontok helye még nincs rögzítve/)).toBeOnTheScreen();
+  });
+
+  it('says so in a build without a map', async () => {
+    jest.mocked(mapsConfigured).mockReturnValue(false);
+    await renderScreen();
+    await showMap();
+    expect(screen.queryByTestId('map')).not.toBeOnTheScreen();
+    expect(screen.getByText(/A térkép ezen a telefonon nem érhető el/)).toBeOnTheScreen();
   });
 });

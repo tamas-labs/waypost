@@ -60,7 +60,7 @@ db-generate: ## New migration after a change of src/db/schema.ts
 ## Android build (local, without EAS)
 
 # android/ is generated (CNG): it is regenerated whenever the configuration is newer than it.
-android/app/build.gradle: app.json package.json
+android/app/build.gradle: app.json app.config.ts package.json
 	npx expo prebuild --platform android
 	@touch $@
 

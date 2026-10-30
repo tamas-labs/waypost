@@ -43,9 +43,11 @@ npm start
 
 Az API címét (előtaggal, pl. `https://example.com/api/waypost/v1`) az `EXPO_PUBLIC_WAYPOST_API_URL` környezeti változó adja; fejlesztői buildben a „Telefon hozzárendelése” fejlesztői képernyőn is megadható. Helyi backendhez: `laravel-waypost` workbench (`composer serve`, demóadatokkal).
 
+A térképhez Androidon Google Maps-kulcs kell: `GOOGLE_MAPS_ANDROID_API_KEY` a `.env.local`-ban (EAS-en környezeti változóként), a csomagnévre és a tanúsítvány SHA-1-ére korlátozva. Kulcs nélkül a build működik, de a kör képernyőjén a térkép helyén üzenet áll. iOS-en nem kell kulcs.
+
 Az elkészült dev buildet a telefonra telepítve az app a Metro szerverhez csatlakozik. A JS-változásokat a Metro frissíti. Ha a natív kód változik (a `modules/` mappa, egy natív csomag vagy egy config plugin), új dev build kell.
 
-Az `android/` és `ios/` mappát az Expo generálja (Continuous Native Generation), ezért nincsenek a repóban. A natív beállítások az `app.json`-ban vannak.
+Az `android/` és `ios/` mappát az Expo generálja (Continuous Native Generation), ezért nincsenek a repóban. A natív beállítások az `app.json`-ban vannak, a környezettől függők az `app.config.ts`-ben.
 
 ## Parancsok
 
