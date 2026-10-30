@@ -76,6 +76,17 @@ test('the timeline reads as the closed rounds, the next one and "the rest later"
   expect(screen.getByText('22')).toBeOnTheScreen();
 });
 
+test('a running round is told on the timeline, and the legend can be left out', async () => {
+  const running: TimelineRound[] = [{ id: '1', time: '20:00', state: 'running' }];
+  expect(timelineLabel(running)).toBe('Körök idővonala: 20:00 Folyamatban');
+  await render(
+    <ThemeProvider>
+      <RoundTimeline rounds={running} legend={false} />
+    </ThemeProvider>,
+  );
+  expect(screen.queryByText('Teljesítve', { includeHiddenElements: true })).toBeNull();
+});
+
 test('a long night labels only every n-th hour; the compact timelines have no legend', async () => {
   const rounds: TimelineRound[] = Array.from({ length: 26 }, (_, i) => ({ id: String(i), time: `${String(i).padStart(2, '0')}:00`, state: 'future' }));
   await render(

@@ -7,11 +7,11 @@ import { useTheme } from '@/theme/theme-provider';
 import { ScreenHeader } from './screen-header';
 
 /** A screen of the navigation skeleton whose content comes in a later task; in development builds it links to the developer tools. */
-export function PlaceholderScreen({ title }: { title: string }) {
+export function PlaceholderScreen({ title, onBack }: { title: string; onBack?: () => void }) {
   const { color, typography, space, radius, size } = useTheme();
   return (
     <View style={[styles.container, { backgroundColor: color.bg }]}>
-      <ScreenHeader />
+      <ScreenHeader onBack={onBack} />
       <View style={{ padding: space.l, gap: space.m }}>
         <Text style={[typography.title1, { color: color.text }]} accessibilityRole="header">
           {title}

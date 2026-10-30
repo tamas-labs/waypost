@@ -373,7 +373,8 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
 - [x] **M3-30 Műszakkezdés képernyő (G2, `B-Muszakkezdes`)** `⚠ Q1`: a design szerint; a specifikációban nincs külön képernyő, a döntés a `decisions.md`-be kerül.
   - Megjegyzés (2026-10-29): Q1 erre a képernyőre eldöntve: az 1. lépcsőbe tartozik, `(guard)/shift-start`. Új műszak vagy átadás után nyílik meg (a műszak a PIN-belépéskor már elindult), ugyanannak az őrnek a visszalépésekor nem. Készenlét: `src/guard/readiness.ts`, sor: `CheckRow` (az M5-10 ellenőrzőlistája is használhatja).
 
-- [ ] **M3-31 Műszak kezdőlap (G3, `B-Kezdolap`)**: a következő kör visszaszámlálással, az éjszaka körei idővonalon állapottal, „Esemény rögzítése” és „Műszak zárása” gomb.
+- [x] **M3-31 Műszak kezdőlap (G3, `B-Kezdolap`)**: a következő kör visszaszámlálással, az éjszaka körei idővonalon állapottal, „Esemény rögzítése” és „Műszak zárása” gomb.
+  - Megjegyzés (2026-10-30): `shiftHome` (`src/domain/shift.ts`), `loadShiftHomeInfo` (`src/guard/home.ts`). A két gomb célja egyelőre helyőrző (`(guard)/incident/new`: M3-37, `(guard)/shift/close`: M3-38). Nyitott körnél a kártya a határidőig számol vissza; a G5-re váltás (DESIGN_HANDOFF 6, G3) az M3-33 feladata. Döntések: `docs/decisions.md`.
 
 - [ ] **M3-32 Ébresztés képernyő (G4, `B-Ebresztes`)** `⚠ Q1`: hang és rezgés ismétlődve, „Indulok” (a kör képernyője) és „Hang némítása”; halasztás nincs. Az értesítésre koppintva ez nyílik meg a kör adataival (`RoundAlarmData`, `src/alarms/round-alarms.ts`), belépett őr nélkül a PIN-képernyő (M3-24).
 

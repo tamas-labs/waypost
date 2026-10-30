@@ -6,6 +6,8 @@ import LoginScreen from '@/app/(auth)/login';
 import PinScreen from '@/app/(auth)/pin';
 import GuardLayout from '@/app/(guard)/_layout';
 import HomeScreen from '@/app/(guard)/home';
+import NewIncidentScreen from '@/app/(guard)/incident/new';
+import ShiftCloseScreen from '@/app/(guard)/shift/close';
 import ShiftStartScreen from '@/app/(guard)/shift-start';
 import SupervisorLayout from '@/app/(supervisor)/_layout';
 import SitesScreen from '@/app/(supervisor)/sites';
@@ -34,6 +36,8 @@ const ROUTES = {
   '(auth)/pin': PinScreen,
   '(guard)/_layout': GuardLayout,
   '(guard)/home': HomeScreen,
+  '(guard)/incident/new': NewIncidentScreen,
+  '(guard)/shift/close': ShiftCloseScreen,
   '(guard)/shift-start': ShiftStartScreen,
   '(supervisor)/_layout': SupervisorLayout,
   '(supervisor)/sites': SitesScreen,
@@ -103,6 +107,24 @@ describe('navigation by start state', () => {
   it('logs out from the shift start to the PIN screen', async () => {
     await start({ mode: 'site_phone', activeUser: null });
     await act(() => useSession.setState({ activeUser: GUARD, shiftStart: { handover: null } }));
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Kilépés a PIN-képernyőre' })));
+    expect(screen).toHavePathname('/pin');
+  });
+
+  it('goes from the shift home to the incident and the shift close, and back', async () => {
+    await start({ mode: 'site_phone', activeUser: null });
+    await act(() => useSession.setState({ activeUser: GUARD }));
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Esemény' })));
+    expect(screen).toHavePathname('/incident/new');
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Vissza' })));
+    expect(screen).toHavePathname('/home');
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Műszakzárás' })));
+    expect(screen).toHavePathname('/shift/close');
+  });
+
+  it('logs out from the shift home to the PIN screen', async () => {
+    await start({ mode: 'site_phone', activeUser: null });
+    await act(() => useSession.setState({ activeUser: GUARD }));
     await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Kilépés a PIN-képernyőre' })));
     expect(screen).toHavePathname('/pin');
   });

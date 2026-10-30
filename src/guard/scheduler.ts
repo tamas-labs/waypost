@@ -18,7 +18,7 @@ import { loadGuardState } from './state';
 /** Every 30 seconds while the app is in the foreground. */
 export const SCHEDULER_INTERVAL_MS = 30 * 1000;
 
-export type SchedulerTrigger = 'start' | 'foreground' | 'interval' | 'notification' | 'shift_started';
+export type SchedulerTrigger = 'start' | 'foreground' | 'interval' | 'notification' | 'shift_started' | 'round_due';
 
 /**
  * One scheduler step at the trusted time; returns the entries written. Nothing happens without an open shift (or

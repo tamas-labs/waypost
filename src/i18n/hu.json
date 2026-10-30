@@ -321,12 +321,20 @@
     "onShift": "{{name}} · műszakban",
     "nextRound": "Következő kör: {{time}}",
     "startsIn": "múlva indul · ébresztő szól",
-    "tonight": "Ma éjjel",
+    "remaining": "van hátra · határidő {{time}}",
+    "noMoreRounds": "Nincs több kör ebben a műszakban",
+    "autoClose": "A műszak {{time}}-kor automatikusan zárul.",
+    "noRounds": "Ehhez a műszakhoz nincs ütemezett kör.",
+    "rounds": "A műszak körei",
     "closedCount": "{{closed}} / {{total}} kör lezárva",
+    "closedRound": "{{time}} · {{status}} · {{done}}/{{total}}",
     "skipped": "Kimaradt: {{name}}",
     "duration": "{{minutes}} perc alatt",
+    "noScans": "Nem történt leolvasás",
+    "noShift": "Nem volt nyitott műszak",
     "incident": "Esemény",
-    "endShift": "Műszakzárás"
+    "endShift": "Műszakzárás",
+    "logout": "Kilépés a PIN-képernyőre"
   },
   "alarm": {
     "title": "Indul a {{time}}-s kör",

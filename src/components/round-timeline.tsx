@@ -6,8 +6,8 @@ import type { ColorTokens } from '@/theme/tokens';
 
 import { Icon, type IconName } from './icon';
 
-/** A round on the timeline: closed (completed / incomplete / missed), the next one, or a later one. */
-export type TimelineState = 'completed' | 'incomplete' | 'missed' | 'next' | 'future';
+/** A round on the timeline: closed (completed / incomplete / missed), running, the next one, or a later one. */
+export type TimelineState = 'completed' | 'incomplete' | 'missed' | 'running' | 'next' | 'future';
 
 export interface TimelineRound {
   id: string;
@@ -20,6 +20,7 @@ const STATES: Record<TimelineState, { fill: keyof ColorTokens | null; border: ke
   completed: { fill: 'ok', border: 'ok', icon: 'check', label: 'status.completed' },
   incomplete: { fill: 'warn', border: 'warn', icon: 'exclam', label: 'status.incomplete' },
   missed: { fill: 'miss', border: 'miss', icon: 'x', label: 'status.missed' },
+  running: { fill: null, border: 'run', icon: 'arc', label: 'status.inProgress' },
   next: { fill: null, border: 'accent', icon: 'bell', label: 'status.next' },
   future: { fill: null, border: 'track', icon: null, label: 'status.pending' },
 };
@@ -40,10 +41,12 @@ export interface RoundTimelineProps {
   rounds: readonly TimelineRound[];
   /** full: 40 dp cells with icons, hour labels and legend (home); compact: 28 dp (shift end); mini: 8 dp (site card). */
   variant?: 'full' | 'compact' | 'mini';
+  /** The legend below a full timeline; off for all but the last of several timelines in a card. */
+  legend?: boolean;
 }
 
 /** The night's rounds side by side (DESIGN_HANDOFF 5.9). */
-export function RoundTimeline({ rounds, variant = 'full' }: RoundTimelineProps) {
+export function RoundTimeline({ rounds, variant = 'full', legend = true }: RoundTimelineProps) {
   const { color, typography, size, space, radius, border, iconSize, iconStroke } = useTheme();
   const full = variant === 'full';
   const height = full ? size.timelineCell : variant === 'compact' ? size.timelineCellCompact : size.timelineCellMini;
@@ -77,7 +80,7 @@ export function RoundTimeline({ rounds, variant = 'full' }: RoundTimelineProps) 
           );
         })}
       </View>
-      {full && (
+      {full && legend && (
         <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[styles.legend, { columnGap: space.m, rowGap: space.xs }]}>
           {LEGEND.map((state) => {
             const s = STATES[state];

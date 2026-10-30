@@ -91,6 +91,8 @@ const ICONS = {
   warning: TriangleAlert,
   delete: Delete,
   refresh: RefreshCw,
+  // closing the shift (B-Kezdolap)
+  shiftEnd: pathIcon(['M15 4h4v16h-4', 'M10 16l4-4-4-4', 'M14 12H4']),
 } satisfies Record<string, ComponentType<StrokeIconProps>>;
 
 export type IconName = keyof typeof ICONS;

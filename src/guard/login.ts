@@ -17,7 +17,7 @@ import { trustedTime } from '@/time/trusted-time';
 import { requestSchedulerStep } from './scheduler';
 import { loadGuardState } from './state';
 
-function userName(db: Database, id: string): string | null {
+export function userName(db: Database, id: string): string | null {
   return db.select({ name: users.name }).from(users).where(eq(users.id, id)).get()?.name ?? null;
 }
 

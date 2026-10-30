@@ -5,12 +5,12 @@ import type { Timestamp } from '@waypost/schema';
 import { shiftClosed, shiftStarted } from '@/chain/payloads';
 import type { ChainEntryDraft } from '@/chain/writer';
 
-import { parseTimestamp } from '@/time/timestamp';
+import { parseTimestamp, toTimestamp } from '@/time/timestamp';
 import { DAY_MS } from '@/time/zone';
 
-import { closeRound, expectedSlots } from './rounds';
+import { autoCloseTime, closeRound, deadlineOf, expectedSlots, type ClosedStatus } from './rounds';
 import type { ScheduleOfRoute } from './schedule';
-import { DomainError, isOpen, type GuardState, type NewId, type ShiftInfo } from './state';
+import { DomainError, isOpen, type GuardState, type NewId, type RoundInfo, type ShiftInfo } from './state';
 
 export interface GuardLogin {
   /** started: a new shift; continued: the same guard's open shift goes on; handover: another guard's shift closed first. */
@@ -116,4 +116,108 @@ export function shiftDay(state: GuardState, now: Timestamp): ShiftDay | null {
     }
   }
   return { start_day: span.day[0]!.start_day, first_at: span.day[0]!.scheduled_at, last_at: span.day[span.day.length - 1]!.scheduled_at, routes };
+}
+
+/** A round of the shift on the shift home: closed, running, the next one of its route, or a later one. */
+export type ShiftRoundState = 'completed' | 'incomplete' | 'missed' | 'running' | 'next' | 'future';
+
+export interface ShiftRound {
+  route_id: string;
+  schedule_id: string;
+  scheduled_at: Timestamp;
+  state: ShiftRoundState;
+  /** False: it was over before the shift started, so it never opened (the server's report counts it as missed too). */
+  opened: boolean;
+  /** Checkpoints of the round's route version that are scanned, of all of them. */
+  scanned: number;
+  total: number;
+  missing_checkpoint_ids: readonly string[];
+  /** Completed rounds: from the first scan to the last. */
+  duration_ms: number | null;
+}
+
+/** What the shift home (G3) shows of the open shift. */
+export interface ShiftHome {
+  /** The rounds of the shift, in time order. */
+  rounds: ShiftRound[];
+  /** The time of the first round not opened yet (a moment after its time it may still be waiting for the scheduler). */
+  next_at: Timestamp | null;
+  /** The earliest open round, with its deadline. */
+  running: { scheduled_at: Timestamp; deadline: Timestamp } | null;
+  auto_close_at: Timestamp | null;
+}
+
+function shiftRoundOf(state: GuardState, round: RoundInfo): ShiftRound {
+  const checkpointIds = state.versions.find((version) => version.id === round.route_version_id)?.checkpoint_ids ?? [];
+  const scanned = new Set(round.scans.map((scan) => scan.checkpoint_id));
+  const missing = checkpointIds.filter((id) => !scanned.has(id));
+  const [first, last] = [round.scans[0], round.scans[round.scans.length - 1]];
+  return {
+    route_id: round.route_id,
+    schedule_id: round.schedule_id,
+    scheduled_at: round.scheduled_at,
+    state: isOpen(round) ? 'running' : (round.status as ClosedStatus),
+    opened: true,
+    scanned: checkpointIds.length - missing.length,
+    total: checkpointIds.length,
+    missing_checkpoint_ids: missing,
+    duration_ms: round.status === 'completed' && first !== undefined && last !== undefined ? parseTimestamp(last.scanned_at) - parseTimestamp(first.scanned_at) : null,
+  };
+}
+
+/**
+ * The rounds of the open shift. Its day is the window start day of the first round still running or ahead at its start
+ * (the one the automatic close counts from). They are the slots of that day from the schedules with a round still
+ * ahead (an earlier window of another schedule, e.g. the day's rounds on a night shift, is not the shift's), and the
+ * other days' slots the scheduler still opens before that close. A slot with a round has the round's state, even if an
+ * earlier shift of the night closed it. One without a round is missed if its deadline was over when the shift started
+ * (the scheduler never opens it), otherwise it is ahead. Rounds of the shift whose schedule has changed since are kept.
+ * Null without an open shift.
+ */
+export function shiftHome(state: GuardState, now: Timestamp): ShiftHome | null {
+  const shift = state.shift;
+  if (shift === null) return null;
+  const startedMs = parseTimestamp(shift.started_at);
+  const slots = expectedSlots(state, startedMs, parseTimestamp(now));
+  const autoCloseMs = autoCloseTime(state, slots, startedMs);
+  const ahead = slots.filter((slot) => deadlineOf(state, slot, slots) > startedMs);
+  const first = ahead[0];
+  const schedulesAhead = new Set(ahead.filter((slot) => slot.start_day === first?.start_day).map((slot) => slot.schedule_id));
+  const ofShift = slots.filter((slot) => {
+    if (first === undefined) return false;
+    if (slot.start_day === first.start_day) return schedulesAhead.has(slot.schedule_id);
+    const at = parseTimestamp(slot.scheduled_at);
+    return autoCloseMs !== null && at > parseTimestamp(first.scheduled_at) && at < autoCloseMs;
+  });
+
+  const key = (round: Pick<RoundInfo, 'schedule_id' | 'scheduled_at'>) => `${round.schedule_id}|${round.scheduled_at}`;
+  const roundsBySlot = new Map(state.rounds.map((round) => [key(round), round]));
+  const slotKeys = new Set(ofShift.map(key));
+  const routesWithNext = new Set<string>();
+  let nextAt: Timestamp | null = null;
+
+  const rounds = ofShift.map((slot): ShiftRound => {
+    const round = roundsBySlot.get(key(slot));
+    if (round !== undefined) return shiftRoundOf(state, round);
+    const versionId = state.routes.find((route) => route.id === slot.route_id)?.current_version_id;
+    const checkpointIds = state.versions.find((version) => version.id === versionId)?.checkpoint_ids ?? [];
+    const notOpened = { route_id: slot.route_id, schedule_id: slot.schedule_id, scheduled_at: slot.scheduled_at, opened: false, scanned: 0, total: checkpointIds.length, missing_checkpoint_ids: checkpointIds, duration_ms: null };
+    if (deadlineOf(state, slot, slots) <= startedMs) return { ...notOpened, state: 'missed' };
+    nextAt ??= slot.scheduled_at;
+    if (routesWithNext.has(slot.route_id)) return { ...notOpened, state: 'future' };
+    routesWithNext.add(slot.route_id);
+    return { ...notOpened, state: 'next' };
+  });
+  for (const round of state.rounds) {
+    if (round.shift_id === shift.id && !slotKeys.has(key(round))) rounds.push(shiftRoundOf(state, round));
+  }
+  rounds.sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at) || a.route_id.localeCompare(b.route_id));
+
+  const open = state.rounds.find(isOpen);
+  return {
+    rounds,
+    next_at: nextAt,
+    running: open === undefined ? null : { scheduled_at: open.scheduled_at, deadline: toTimestamp(deadlineOf(state, open, slots)) },
+    auto_close_at: autoCloseMs === null ? null : toTimestamp(autoCloseMs),
+  };
 }
