@@ -3,6 +3,7 @@ import ArrowUpDown from 'lucide-react-native/icons/arrow-up-down';
 import Bell from 'lucide-react-native/icons/bell';
 import Camera from 'lucide-react-native/icons/camera';
 import Check from 'lucide-react-native/icons/check';
+import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import Clock from 'lucide-react-native/icons/clock';
 import CloudOff from 'lucide-react-native/icons/cloud-off';
@@ -70,6 +71,7 @@ const ICONS = {
   cloudUpload: CloudUpload,
   shield: Shield,
   back: ChevronLeft,
+  chevronDown: ChevronDown,
   map: MapIcon,
   list: List,
   camera: Camera,

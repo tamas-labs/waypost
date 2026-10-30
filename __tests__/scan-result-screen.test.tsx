@@ -10,13 +10,13 @@ import { getDatabase } from '@/db/open';
 import { checkpoints } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import { schedulerStep } from '@/domain/rounds';
-import type { TagRead } from '@/domain/scan';
+import { manualScan, type TagRead } from '@/domain/scan';
 import { guardLogin } from '@/domain/shift';
 import { C1, C2, C3, GUARD, idSequence, local } from '@/domain/testing';
 import { recordTagRead } from '@/guard/scan';
 import { loadGuardState } from '@/guard/state';
 import { seedSite } from '@/guard/testing';
-import { scanResultParams } from '@/navigation/use-scan-recorder';
+import { pointResultParams, scanResultParams } from '@/navigation/use-scan-recorder';
 import { ThemeProvider } from '@/theme/theme-provider';
 import { nowTimestamp } from '@/time/timestamp';
 
@@ -194,6 +194,17 @@ describe('an unknown tag', () => {
     await press('Újra próbálom');
     expect(router.replace).toHaveBeenCalledWith({ pathname: '/qr', params: { round_id: roundId } });
   });
+});
+
+it('tells that a manual entry is not verified', async () => {
+  const location = null;
+  const shot = { id: newId(), sha256: 'b'.repeat(64), mime: 'image/jpeg', size_bytes: 240_000, local_uri: 'file:///documents/media/c.jpg', taken_at: nowTimestamp() };
+  const outcome = manualScan({ state: state(), now: nowTimestamp(), location, newId }, { round_id: roundId, checkpoint_id: C1, note: 'Letörött.', media: [shot] });
+  await appendChainEntries(db, outcome.drafts, { photos: [shot] });
+  jest.mocked(useLocalSearchParams).mockReturnValue(pointResultParams(outcome));
+  await render(tree());
+  expect(screen.getByText('Rögzítve · 20:00 · Kézi – nem igazolt')).toBeOnTheScreen();
+  expect(screen.getByText('1 / 3 pont')).toBeOnTheScreen();
 });
 
 it('tells when the point is already scanned, and waits', async () => {

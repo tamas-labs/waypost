@@ -194,6 +194,7 @@
     "note": "Megjegyzés",
     "dictate": "Diktálás",
     "gpsRecorded": "GPS rögzítve · ±{{accuracy}} m · {{time}}",
+    "gpsRecordedAt": "GPS rögzítve · {{time}}",
     "points": "pont",
     "minutes": "perc"
   },
@@ -395,6 +396,7 @@
   },
   "scanResult": {
     "successLine": "Leolvasva · {{time}} · {{method}}",
+    "manualLine": "Rögzítve · {{time}} · {{method}}",
     "progress": "{{done}} / {{total}} pont",
     "progressRest": "még {{left}} · {{time}} van hátra",
     "instruction": "Utasítás:",
@@ -417,13 +419,24 @@
     "outOfRoundBody": "Ez a pont most egyik nyitott körhöz sem tartozik, ezért körön kívüli leolvasásként rögzült."
   },
   "manual": {
-    "screenTitle": "Kézi rögzítés",
     "title": "Kézi rögzítés",
     "point": "Pont",
-    "reasonMissing": "Címke hiányzik",
-    "reasonDamaged": "Sérült, nem olvas",
+    "pointChoose": "Pont kiválasztása",
+    "pointHint": "Megnyitja a hátralévő pontok listáját",
     "info": "Nem igazolt pontként kerül a jelentésbe, és „sérült címke” esemény is lesz belőle.",
-    "submit": "Rögzítés"
+    "noLocation": "Nincs helyadat, a rögzítés nélküle történik.",
+    "submit": "Rögzítés",
+    "saving": "Rögzítés…",
+    "failed": "Nem sikerült rögzíteni. Próbáld újra, a fotók és a megjegyzés megmaradtak.",
+    "roundClosed": "A kör közben lezárult, ezért kézi rögzítés már nem lehetséges."
+  },
+  "photoField": {
+    "permissionNeeded": "A fotózáshoz engedélyezni kell a kamerát.",
+    "taking": "Fotó mentése…",
+    "failed": "Nem sikerült a fotó. Próbáld újra.",
+    "removeHint": "Törli a fotót",
+    "removeTitle": "Törlöd a fotót?",
+    "remove": "Törlés"
   },
   "incident": {
     "title": "Esemény",

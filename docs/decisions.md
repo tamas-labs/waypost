@@ -469,3 +469,23 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **Új elemek:** `formatTagUid`, `StatusDot` `tone` (számozott változat), `ScanOutcome.scan_id`, `scanResult.*` feliratok; a `scanResult.screenTitle` megszűnt.
 - **Indok:** DESIGN_HANDOFF 5.17, 6 (G7–G9), 7; `B-Siker`, `B-Ismeretlen`, `B-Sorrend`; Specifikáció *Leolvasás* 1–4., *Mobilapp* (`(guard)/scan-result`).
 - **Érintett:** `src/app/(guard)/scan-result.tsx`, `src/app/(guard)/qr.tsx`, `src/app/(guard)/round/[id].tsx`, `src/guard/scan-result.ts`, `src/guard/round.ts`, `src/guard/scan.ts`, `src/domain/scan.ts`, `src/navigation/use-scan-recorder.ts`, `src/components/result-screen.tsx`, `src/components/status-dot.tsx`, `src/nfc/tag.ts`, `src/i18n/hu.json`, M3-36, M3-37, Q13.
+
+## 2026-10-30 – Kézi rögzítés (M3-36)
+
+- **Kérdés:** A design „Ok” választóját és „Diktálás” gombját hová kössük, melyik útvonal a mérvadó, és mi történik mentés után vagy ha közben lezárul a kör?
+- **Döntés:**
+  - **„Ok” választó („Címke hiányzik” / „Sérült, nem olvas”): nincs.** A specifikáció és a feladat nem említi, a `@waypost/schema`-ban nincs helye, a megjegyzésbe pedig nem írunk el rejtett szöveget. Az ok a kötelező megjegyzésbe kerül; ha külön adatként kell, előbb a séma új verziója kell hozzá. A `manual.reason*` feliratok törölve.
+  - **„Diktálás” gomb: nincs.** Natív beszédfelismerő kellene hozzá, a specifikáció nem kéri, a telefon billentyűzetének mikrofonja ugyanezt tudja.
+  - **Útvonal:** `(guard)/manual` a `round_id` paraméterrel (M3-33), nem a specifikáció `(guard)/manual/[checkpointId]`-je, mert a pontot itt választja az őr.
+  - **Pontválasztó:** csak a kör hátralévő pontjai (leolvasott pontra nem születne bejegyzés). Alapértelmezés: az első hátralévő, a helyadat megérkezése után a legközelebbi, a design szerint, de amit az őr már választott, az marad. Ezért a kör kötött sorrendjében is lehet rossz sorrendű: ekkor a sorrendszabály él, és az eredmény „Rossz sorrend”.
+  - **Helyadat:** a sávban a megnyitáskor kapott adat áll. A mentés a `currentLocation()`-t kéri (mint minden leolvasás, legfeljebb 5 mp), és ha az nem ad semmit, a megmutatott adatot használja, mert az is a pontnál készült. Ha egyik sincs, helyadat nélkül rögzít, és a sáv ezt előre jelzi.
+  - **Mentés után** az eredményképernyő jön `replace`-szel, ugyanaz, mint a leolvasásnál (haladás, kör befejezése, rossz sorrend, 3 mp után vissza a körre); az állapotsora „Rögzítve · ÓÓ:PP · Kézi – nem igazolt”, hogy ne higgye leolvasottnak. A design ezt nem rajzolja.
+  - **A kör közben lezárul:** a domain elutasítja, az űrlapon sáv mondja el, a gomb inaktív; a fotók a kilépéskor törlődnek, mert semmi nem hivatkozik rájuk. Ha a kör már a megnyitáskor zárt, nincs űrlap. Más hibánál az űrlap és a fotók megmaradnak, és újrapróbálható.
+  - **Fotók élete** (`usePhotoDraft`): a még nem rögzített fotó fájlja az űrlappal él, kilépéskor törlődik. A mentés kezdetétől nem törlődik akkor sem, ha az őr közben kilép (a háttérben befejeződik, navigáció nélkül); sikeres mentés után soha. Csak akkor törlődik, ha a mentés sikertelen, és az űrlap már nincs nyitva.
+  - **Fotó törlése:** megerősítéssel (`Alert`), mert a koppintás véletlen is lehet, és a fájl nem jön vissza. **Kilépés megerősítése nincs:** a kitöltött űrlapot a vissza gomb elhagyja.
+  - **Kamera:** modális ablak a képernyőn belül (`PhotoField`), így az űrlap állapota megmarad, és nem kell külön útvonalról visszaadni a fotót. Ha ébresztés nyílik az űrlap fölé, a kamera és a pontválasztó ablaka bezárul, mert különben takarná.
+  - **Billentyűzet:** `KeyboardAvoidingView` az Expo útmutatója szerint (iOS: `padding`, Android: `behavior` nélkül), új natív függőség nélkül. Eszközön nem próbált (`device-test.md`, K4).
+  - **Eltérés a referenciától:** a fejlécben csak a „Nem igazolt” jelvény van, szinkronjelző nincs (a design szerint, különben nem fér ki). A fotócsempe 92 dp a token szerint.
+  - **Új elemek:** `PhotoField`, `usePhotoDraft`, `recordManualEntry`, `nearestOf`, `PointOutcome`, `pointResultParams`, `chevronDown` ikon, `manual.*`, `photoField.*`, `common.gpsRecordedAt`, `scanResult.manualLine` feliratok.
+- **Indok:** Specifikáció *Leolvasás* 5–6., *Mobilapp* (`(guard)/manual/[checkpointId]`), *Fotó*, *Alapszabályok* (az eszközön létrejött adat nem törlődik); DESIGN_HANDOFF 5.14, 6 (G10); `B-Kezi`.
+- **Érintett:** `src/app/(guard)/manual/index.tsx`, `src/app/(guard)/scan-result.tsx`, `src/components/photo-field.tsx`, `src/components/icon.tsx`, `src/photo/use-photo-draft.ts`, `src/guard/scan.ts`, `src/domain/scan.ts`, `src/navigation/use-scan-recorder.ts`, `src/i18n/hu.json`, M3-37.

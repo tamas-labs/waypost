@@ -133,6 +133,18 @@ Sablon (egy futáshoz másold le, és a fejlécbe írd a dátumot és a mérföl
 | E6 | Más útvonal pontja, nyitott kör nélküli címke. | „Rögzítve, jelöléssel”, körön kívüli szöveg, egy hosszabb rezgés. |
 | E7 | Ébresztés a siker képernyője alatt; kis képernyő, nagy betűméret, hosszú utasítás. | Az ébresztés felül marad, a visszaszámlálás megáll, és utána folytatódik. A tartalom görgethető, a gombok a helyükön. |
 
+### M3 – Kézi rögzítés (M3-36, a kör képernyőjén „Címke nem olvasható”; a fotók és a helyadat miatt a szabadban is)
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| K1 | Megnyitás egy pont mellett, helyengedéllyel. | Néhány mp-en belül a legközelebbi hátralévő pont van kiválasztva, a sávban „GPS rögzítve · ±N m · ÓÓ:PP”. A pontválasztó csak a hátralévőket kínálja. |
+| K2 | Kamera megnyitása először és végleges elutasítás után; fotó készítése. | Engedélykérés, illetve a beállítások gomb. A kép nem fekete (a kamera modális ablakban fut), a fotó a csempén látszik, galéria nincs. |
+| K3 | Fotó törlése, hat fotó próbája. | Megerősítés után eltűnik; az ötödik után nincs több csempe. |
+| K4 | Megjegyzés írása, a billentyűzet nyitva, iOS-en és Androidon is. | A mező és a „Rögzítés” gomb nem kerül a billentyűzet alá; a gomb csak fotóval és megjegyzéssel aktív. |
+| K5 | Rögzítés repülőgép üzemmódban. | Eredményképernyő: „Rögzítve · ÓÓ:PP · Kézi – nem igazolt”; a listán lila sor. Hálózat után a fotó és a két bejegyzés feltöltődik. |
+| K6 | Kitöltés közben eltelik a határidő, majd „Rögzítés”. | „A kör közben lezárult” sáv, a gomb inaktív; vissza a kezdőlapra jut. |
+| K7 | Ébresztés nyitott kameránál és nyitott pontválasztónál. | Az ablak bezárul, az ébresztés látszik; utána az űrlap adatai megvannak. |
+
 ### ÉÉÉÉ-HH-NN – M1
 
 | # | Android | iPhone | Megjegyzés |

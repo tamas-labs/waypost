@@ -20,9 +20,8 @@ export interface ScanContext {
   newId: NewId;
 }
 
-export type ScanOutcome =
-  /** No checkpoint has this tag: recorded with unknown_tag, the screen shows an error. */
-  | { kind: 'unknown_tag'; drafts: ChainEntryDraft[] }
+/** What a scan of a known checkpoint comes to. */
+export type PointOutcome =
   /** The checkpoint is already scanned in its round: no entry, "Már leolvasva HH:MM-kor". */
   | { kind: 'already_scanned'; checkpoint_id: string; round_id: string; scanned_at: Timestamp; drafts: [] }
   | {
@@ -36,6 +35,10 @@ export type ScanOutcome =
       completed: boolean;
       drafts: ChainEntryDraft[];
     };
+
+export type ScanOutcome =
+  /** No checkpoint has this tag: recorded with unknown_tag, the screen shows an error. */
+  { kind: 'unknown_tag'; drafts: ChainEntryDraft[] } | PointOutcome;
 
 /** The active checkpoint of a tag: NFC by UID (uppercase hex), QR by the whole payload. */
 export function findCheckpoint(checkpoints: readonly CheckpointInfo[], read: TagRead): CheckpointInfo | null {
@@ -82,7 +85,7 @@ interface ScanDetails {
 }
 
 /** A scan of a known checkpoint, placed into its round; a manual entry adds its incident after the scan. */
-function recordCheckpoint(context: ScanContext, checkpointId: string, rounds: readonly RoundInfo[], details: ScanDetails, after: (scanId: string) => ChainEntryDraft[] = () => []): ScanOutcome {
+function recordCheckpoint(context: ScanContext, checkpointId: string, rounds: readonly RoundInfo[], details: ScanDetails, after: (scanId: string) => ChainEntryDraft[] = () => []): PointOutcome {
   const placement = place(context.state, checkpointId, rounds);
   if (placement.kind === 'already') return { kind: 'already_scanned', checkpoint_id: checkpointId, round_id: placement.round.id, scanned_at: placement.scanned_at, drafts: [] };
 
@@ -143,7 +146,7 @@ export interface ManualEntry {
  * Manual entry ("Címke nem olvasható"): a scan (method manual, manual flag) and an incident (damaged_tag, with the
  * scan's ID); both carry the note and the photos. The photo and the note are required.
  */
-export function manualScan(context: ScanContext, entry: ManualEntry): ScanOutcome {
+export function manualScan(context: ScanContext, entry: ManualEntry): PointOutcome {
   const note = checkNoteAndPhotos(entry.note, entry.media, true);
   const round = context.state.rounds.find((r) => r.id === entry.round_id && isOpen(r));
   if (round === undefined) throw new DomainError('unknown_round', `Round ${entry.round_id} is not open`);

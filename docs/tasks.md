@@ -388,7 +388,8 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
 - [x] **M3-35 Leolvasás eredménye (G7–G9, `B-Siker`, `B-Ismeretlen`, `B-Sorrend`)**: siker (pont neve, utasítás, 3 mp után vissza), ismeretlen címke, már leolvasva, rossz sorrend; haptika típusonként (`playFeedback`, M3-22; a rossz sorrendé a Q13 szerint); fade + scale animáció.
   - Megjegyzés (2026-10-30): `(guard)/scan-result`; adatok: `loadScanResultInfo` (`src/guard/scan-result.ts`), paraméterek: `scanResultParams` (`src/navigation/use-scan-recorder.ts`). Q13 eldöntve: a rossz sorrend figyelmeztetés. Az „Esemény ennél a pontnál” `checkpoint_id` paramétert ad az `(guard)/incident/new`-nak: az M3-37 használja. Eszközön még nem próbált (`device-test.md`, E1–E7). Döntések: `docs/decisions.md`.
 
-- [ ] **M3-36 Kézi rögzítés (G10, `B-Kezi`)**: pontválasztás az útvonal listájából, kötelező fotó (csak kamera) és megjegyzés. A fotó: `CameraView` + `takePhoto`, a mentés `photos`-szal, a törölt fotó `discardPhoto` (M3-21).
+- [x] **M3-36 Kézi rögzítés (G10, `B-Kezi`)**: pontválasztás az útvonal listájából, kötelező fotó (csak kamera) és megjegyzés. A fotó: `CameraView` + `takePhoto`, a mentés `photos`-szal, a törölt fotó `discardPhoto` (M3-21).
+  - Megjegyzés (2026-10-30): `(guard)/manual` (`round_id`); rögzítés: `recordManualEntry` (`src/guard/scan.ts`), utána az eredményképernyő. Az M3-37-hez kész: `PhotoField` (`src/components/photo-field.tsx`, kamera, engedély, törlés) és `usePhotoDraft` (`src/photo/use-photo-draft.ts`, a fájlok élete). A design „Ok” választója és „Diktálás” gombja nem készült el, lásd a döntést. Eszközön még nem próbált (`device-test.md`, K1–K7). Döntések: `docs/decisions.md`.
 
 - [ ] **M3-37 Esemény rögzítése (G11, `B-Esemeny`)**: kategória, megjegyzés, 0–5 fotó (csak kamera; M3-21), a helyadat `currentLocation()` (M3-20).
 

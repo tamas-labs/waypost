@@ -2,20 +2,20 @@ import { router } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 
 import { getDatabase } from '@/db/open';
-import type { ScanOutcome, TagRead } from '@/domain/scan';
+import type { PointOutcome, ScanOutcome, TagRead } from '@/domain/scan';
 import { playFeedback } from '@/feedback/feedback';
 import { recordTagRead, scanFeedback } from '@/guard/scan';
 
+/** The params of the result screen for a known checkpoint (a tag read or a manual entry). */
+export function pointResultParams(outcome: PointOutcome): Record<string, string> {
+  if (outcome.kind === 'already_scanned') return { kind: outcome.kind, checkpoint_id: outcome.checkpoint_id, round_id: outcome.round_id, scanned_at: outcome.scanned_at };
+  return { kind: outcome.kind, scan_id: outcome.scan_id, checkpoint_id: outcome.checkpoint_id, ...(outcome.round_id === null ? {} : { round_id: outcome.round_id }), out_of_order: String(outcome.out_of_order), completed: String(outcome.completed) };
+}
+
 /** The params of the result screen. An unknown tag has no round of its own: it belongs to the round the guard was on. */
 export function scanResultParams(outcome: ScanOutcome, read: TagRead, roundId: string): Record<string, string> {
-  switch (outcome.kind) {
-    case 'unknown_tag':
-      return { kind: outcome.kind, method: read.method, read_id: read.method === 'nfc' ? read.tag_uid : read.qr_payload, round_id: roundId };
-    case 'already_scanned':
-      return { kind: outcome.kind, checkpoint_id: outcome.checkpoint_id, round_id: outcome.round_id, scanned_at: outcome.scanned_at };
-    case 'recorded':
-      return { kind: outcome.kind, scan_id: outcome.scan_id, checkpoint_id: outcome.checkpoint_id, ...(outcome.round_id === null ? {} : { round_id: outcome.round_id }), out_of_order: String(outcome.out_of_order), completed: String(outcome.completed) };
-  }
+  if (outcome.kind !== 'unknown_tag') return pointResultParams(outcome);
+  return { kind: outcome.kind, method: read.method, read_id: read.method === 'nfc' ? read.tag_uid : read.qr_payload, round_id: roundId };
 }
 
 export interface ScanRecorder {

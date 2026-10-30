@@ -37,7 +37,7 @@ src/
   nfc/        # olvasás (reader.ts), Androidon az app-szintű figyelés (tag-events.ts), useTagReader a kör és a betanítás képernyőjére
   qr/ alarms/
   location/   # helyadat a leolvasáshoz (location.ts), saját helyzet a térképen (use-position.ts), térkép elérhetősége (maps.ts)
-  photo/      # fotó: tömörítés, SHA-256, fájl a dokumentumok media/ mappájában (a media sort a láncíró írja)
+  photo/      # fotó: tömörítés, SHA-256, fájl a dokumentumok media/ mappájában (a media sort a láncíró írja); use-photo-draft.ts: egy űrlap még nem rögzített fotói
   feedback/   # leolvasási visszajelzés: rezgés és hang (siker / hiba / figyelmeztetés)
   theme/      # tokens.ts (a design tokenjei), theme-provider.tsx: ThemeProvider, useTheme(), useThemePreference()
   i18n/       # hu.json (minden felirat), index.ts: t(key, params)

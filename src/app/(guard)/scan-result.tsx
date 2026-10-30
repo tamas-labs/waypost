@@ -112,11 +112,12 @@ function SuccessResult({ info, scan, params, leave }: { info: ScanResultInfo; sc
   const close = useCallback(() => leave(), [leave]);
   const seconds = useAutoClose(close);
   const instruction = info.point?.instruction ?? null;
+  const time = localTimeOf(parseTimestamp(scan.scanned_at), info.timezone);
   return (
     <ResultScreen
       tone="ok"
       icon="check"
-      statusLine={t('scanResult.successLine', { time: localTimeOf(parseTimestamp(scan.scanned_at), info.timezone), method: t(`method.${scan.method}`) })}
+      statusLine={scan.method === 'manual' ? t('scanResult.manualLine', { time, method: t('round.manualNotVerified') }) : t('scanResult.successLine', { time, method: t(`method.${scan.method}`) })}
       title={info.point?.name ?? ''}
       header={<ResultHeader round={info.round} />}
       actions={
