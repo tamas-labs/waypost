@@ -1,19 +1,18 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { allAlarmPermissionsGranted, getAlarmPermissions, type AlarmPermissions } from '@/alarms/permissions';
-import { pinLockRemaining } from '@/auth/pin';
 import { onChainEntries } from '@/chain/events';
 import { Button } from '@/components/button';
 import { InfoBanner } from '@/components/info-banner';
 import { PIN_LENGTH, PinDots, PinPad } from '@/components/pin-pad';
 import { SyncStatusIndicator } from '@/components/sync-status-indicator';
 import { getDatabase } from '@/db/open';
-import { LOCK_AFTER_FAILURES } from '@/domain/pin-lockout';
 import { playFeedback } from '@/feedback/feedback';
 import { loadPinScreenInfo, signInWithPin, type PinScreenInfo } from '@/guard/login';
 import { t, type TranslationKey } from '@/i18n';
+import { pinLockedText, usePinLock, wrongPinText } from '@/navigation/use-pin-lock';
 import { onConfigurationPulled } from '@/sync/events';
 import { useTheme } from '@/theme/theme-provider';
 import { parseTimestamp } from '@/time/timestamp';
@@ -24,8 +23,6 @@ type Message = { kind: 'wrong'; failures: number } | { kind: 'failed' } | { kind
 
 /** The time and the shift change while the screen is open (and the trusted time comes with a sync). */
 const INFO_REFRESH_MS = 30_000;
-/** A wrong PIN says how many tries are left once this few remain. */
-const WARN_ATTEMPTS_LEFT = 2;
 
 /** Jó reggelt from 4 to 9, Jó napot until 18, Jó estét after (DESIGN_HANDOFF 6, G1), by the site's clock. */
 function greeting(info: PinScreenInfo): TranslationKey {
@@ -41,12 +38,6 @@ function shiftLine(info: PinScreenInfo | null): string | null {
   if (info.next_round === null) return null;
   const time = localTimeOf(parseTimestamp(info.next_round.scheduled_at), info.timezone);
   return info.next_round.starts_shift ? t('pin.shiftStartsAt', { time }) : t('pin.nextRoundAt', { time });
-}
-
-/** m:ss of a lock, rounded up to the second. */
-function lockTime(ms: number): string {
-  const seconds = Math.ceil(ms / 1000);
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
 function missingAlarmSettings(permissions: AlarmPermissions): string {
@@ -91,19 +82,6 @@ function useAlarmPermissions(): AlarmPermissions | null {
     };
   }, []);
   return permissions;
-}
-
-/** While locked: the time left, counted down every second. */
-function usePinLock(): [number, () => void] {
-  const [remaining, setRemaining] = useState(() => pinLockRemaining(getDatabase()));
-  const refresh = useCallback(() => setRemaining(pinLockRemaining(getDatabase())), []);
-  const locked = remaining > 0;
-  useEffect(() => {
-    if (!locked) return undefined;
-    const interval = setInterval(refresh, 1000);
-    return () => clearInterval(interval);
-  }, [locked, refresh]);
-  return [remaining, refresh];
 }
 
 // PIN login (G1, B-PIN): the site, a greeting, the shift, the sync status, and the keypad. A guard's PIN starts or
@@ -151,11 +129,9 @@ export default function PinScreen() {
   };
 
   let messageText: string | null = null;
-  if (locked) messageText = t('pin.locked', { time: lockTime(lockRemaining) });
-  else if (message?.kind === 'wrong') {
-    const left = LOCK_AFTER_FAILURES - message.failures;
-    messageText = left > 0 && left <= WARN_ATTEMPTS_LEFT ? t('pin.attemptsLeft', { count: left }) : t('pin.wrongPin');
-  } else if (message?.kind === 'failed') messageText = t('pin.failed');
+  if (locked) messageText = pinLockedText(lockRemaining);
+  else if (message?.kind === 'wrong') messageText = wrongPinText(message.failures);
+  else if (message?.kind === 'failed') messageText = t('pin.failed');
 
   return (
     <ScrollView

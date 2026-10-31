@@ -391,15 +391,19 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
 - [x] **M3-36 Kézi rögzítés (G10, `B-Kezi`)**: pontválasztás az útvonal listájából, kötelező fotó (csak kamera) és megjegyzés. A fotó: `CameraView` + `takePhoto`, a mentés `photos`-szal, a törölt fotó `discardPhoto` (M3-21).
   - Megjegyzés (2026-10-30): `(guard)/manual` (`round_id`); rögzítés: `recordManualEntry` (`src/guard/scan.ts`), utána az eredményképernyő. Az M3-37-hez kész: `PhotoField` (`src/components/photo-field.tsx`, kamera, engedély, törlés) és `usePhotoDraft` (`src/photo/use-photo-draft.ts`, a fájlok élete). A design „Ok” választója és „Diktálás” gombja nem készült el, lásd a döntést. Eszközön még nem próbált (`device-test.md`, K1–K7). Döntések: `docs/decisions.md`.
 
-- [ ] **M3-37 Esemény rögzítése (G11, `B-Esemeny`)**: kategória, megjegyzés, 0–5 fotó (csak kamera; M3-21), a helyadat `currentLocation()` (M3-20).
+- [x] **M3-37 Esemény rögzítése (G11, `B-Esemeny`)**: kategória, megjegyzés, 0–5 fotó (csak kamera; M3-21), a helyadat `currentLocation()` (M3-20).
+  - Megjegyzés (2026-10-31): `(guard)/incident/new` (`checkpoint_id` nem kötelező); rögzítés: `recordIncident`, az időpont és a hely sora: `incidentPlace` (`src/guard/scan.ts`). Mentés után vissza, és toast (`showToast`, `src/components/toast.tsx`, `ToastHost` a guard layoutban). A határidőnél záruló kör is toastot kap. Eszközön még nem próbált (`device-test.md`, V1–V5). Döntések: `docs/decisions.md`.
 
-- [ ] **M3-38 Műszakzárás (G12, `B-Zaras`)**: összegzés (körök állapota, események száma, feltöltetlen tételek), figyelmeztetés nyitott körnél, megerősítés PIN-nel.
+- [x] **M3-38 Műszakzárás (G12, `B-Zaras`)**: összegzés (körök állapota, események száma, feltöltetlen tételek), figyelmeztetés nyitott körnél, megerősítés PIN-nel.
+  - Megjegyzés (2026-10-31): `(guard)/shift/close`; adatok és zárás: `loadShiftCloseInfo`, `closeShiftWithPin` (`src/guard/shift-close.ts`), `shiftSummary` (`src/domain/shift.ts`), PIN: `pinConfirm` (`src/auth/pin.ts`, csak a műszakos őré). Az „Időgyanús leolvasás” sor nem készült el, lásd a döntést. Eszközön még nem próbált (`device-test.md`, Z1–Z5). Döntések: `docs/decisions.md`.
 
 ### Lezárás
 
 - [ ] **M3-39 Tesztlefedettség és minőség**: Jest ≥ 90% a `src/domain`, `src/chain` és `src/sync` modulokra; TypeScript strict; ESLint hibamentes; a közös tesztvektorok a tesztekben.
+  - Megjegyzés (2026-10-31): a lefedettség megvan és kikényszerített (`npm run test:coverage`, `coverageThreshold`: domain, chain és sync külön-külön ≥ 90%), az ESLint hibamentes. **Nyitott:** a GitHubon lévő `waypost-schema` (`main`, `v0.1.0`, 2026-10-27) régebbi annál, amire az app épül, ezért friss checkouton a `typecheck` és 5 tesztcsomag piros. Hiányzik: `pinVectors` (`pin/test-vectors.json`, Q11), a pull `reset` mezője, `api/site-list.response` és `SiteListResponse`, a `server_error` és `bad_request` hibakód. A séma friss változatával pipálható; részletek: `docs/decisions.md`.
 
 - [ ] **M3-40 Elfogadás**: a domain és a lánc tesztjei zöldek a közös tesztvektorokkal; telefonon egy 5 perces körökkel beállított, 1 órás műszak teljesen offline végigvihető (a demó-telephellyel); a `device-test.md` M3-as futása kitöltve.
+  - Megjegyzés (2026-10-31): a lánc és a menetrend közös vektorai zöldek. A telefonos futás hátravan (`device-test.md`, „M3 – Elfogadás”, F1–F9), és előtte a séma frissítése kell (M3-39): fejlesztői buildben a régi sémával a hozzárendelés és a pull elbukik.
 
 ---
 

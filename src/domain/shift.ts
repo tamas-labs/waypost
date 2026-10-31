@@ -8,9 +8,9 @@ import type { ChainEntryDraft } from '@/chain/writer';
 import { parseTimestamp, toTimestamp } from '@/time/timestamp';
 import { DAY_MS } from '@/time/zone';
 
-import { autoCloseTime, closeRound, deadlineOf, expectedSlots, type ClosedStatus } from './rounds';
+import { autoCloseTime, closeRound, closingStatus, deadlineOf, expectedSlots, type ClosedStatus } from './rounds';
 import type { ScheduleOfRoute } from './schedule';
-import { DomainError, isOpen, type GuardState, type NewId, type RoundInfo, type ShiftInfo } from './state';
+import { DomainError, isOpen, versionOf, type GuardState, type NewId, type RoundInfo, type ShiftInfo } from './state';
 
 export interface GuardLogin {
   /** started: a new shift; continued: the same guard's open shift goes on; handover: another guard's shift closed first. */
@@ -219,5 +219,27 @@ export function shiftHome(state: GuardState, now: Timestamp): ShiftHome | null {
     next_at: nextAt,
     running: open === undefined ? null : { round_id: open.id, scheduled_at: open.scheduled_at, deadline: toTimestamp(deadlineOf(state, open, slots)) },
     auto_close_at: autoCloseMs === null ? null : toTimestamp(autoCloseMs),
+  };
+}
+
+/** What the closing screen (G12) shows of the open shift. */
+export interface ShiftSummary {
+  /** The rounds of the shift, as on the shift home. */
+  rounds: ShiftRound[];
+  /** The rounds closed so far; the ones that closes_as tells about are not among them. */
+  counts: Record<ClosedStatus, number>;
+  /** The open rounds, which close with the shift. */
+  open_rounds: (ShiftRound & { closes_as: ClosedStatus })[];
+}
+
+/** Null without an open shift. */
+export function shiftSummary(state: GuardState, now: Timestamp): ShiftSummary | null {
+  const home = shiftHome(state, now);
+  if (home === null) return null;
+  const count = (status: ClosedStatus) => home.rounds.filter((round) => round.state === status).length;
+  return {
+    rounds: home.rounds,
+    counts: { completed: count('completed'), incomplete: count('incomplete'), missed: count('missed') },
+    open_rounds: state.rounds.filter(isOpen).map((round) => ({ ...shiftRoundOf(state, round), closes_as: closingStatus(round, versionOf(state, round.route_version_id).checkpoint_ids) })),
   };
 }

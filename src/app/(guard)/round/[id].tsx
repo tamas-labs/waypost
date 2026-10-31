@@ -15,9 +15,10 @@ import { ProgressRing } from '@/components/progress';
 import { ScreenHeader } from '@/components/screen-header';
 import { SegmentedControl } from '@/components/segmented-control';
 import { SiteMap } from '@/components/site-map';
+import { showToast } from '@/components/toast';
 import { getDatabase } from '@/db/open';
 import { playFeedback, playHaptic } from '@/feedback/feedback';
-import { loadRoundScreenInfo, markRoundShown, roundMapOf, type RoundPoint, type RoundScreenInfo } from '@/guard/round';
+import { closedStatusOf, loadRoundScreenInfo, markRoundShown, roundMapOf, type RoundPoint, type RoundScreenInfo } from '@/guard/round';
 import { tagReadOf } from '@/guard/scan';
 import { useCountdown } from '@/guard/use-countdown';
 import { t } from '@/i18n';
@@ -28,6 +29,7 @@ import type { TagReading } from '@/nfc/tag';
 import { useTagReader } from '@/nfc/use-tag-reader';
 import { onConfigurationPulled } from '@/sync/events';
 import { useTheme } from '@/theme/theme-provider';
+import { statusStyle } from '@/theme/tokens';
 import { countdownText } from '@/time/countdown';
 import { parseTimestamp } from '@/time/timestamp';
 import { localTimeOf } from '@/time/zone';
@@ -108,9 +110,12 @@ export default function RoundScreen() {
   const over = info === null;
   useEffect(() => {
     if (!over || !focused) return;
+    // A round completed by a scan has told so on its result.
+    const status = closedStatusOf(getDatabase(), id);
+    if (status === 'incomplete' || status === 'missed') showToast(t('round.closedToast', { status: t(statusStyle[status].label) }), 'warn');
     if (router.canGoBack()) router.back();
     else router.replace('/home');
-  }, [over, focused]);
+  }, [over, focused, id]);
 
   const onTag = (tag: TagReading) => {
     setHint(false);

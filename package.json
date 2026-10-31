@@ -74,6 +74,7 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "db:generate": "drizzle-kit generate"
   },
   "private": true,
@@ -88,6 +89,34 @@
     },
     "setupFiles": [
       "<rootDir>/jest.setup.ts"
-    ]
+    ],
+    "collectCoverageFrom": [
+      "src/domain/**/*.ts",
+      "src/chain/**/*.ts",
+      "src/sync/**/*.ts",
+      "!**/*.test.ts",
+      "!**/testing.ts"
+    ],
+    "coverageThreshold": {
+      "./src/domain/": {
+        "statements": 90,
+        "branches": 90,
+        "functions": 90,
+        "lines": 90
+      },
+      "./src/chain/": {
+        "statements": 90,
+        "branches": 90,
+        "functions": 90,
+        "lines": 90
+      },
+      "./src/sync/": {
+        "statements": 90,
+        "branches": 90,
+        "functions": 90,
+        "lines": 90
+      }
+    },
+    "testTimeout": 30000
   }
 }

@@ -145,6 +145,42 @@ Sablon (egy futáshoz másold le, és a fejlécbe írd a dátumot és a mérföl
 | K6 | Kitöltés közben eltelik a határidő, majd „Rögzítés”. | „A kör közben lezárult” sáv, a gomb inaktív; vissza a kezdőlapra jut. |
 | K7 | Ébresztés nyitott kameránál és nyitott pontválasztónál. | Az ablak bezárul, az ébresztés látszik; utána az űrlap adatai megvannak. |
 
+### M3 – Esemény rögzítése (M3-37, a kezdőlapon és a kör képernyőjén a zászló; a helyadat miatt a szabadban is)
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| V1 | Megnyitás egy pont mellett, helyengedéllyel. | A sorban idő, „Legközelebbi pont: …”, „GPS ±N m”. A „Mentés” kategória nélkül inaktív, csak kategóriával is aktív. |
+| V2 | Öt fotó, törlés, megjegyzés nyitott billentyűzettel, iOS-en és Androidon. | Az ötödik után nincs több csempe; a mező és a gomb nem kerül a billentyűzet alá. |
+| V3 | Mentés repülőgép üzemmódban. | Vissza az előző képernyőre, felül „Esemény mentve – feltöltésre vár”, ami kb. 3 mp után eltűnik, és közben nem fog fel érintést. A szinkronjelzőn a várakozó tételek száma nő (a feltöltés az M4-ben készül el). |
+| V4 | Leolvasás után „Esemény ennél a pontnál”. | A sorban „Pont: …” a leolvasott ponttal; mentés után vissza a körre. |
+| V5 | Ébresztés nyitott kameránál; a határidő lejárta a kör képernyőjén. | A kamera bezárul, az űrlap adatai megvannak. A kör képernyője visszalép, és toast mondja a zárult kör állapotát. |
+
+### M3 – Műszakzárás (M3-38, a kezdőlapon „Műszakzárás”)
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| Z1 | Megnyitás néhány kör után. | Fejléc: név, kezdés – most; a három szám egyezik az idővonallal; az események és a nem igazolt pontok száma helyes. |
+| Z2 | Megnyitás nyitott körrel. | Figyelmeztető sáv a pontok számával és a záró állapottal; zárás után a kör ilyen állapotú. |
+| Z3 | Repülőgép üzemmódban, majd hálózattal. | „N tétel vár feltöltésre” sáv; a szám a szinkronjelzőével azonos. A feltöltés az M4-ben készül el, addig a sáv nem tűnik el. |
+| Z4 | Hibás PIN, másik őr PIN-je, több hibás próba. | „Hibás PIN-kód”, rázás, két rövid rezgés; a műszak nem zárul; zárolásnál visszaszámlálás, a számlap tiltott. |
+| Z5 | Saját PIN; ébresztés nyitott PIN-lapnál. | A PIN-képernyő jön, és nem mutat műszakot. Ébresztésnél a lap utat enged, utána visszatér. |
+
+### M3 – Elfogadás: 1 órás offline műszak (M3-40; `laravel-waypost`: `composer serve`, „Demó telephely”, 5 perces menetrend)
+
+Előtte: friss `waypost-schema` (M3-39), a telefon hozzárendelve, a címkék betanítva, az első pull lefutott. A műszak kezdése előtt repülőgép üzemmód, és végig az is marad.
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| F1 | Belépés őr PIN-jével, műszakkezdés. | Műszakkezdés, majd kezdőlap a következő körrel; hálózat nélkül is. |
+| F2 | Minden 5. percben ébresztés, zárolt képernyőnél is. | Hang és rezgés; „Indulok” a kör képernyőjére visz. |
+| F3 | Egy kör NFC-vel, egy QR-rel, végig. | Siker képernyők, a kör „Teljesítve”. |
+| F4 | Egy kör kézi rögzítéssel. | Lila sor, a kör számít. |
+| F5 | Egy körön ismeretlen címke, dupla leolvasás, rossz sorrend. | A leolvasás eredményei (E3–E5). |
+| F6 | Egy kört félbehagyni, egyet teljesen kihagyni. | A határidőnél „Hiányos”, illetve „Elmaradt”, toast a kör képernyőjén. |
+| F7 | Esemény rögzítése fotóval. | Toast, a záró képernyőn az eseményszám nő. |
+| F8 | Újraindítás műszak közben. | A műszak folytatódik, a kimaradt kör eredeti időponttal megnyílik, az ébresztések újraütemeződnek. |
+| F9 | Zárás PIN-nel az óra végén, majd a repülőgép üzemmód kikapcsolása. | Az összegzés egyezik a történtekkel. Hálózat után a pull lefut; a lánc feltöltése az M4-ben készül el, addig a tételek a helyi sorban várnak. |
+
 ### ÉÉÉÉ-HH-NN – M1
 
 | # | Android | iPhone | Megjegyzés |

@@ -8,6 +8,8 @@ import { closingStatus } from './rounds';
 import { DomainError, isOpen, versionOf, type CheckpointInfo, type GuardState, type NewId, type RoundInfo } from './state';
 
 export const MAX_PHOTOS = 5;
+/** The limit of the note in the chain's payloads (payload-scan, payload-incident). */
+export const MAX_NOTE_LENGTH = 2000;
 
 /** What the reader delivered. */
 export type TagRead = { method: 'nfc'; tag_uid: string; ndef_raw: string | null } | { method: 'qr'; qr_payload: string };
@@ -180,9 +182,11 @@ export interface IncidentReport {
   note?: string | null;
   /** Camera photos, 0 to 5. */
   media?: readonly MediaRef[];
+  /** The point the guard reported it at ("Esemény ennél a pontnál"); without it, the nearest one to the location. */
+  checkpoint_id?: string | null;
 }
 
-/** An incident of the open shift, with the nearest checkpoint to where it was reported. */
+/** An incident of the open shift, at the point given or else the nearest checkpoint to where it was reported. */
 export function reportIncident(context: ScanContext, report: IncidentReport): ChainEntryDraft<'incident'> {
   const shift = context.state.shift;
   if (shift === null) throw new DomainError('no_shift', 'There is no open shift');
@@ -194,7 +198,7 @@ export function reportIncident(context: ScanContext, report: IncidentReport): Ch
     category: report.category,
     note,
     location: context.location,
-    nearest_checkpoint_id: nearestCheckpoint(context.state.checkpoints, context.location),
+    nearest_checkpoint_id: report.checkpoint_id ?? nearestCheckpoint(context.state.checkpoints, context.location),
     media,
   });
 }

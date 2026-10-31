@@ -10,8 +10,8 @@ import { onChainEntries } from '@/chain/events';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { InfoBanner } from '@/components/info-banner';
-import { RoundTimeline } from '@/components/round-timeline';
 import { ScreenHeader } from '@/components/screen-header';
+import { ShiftTimeline } from '@/components/shift-timeline';
 import { StatusDot } from '@/components/status-dot';
 import { getDatabase } from '@/db/open';
 import { loadShiftHomeInfo, type ShiftHomeInfo, type ShiftHomeRound } from '@/guard/home';
@@ -73,8 +73,7 @@ export default function HomeScreen() {
 
   const rounds = home?.rounds ?? [];
   const closed = rounds.filter(isClosed);
-  const routes = [...new Set(rounds.map((round) => round.route_id))].map((routeId) => rounds.filter((round) => round.route_id === routeId));
-  const severalRoutes = routes.length > 1;
+  const severalRoutes = new Set(rounds.map((round) => round.route_id)).size > 1;
   const time = (at: Timestamp) => (info === null ? '' : localTimeOf(parseTimestamp(at), info.timezone));
 
   return (
@@ -106,15 +105,7 @@ export default function HomeScreen() {
               </Text>
               <Text style={[typography.rowLabel, styles.tabular, { color: color.text2 }]}>{t('home.closedCount', { closed: closed.length, total: rounds.length })}</Text>
             </View>
-            {routes.map((routeRounds, index) => (
-              <View key={routeRounds[0]!.route_id} style={{ gap: space.s }}>
-                {severalRoutes && <Text style={[typography.small, { color: color.text2 }]}>{routeRounds[0]!.route_name}</Text>}
-                <RoundTimeline
-                  legend={index === routes.length - 1}
-                  rounds={routeRounds.map((round) => ({ id: `${round.schedule_id}|${round.scheduled_at}`, time: time(round.scheduled_at), state: round.state }))}
-                />
-              </View>
-            ))}
+            <ShiftTimeline rounds={rounds} time={time} />
           </Card>
         )}
 

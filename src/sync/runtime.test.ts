@@ -2,13 +2,13 @@ import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import { AppState, type AppStateStatus } from 'react-native';
 
 import { ApiError } from '@/api/errors';
-import { setDeviceCredentials, setSupervisorToken } from '@/auth/credentials';
+import { deleteDeviceCredentials, deleteSupervisorToken, setDeviceCredentials, setSupervisorToken } from '@/auth/credentials';
 import { useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
-import { getKv, setKv } from '@/db/kv';
+import { deleteKv, getKv, setKv } from '@/db/kv';
 import { createTestDatabase } from '@/db/testing';
 
-import { FOREGROUND_SYNC_INTERVAL_MS, notifyChainEntry, requestSync, startSync, syncSteps, type SyncContext } from './runtime';
+import { FOREGROUND_SYNC_INTERVAL_MS, notifyChainEntry, requestSync, startSync, syncContext, syncSteps, type SyncContext } from './runtime';
 import { useSyncStatus } from './status';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
@@ -88,6 +88,45 @@ describe('sync runtime', () => {
     expect(warn).toHaveBeenCalledWith('Sync failed at pull', expect.any(ApiError));
     expect(useSyncStatus.getState().lastError).toEqual({ kind: 'device_revoked', step: 'pull', message: 'A telefont visszavonták.', at: '2026-10-27T20:00:00.000Z' });
     expect(useSyncStatus.getState().lastSuccessAt).toBeNull();
+  });
+
+  it('tells a failure that is not an Error too', async () => {
+    jest.mocked(syncSteps.pull).mockRejectedValue('no route');
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    stop = startSync(db);
+    await settle();
+    expect(useSyncStatus.getState().lastError).toMatchObject({ step: 'pull', message: 'no route' });
+  });
+
+  it('has no context without an API address or a token', async () => {
+    stop = () => {};
+    expect(await syncContext(db)).toMatchObject({ token: 'device-token' });
+    await deleteDeviceCredentials();
+    expect(await syncContext(db)).toBeNull();
+    useSession.setState({ mode: 'supervisor_phone' });
+    await deleteSupervisorToken();
+    expect(await syncContext(db)).toBeNull();
+    await setSupervisorToken('supervisor-token');
+    expect(await syncContext(db)).toMatchObject({ token: 'supervisor-token', mode: 'supervisor_phone' });
+    deleteKv(db, 'dev.api_base_url');
+    expect(await syncContext(db)).toBeNull();
+  });
+
+  it('does not sync for what does not matter: the same app state, or a session with the same mode', async () => {
+    stop = startSync(db);
+    await settle();
+    appStateListener('active');
+    useSession.setState({ activeUser: { id: 'u', role: 'guard' } });
+    await settle();
+    expect(pulls).toHaveLength(1);
+  });
+
+  it('starts the interval only in the foreground', async () => {
+    Object.defineProperty(AppState, 'currentState', { value: 'background', configurable: true });
+    stop = startSync(db);
+    await settle();
+    await jest.advanceTimersByTimeAsync(FOREGROUND_SYNC_INTERVAL_MS);
+    expect(pulls).toHaveLength(1);
   });
 
   it('syncs when the network comes back, and tracks online/offline', async () => {

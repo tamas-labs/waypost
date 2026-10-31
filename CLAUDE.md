@@ -24,7 +24,7 @@ A Waypost mobilapp (Expo / React Native, TypeScript): az őrök a telephelyi tel
 src/
   app/        # expo-router képernyők – csak route-fájl lehet benne (teszt, segéd nem); (auth)/ (guard)/ (supervisor)/, dev/ és prototype/ (M1 eszközpróbák) csak fejlesztői buildben
   navigation/ # melyik csoport nyitott az állapot szerint (Stack.Protected), kezdőképernyő
-  components/ # közös UI-komponensek (DESIGN_HANDOFF 5); ikon: icon.tsx (lucide, ikononként importálva); képernyőfejléc: screen-header.tsx (jobbra a szinkronjelző)
+  components/ # közös UI-komponensek (DESIGN_HANDOFF 5); ikon: icon.tsx (lucide, ikononként importálva); képernyőfejléc: screen-header.tsx (jobbra a szinkronjelző); rövid üzenet: toast.tsx (`showToast`)
   api/        # API-kliens: client.ts (token, Idempotency-Key, típusos hibák, __DEV__ Ajv), endpoints.ts
   auth/       # secure store (tokenek, eszköztitok), indulási állapot, munkamenet (Zustand), hozzárendelés
   db/         # expo-sqlite + Drizzle: schema.ts, migrations/ (generált), kv.ts, testing.ts (better-sqlite3 a tesztekhez)
@@ -69,7 +69,8 @@ Importban a `@/…` alias a `src/…`-ra mutat.
 - `npm start` – Metro dev szerver a development buildhez.
 - `npm run typecheck` – `tsc --noEmit`.
 - `npm run lint` – `expo lint` (ESLint, `eslint-config-expo`).
-- `npm test` – Jest (`jest-expo` preset). A `jest.modulePaths` azért kell, mert a symlinkelt `@waypost/schema` fájljait a Jest a valódi útvonalukon fordítja, és a Babel-segédeket innen kell feloldani. A `jest.moduleNameMapper` a lucide-ikonokat a CommonJS-változatukra irányítja (az ESM-változat a Jestben nem fut). A `jest.resolver` a Reanimated saját resolvere (a natív helyett a webes megvalósítás fut).
+- `npm run test:coverage` – Jest lefedettséggel; a `src/domain`, `src/chain` és `src/sync` mappának mappánként 90% alatt hibát ad.
+- `npm test` – Jest (`jest-expo` preset). A `jest.testTimeout` 30 mp, mert párhuzamos futásnál egy csomag első képernyőtesztje lassan indul (a Babel és a natív mockok betöltése miatt), és az alap 5 mp véletlenszerű bukást okozott. A `jest.modulePaths` azért kell, mert a symlinkelt `@waypost/schema` fájljait a Jest a valódi útvonalukon fordítja, és a Babel-segédeket innen kell feloldani. A `jest.moduleNameMapper` a lucide-ikonokat a CommonJS-változatukra irányítja (az ESM-változat a Jestben nem fut). A `jest.resolver` a Reanimated saját resolvere (a natív helyett a webes megvalósítás fut).
 - `npx expo-doctor` – függőségek és konfiguráció ellenőrzése.
 - `npm run db:generate` – a `src/db/schema.ts` változása után új migráció a `src/db/migrations/` alá (`drizzle-kit generate`); a generált fájlokat commitoljuk, kézzel nem szerkesztjük. A `.sql` fájlokat a `babel-plugin-inline-import` fordítja be; ha a Metro régi migrációt mutat, `npm start -- --clear`.
 - Térkép Androidon: `GOOGLE_MAPS_ANDROID_API_KEY` (`.env.local`, EAS-en környezeti változó; az `app.config.ts` olvassa); változása után új natív build kell. Kulcs nélkül a build működik, a térkép helyén üzenet áll. iOS-en Apple Maps, kulcs nem kell.

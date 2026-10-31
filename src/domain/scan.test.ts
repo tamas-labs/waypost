@@ -231,6 +231,11 @@ describe('incident', () => {
     expect(() => reportIncident(context({ shift: null }), { category: 'water' })).toThrow(expect.objectContaining({ code: 'no_shift' }));
   });
 
+  it('keeps the point the guard reported it at, wherever the location is', () => {
+    expect(reportIncident(context({}, NEAR_C2), { category: 'water', checkpoint_id: C4 }).payload.nearest_checkpoint_id).toBe(C4);
+    expect(reportIncident(context(), { category: 'water', checkpoint_id: C4 }).payload.nearest_checkpoint_id).toBe(C4);
+  });
+
   it('finds the nearest active checkpoint with a location', () => {
     const { checkpoints } = guardState();
     expect(nearestCheckpoint(checkpoints, { ...NEAR_C2, latitude: 47.4984 })).toBe(C4);

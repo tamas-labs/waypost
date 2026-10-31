@@ -358,6 +358,7 @@
   },
   "round": {
     "title": "{{time}}-s kör",
+    "closedToast": "A kör lezárult: {{status}}",
     "remaining": "Hátralévő idő",
     "deadline": "Határidő {{time}}",
     "list": "Lista",
@@ -448,19 +449,36 @@
     "other": "Egyéb",
     "damagedTag": "Sérült címke",
     "photos": "Fotók",
-    "auto": "{{time}} · Legközelebbi pont: {{point}} · GPS ±{{accuracy}} m",
+    "categories": "Kategória",
+    "point": "Pont: {{point}}",
+    "nearest": "Legközelebbi pont: {{point}}",
+    "gps": "GPS ±{{accuracy}} m",
+    "gpsNoAccuracy": "GPS rögzítve",
+    "noLocation": "Nincs helyadat",
     "submit": "Esemény mentése",
+    "saving": "Mentés…",
     "saved": "Esemény mentve",
-    "savedQueued": "Esemény mentve – feltöltésre vár"
+    "savedQueued": "Esemény mentve – feltöltésre vár",
+    "failed": "Nem sikerült menteni az eseményt. Próbáld újra.",
+    "shiftClosed": "A műszak közben lezárult, az esemény már nem menthető."
   },
   "shiftEnd": {
     "title": "Műszakzárás",
+    "subtitle": "{{name}} · {{from}} – {{to}}",
+    "completed": "teljesítve",
+    "incomplete": "hiányos",
+    "missed": "elmaradt",
     "incidents": "Események",
     "manualPoints": "Nem igazolt pont",
-    "suspicious": "Időgyanús leolvasás",
+    "openRound": "{{round}} még nyitva van.",
+    "openRoundBody": "{{done}} / {{total}} pont kész. A zárással ez a kör is lezárul, állapota: {{status}}.",
     "queued": "{{count}} tétel vár feltöltésre.",
     "queuedBody": "A jelentés a feltöltés után megy ki a supervisornak, akkor is, ha már zártál.",
-    "submit": "Zárás PIN-kóddal"
+    "submit": "Zárás PIN-kóddal",
+    "pinTitle": "Add meg a PIN-kódodat",
+    "confirm": "Műszak zárása",
+    "closing": "Zárás…",
+    "failed": "A zárás nem sikerült. Próbáld újra."
   },
   "supervisor": {
     "badge": "Supervisor",

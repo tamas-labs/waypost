@@ -489,3 +489,39 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **Új elemek:** `PhotoField`, `usePhotoDraft`, `recordManualEntry`, `nearestOf`, `PointOutcome`, `pointResultParams`, `chevronDown` ikon, `manual.*`, `photoField.*`, `common.gpsRecordedAt`, `scanResult.manualLine` feliratok.
 - **Indok:** Specifikáció *Leolvasás* 5–6., *Mobilapp* (`(guard)/manual/[checkpointId]`), *Fotó*, *Alapszabályok* (az eszközön létrejött adat nem törlődik); DESIGN_HANDOFF 5.14, 6 (G10); `B-Kezi`.
 - **Érintett:** `src/app/(guard)/manual/index.tsx`, `src/app/(guard)/scan-result.tsx`, `src/components/photo-field.tsx`, `src/components/icon.tsx`, `src/photo/use-photo-draft.ts`, `src/guard/scan.ts`, `src/domain/scan.ts`, `src/navigation/use-scan-recorder.ts`, `src/i18n/hu.json`, M3-37.
+
+## 2026-10-31 – Esemény rögzítése (M3-37)
+
+- **Kérdés:** Hogyan jelezzük a mentést, mi kerül a hely sorába, és mit jelent a leolvasás eredményéről nyitott „Esemény ennél a pontnál”?
+- **Döntés:**
+  - **Toast:** van, a design szerint: `showToast(szöveg, változat)` és a guard layout `ToastHost`-ja, a meglévő `InfoBanner` megjelenésével, a képernyő tetején, 3 mp-ig; érintést nem fog fel. Offline (a NetInfo szerint) „Esemény mentve – feltöltésre vár”; ha a hálózat még ismeretlen, „Esemény mentve”.
+  - **A zárult kör toastja:** az M3-33-ban elhalasztott toast most elkészült: a határidőnél záruló kör (`incomplete`, `missed`) képernyője a visszalépéskor szól. A leolvasással befejezett körnél nincs toast, mert az eredményképernyő már elmondta.
+  - **Kategóriák:** a design öt csempéje, előre kiválasztás nélkül, mert a választás kötelező. A `damaged_tag` nincs köztük, mert azt a kézi rögzítés írja. A „Mentés” csak kategóriával aktív; a fotó és a megjegyzés nem kötelező.
+  - **Pont:** az „Esemény ennél a pontnál” `checkpoint_id`-je kerül a `nearest_checkpoint_id` mezőbe, akkor is, ha a helyadat más pontot mutatna (az őr mondta meg), és a sor „Pont: …”. Paraméter nélkül a legközelebbi aktív pont, a sor „Legközelebbi pont: …”.
+  - **Helyadat:** mint a kézi rögzítésnél: a mentéskor `currentLocation()`, ha az nem ad semmit, a megmutatott adat. Ha egyik sincs, az esemény helyadat nélkül rögzül, és a sor „Nincs helyadat”. A sorban a pontosság hiányozhat („GPS rögzítve”).
+  - **A műszak közben lezárul:** a domain elutasítja (`no_shift`), sáv mondja el, a gomb inaktív. Más hibánál az űrlap és a fotók megmaradnak. A fotók élete a kézi rögzítésé (`usePhotoDraft`).
+  - **Eltérés a referenciától:** a fejlécben a szinkronjelző a közös `ScreenHeader` része; a „Fotók” felirat a `PhotoField` közös „Fotó” felirata.
+- **Indok:** Specifikáció *Mobilapp* (`(guard)/incident/new`), *Láncolt napló* (`incident`); DESIGN_HANDOFF 5.15, 6 (G11), 7; `B-Esemeny`.
+- **Érintett:** `src/app/(guard)/incident/new.tsx`, `src/app/(guard)/_layout.tsx`, `src/app/(guard)/round/[id].tsx`, `src/components/toast.tsx`, `src/guard/scan.ts`, `src/guard/round.ts`, `src/domain/scan.ts`, `src/theme/tokens.ts`, `src/i18n/hu.json`, M3-33, M3-35.
+
+## 2026-10-31 – Műszakzárás (M3-38)
+
+- **Kérdés:** Kinek a PIN-je zárhatja a műszakot, mit mutat az összegzés, és mi lesz az „Időgyanús leolvasás” sorral?
+- **Döntés:**
+  - **PIN:** csak a műszakos őré (`pinConfirm`). Másik felhasználó érvényes PIN-je hibás PIN-nek számít, és a közös zárolásba is beleszámít: a másik őr a PIN-képernyőn veheti át a műszakot. Sikeres zárás után a munkamenet megszűnik, a navigáció a PIN-képernyőre visz, és azonnal indul egy szinkron (`requestSync('shift_closed')`), mint az automatikus zárásnál.
+  - **PIN-lap:** modális lap a képernyőn belül, a PIN-képernyő számlapjával, zárolásával és szövegeivel (`usePinLock`, `wrongPinText`, `pinLockedText`), de hat számjegy után is külön gombbal, hogy elütéssel ne záruljon a műszak. Ha ébresztés nyílik fölé, utat enged neki.
+  - **Az „Időgyanús leolvasás” sor nem készült el:** a `time_suspect` jelölést a szerver állítja, az eszköz nem tudja megszámolni, egy mindig nullás sor pedig félrevezető lenne. A `shiftEnd.suspicious` felirat törölve.
+  - **Számlálás:** a körök állapota ugyanaz, mint a kezdőlapon, ezért az elmaradtba az a menetrendi kör is beleszámít, amely a műszak kezdése előtt lejárt (a szerver jelentése is így számol). Az események közt a kézi rögzítések `damaged_tag` eseményei is ott vannak, mert a jelentésbe is így kerülnek. A nem igazolt pont a műszak köreinek kézi leolvasása. A feltöltetlen tételek száma a szinkronjelzőével azonos (`pendingCount`), és élőben frissül.
+  - **Nyitott kör:** körönként figyelmeztető sáv a lista tetején: hány pont van kész, és milyen állapottal zárul. Több útvonalnál az útvonal neve is ott áll. Külön megerősítés nincs, a PIN az.
+  - **Közben lezárult műszak:** a kezdőlap kilépteti az őrt, mint eddig; a záró képernyő addig csak a fejlécet mutatja. Ha a bejegyzések nem írhatók, az őr belépve marad, és újrapróbálhatja.
+- **Indok:** Specifikáció *Műszak* 3., *Jelölések* (`time_suspect`: szerver), *Mobilapp* (`(guard)/shift/close`); DESIGN_HANDOFF 6 (G12); `B-Zaras`.
+- **Érintett:** `src/app/(guard)/shift/close.tsx`, `src/app/(guard)/home.tsx`, `src/app/(auth)/pin.tsx`, `src/components/shift-timeline.tsx`, `src/navigation/use-pin-lock.ts`, `src/guard/shift-close.ts`, `src/auth/pin.ts`, `src/domain/shift.ts`, `src/i18n/hu.json`.
+
+## 2026-10-31 – Lefedettség és a séma lemaradása (M3-39)
+
+- **Kérdés:** Hogyan marad meg a 90%, és mi legyen azzal, hogy a GitHubon lévő `waypost-schema` régebbi annál, amire az app épül?
+- **Döntés:**
+  - **Lefedettség:** `npm run test:coverage`; a `coverageThreshold` a `src/domain`, `src/chain` és `src/sync` mappára külön-külön, mind a négy mutatóra 90%-ot kér, a `testing.ts` fájlok nélkül.
+  - **A séma:** a GitHubon a `main` és a `v0.1.0` tag is a 2026-10-27-i `M0-10` commit, az app viszont újabbat vár (`pinVectors`, a pull `reset` mezője, `api/site-list.response`, `SiteListResponse`, `server_error`, `bad_request`). A hiányzó részt itt nem pótoljuk és a sémát nem írjuk újra emlékezetből, mert a szerződés forrása a séma repója, és a két változat szétválna. Az M3-39 addig nyitott, amíg a friss séma fel nem kerül. Ideiglenes, repón kívüli sémamásolattal ellenőrizve: ezekkel a kiegészítésekkel a `typecheck` hibátlan, és a teljes Jest-futás zöld, tehát más oka nincs a pirosnak.
+- **Indok:** Specifikáció *Automatikus tesztek*; `CLAUDE.md` (a közös szerződés előbb a sémában változik); Q11.
+- **Érintett:** `package.json`, `.gitignore`, `src/sync/runtime.test.ts`, M3-39, M3-40.

@@ -13,6 +13,7 @@ import { ScreenHeader } from '@/components/screen-header';
 import { StatusBadge } from '@/components/status-badge';
 import { TextArea } from '@/components/text-field';
 import { getDatabase } from '@/db/open';
+import { MAX_NOTE_LENGTH } from '@/domain/scan';
 import { DomainError } from '@/domain/state';
 import { playFeedback } from '@/feedback/feedback';
 import { trustedNowMs } from '@/guard/home';
@@ -24,9 +25,6 @@ import { pointResultParams } from '@/navigation/use-scan-recorder';
 import { usePhotoDraft } from '@/photo/use-photo-draft';
 import { useTheme } from '@/theme/theme-provider';
 import { localTimeOf } from '@/time/zone';
-
-/** The limit of the note in the chain's payloads (payload-scan, payload-incident). */
-const NOTE_MAX_LENGTH = 2000;
 
 function ManualHeader() {
   return <ScreenHeader title={t('manual.title')} onBack={() => router.back()} right={<StatusBadge status="manual" />} />;
@@ -158,7 +156,7 @@ function ManualForm({ roundId, points, timezone, fixedOrder }: { roundId: string
           }}
         />
         <PhotoField required photos={draft.photos} onAdd={draft.add} onRemove={draft.remove} disabled={saving} />
-        <TextArea label={t('common.note')} requirement="required" value={note} onChangeText={setNote} maxLength={NOTE_MAX_LENGTH} editable={!saving} />
+        <TextArea label={t('common.note')} requirement="required" value={note} onChangeText={setNote} maxLength={MAX_NOTE_LENGTH} editable={!saving} />
         <InfoBanner variant="manual" icon="mapPin" title={gps} text={t('manual.info')} />
         {problem !== null && <InfoBanner variant="error" text={t(problem === 'closed' ? 'manual.roundClosed' : 'manual.failed')} />}
       </ScrollView>

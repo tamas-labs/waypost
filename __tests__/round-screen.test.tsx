@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import RoundScreen from '@/app/(guard)/round/[id]';
 import { useSession } from '@/auth/session';
 import { appendChainEntries } from '@/chain/writer';
+import * as toast from '@/components/toast';
 import type { Database } from '@/db/database';
 import { getDatabase } from '@/db/open';
 import { checkpoints } from '@/db/schema';
@@ -183,6 +184,28 @@ it('leaves when the round closes, but only once it is on top again', async () =>
   expoRouter.useIsFocused.mockReturnValue(true);
   await act(async () => screen.rerender(tree()));
   expect(router.back).toHaveBeenCalledTimes(1);
+});
+
+it('tells with a toast when the deadline closes the round', async () => {
+  const shown = jest.spyOn(toast, 'showToast');
+  await renderScreen();
+  await touch(tagOf(C1));
+  jest.setSystemTime(Date.parse(local('20:21')));
+  await step();
+  await act(async () => screen.rerender(tree()));
+  expect(shown).toHaveBeenCalledWith('A kör lezárult: Hiányos', 'warn');
+  expect(router.back).toHaveBeenCalledTimes(1);
+});
+
+it('has no toast for a round completed by a scan', async () => {
+  const shown = jest.spyOn(toast, 'showToast');
+  await renderScreen();
+  await touch(tagOf(C1));
+  await touch(tagOf(C2));
+  await touch(tagOf(C3));
+  await act(async () => screen.rerender(tree()));
+  expect(router.back).toHaveBeenCalledTimes(1);
+  expect(shown).not.toHaveBeenCalled();
 });
 
 describe('the Leolvasás button', () => {

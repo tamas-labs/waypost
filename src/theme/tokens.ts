@@ -224,6 +224,7 @@ export const press = { opacity: 0.85, scale: 0.98, disabledOpacity: 0.4 } as con
 export const motion = {
   shakeOffset: 10, shakeStepMs: 50, shakeRepeats: 3,
   resultMs: 200, resultScaleFrom: 0.96,
+  toastMs: 3000, toastFadeMs: 200,
 } as const;
 
 /** Állapotok → token kulcsok + ikon + felirat (hu.json kulcs). A szöveg mindig megjelenik a szín mellett. */

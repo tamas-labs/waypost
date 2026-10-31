@@ -1,4 +1,4 @@
-import { closeShiftByGuard, guardLogin, nextRound, shiftDay, shiftHome } from './shift';
+import { closeShiftByGuard, guardLogin, nextRound, shiftDay, shiftHome, shiftSummary } from './shift';
 import { DomainError } from './state';
 import { C1, C2, C3, C4, GUARD, guardState, idSequence, local, OPEN_SHIFT, OTHER_GUARD, round, ROUTE_A, ROUTE_B, SCHEDULES, SCHEDULE_A, SHIFT, SITE } from './testing';
 
@@ -178,5 +178,36 @@ describe('the shift home', () => {
 
   it('has no rounds without a schedule', () => {
     expect(shiftHome(guardState({ shift: OPEN_SHIFT, schedules: [] }), local('19:56'))).toEqual({ rounds: [], next_at: null, running: null, auto_close_at: null });
+  });
+});
+
+describe('the summary of closing the shift', () => {
+  const scanned = (checkpoint_id: string) => ({ checkpoint_id, scanned_at: local('20:05') });
+
+  it('has nothing without an open shift', () => {
+    expect(shiftSummary(guardState(), local('20:10'))).toBeNull();
+  });
+
+  it('counts the closed rounds, and tells how each open one would close', () => {
+    const rounds = [
+      round('A', '20:00', { status: 'completed', scans: [scanned(C1), scanned(C2), scanned(C3)] }),
+      round('B', '20:30', { status: 'incomplete', scans: [scanned(C3)] }),
+      round('A', '21:00', { status: 'missed' }),
+      round('B', '22:30', { status: 'in_progress', scans: [scanned(C4)] }),
+      round('A', '22:00'),
+    ];
+    const summary = shiftSummary(guardState({ shift: OPEN_SHIFT, rounds }), local('22:35'))!;
+    expect(summary.counts).toEqual({ completed: 1, incomplete: 1, missed: 1 });
+    expect(summary.open_rounds.map((r) => [r.scheduled_at, r.scanned, r.total, r.closes_as])).toEqual([
+      [local('22:30'), 1, 2, 'incomplete'],
+      [local('22:00'), 0, 3, 'missed'],
+    ]);
+    expect(summary.rounds).toEqual(shiftHome(guardState({ shift: OPEN_SHIFT, rounds }), local('22:35'))!.rounds);
+  });
+
+  it('counts a round over before the shift started as missed, as the shift home does', () => {
+    const summary = shiftSummary(guardState({ shift: { ...OPEN_SHIFT, started_at: local('21:30') } }), local('21:40'))!;
+    expect(summary.counts.missed).toBeGreaterThan(0);
+    expect(summary.open_rounds).toEqual([]);
   });
 });

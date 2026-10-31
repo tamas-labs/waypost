@@ -53,13 +53,12 @@ function candidates(db: Database) {
     .all();
 }
 
-/** Checks a PIN entered on the PIN pad (6 digits) and updates the lockout. */
-export async function pinLogin(db: Database, pin: string, readClock: ReadClock = readDeviceClock): Promise<PinLoginResult> {
+async function checkPin(db: Database, pin: string, readClock: ReadClock, usersToCheck: () => ReturnType<typeof candidates>): Promise<PinLoginResult> {
   if (!PIN.test(pin)) throw new Error('A PIN is 6 digits');
   const remaining = pinLockRemaining(db, readClock);
   if (remaining > 0) return { status: 'locked', remaining_ms: remaining };
 
-  const siteUsers = candidates(db);
+  const siteUsers = usersToCheck();
   const hashes = await Promise.all(siteUsers.map((candidate) => pinHash(pin, candidate.pin_salt!, candidate.pin_iterations!)));
   const user = siteUsers.find((candidate, i) => candidate.pin_hash === hashes[i]);
   const clock = readClock();
@@ -70,4 +69,14 @@ export async function pinLogin(db: Database, pin: string, readClock: ReadClock =
   const lockout = registerFailure(getKv(db, 'pin.lockout') ?? NO_LOCKOUT, clock);
   setKv(db, 'pin.lockout', lockout);
   return { status: 'wrong', failures: lockout.failures, remaining_ms: lockout.lock?.duration_ms ?? 0 };
+}
+
+/** Checks a PIN entered on the PIN pad (6 digits) and updates the lockout. */
+export function pinLogin(db: Database, pin: string, readClock: ReadClock = readDeviceClock): Promise<PinLoginResult> {
+  return checkPin(db, pin, readClock, () => candidates(db));
+}
+
+/** Checks that the PIN is this user's, for a step the user confirms; anyone else's PIN is a wrong one, under the same lockout. */
+export function pinConfirm(db: Database, userId: string, pin: string, readClock: ReadClock = readDeviceClock): Promise<PinLoginResult> {
+  return checkPin(db, pin, readClock, () => candidates(db).filter((candidate) => candidate.id === userId));
 }
