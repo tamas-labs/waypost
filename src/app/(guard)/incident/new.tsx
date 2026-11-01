@@ -22,6 +22,7 @@ import { t, type TranslationKey } from '@/i18n';
 import { usePhotoDraft } from '@/photo/use-photo-draft';
 import { useSyncStatus } from '@/sync/status';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 import { localTimeOf } from '@/time/zone';
 
 type Category = Exclude<IncidentPayload['category'], 'damaged_tag'>;
@@ -138,7 +139,7 @@ export default function NewIncidentScreen() {
           maxLength={MAX_NOTE_LENGTH}
           editable={!saving}
         />
-        {auto !== '' && <Text style={[typography.small, styles.tabular, { color: color.text2, paddingHorizontal: space.xs }]}>{auto}</Text>}
+        {auto !== '' && <Text style={[typography.small, tabular, { color: color.text2, paddingHorizontal: space.xs }]}>{auto}</Text>}
         {problem !== null && <InfoBanner variant="error" text={t(problem === 'closed' ? 'incident.shiftClosed' : 'incident.failed')} />}
       </ScrollView>
       <View style={{ paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: insets.bottom + space.l }}>
@@ -155,5 +156,4 @@ export default function NewIncidentScreen() {
 const styles = StyleSheet.create({
   grow: { flex: 1 },
   row: { flexDirection: 'row' },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

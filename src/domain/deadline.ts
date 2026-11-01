@@ -5,6 +5,7 @@ import { parseTimestamp, toTimestamp } from '@/time/timestamp';
 import { MINUTE_MS } from '@/time/zone';
 
 import type { Slot } from './schedule';
+import { roundKey } from './state';
 
 /** Deadline of the last round of a day without a time limit. */
 export const LAST_ROUND_GRACE_MIN = 60;
@@ -28,13 +29,12 @@ export interface DeadlineInput {
 
 /** The slots as the deadlines look them up, built once: a search per round would make the rules quadratic in the slots. */
 export interface SlotIndex {
-  /** By slotKey. */
+  /** By roundKey. */
   slots: ReadonlyMap<string, Slot>;
   /** The times of a route's day (window start day), in order, by dayKey. */
   dayTimes: ReadonlyMap<string, readonly number[]>;
 }
 
-export const slotKey = (slot: Pick<Slot, 'schedule_id' | 'scheduled_at'>) => `${slot.schedule_id}|${slot.scheduled_at}`;
 const dayKey = (slot: Pick<Slot, 'route_id' | 'start_day'>) => `${slot.route_id}|${slot.start_day}`;
 
 export function indexSlots(slots: readonly Slot[]): SlotIndex {
@@ -45,7 +45,7 @@ export function indexSlots(slots: readonly Slot[]): SlotIndex {
     else times.push(parseTimestamp(slot.scheduled_at));
   }
   for (const times of dayTimes.values()) times.sort((a, b) => a - b);
-  return { slots: new Map(slots.map((slot) => [slotKey(slot), slot])), dayTimes };
+  return { slots: new Map(slots.map((slot) => [roundKey(slot), slot])), dayTimes };
 }
 
 /** The first of the times (in order) after a time. */

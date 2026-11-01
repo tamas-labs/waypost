@@ -6,9 +6,9 @@ import { parseTimestamp, toTimestamp } from '@/time/timestamp';
 import { DAY_MS } from '@/time/zone';
 
 import { indexSlots } from './deadline';
-import { autoCloseTime, closingStatus, deadlineOf, expectedSlots, type ClosedStatus } from './rounds';
+import { autoCloseTime, closingStatus, deadlineOf, expectedSlots } from './rounds';
 import type { ScheduleOfRoute } from './schedule';
-import { isOpen, versionOf, type GuardState, type RoundInfo } from './state';
+import { isOpen, roundKey, versionOf, type ClosedStatus, type GuardState, type RoundInfo } from './state';
 
 export interface NextRound {
   scheduled_at: Timestamp;
@@ -164,14 +164,13 @@ export function shiftHome(state: GuardState, now: Timestamp): ShiftHome | null {
     return autoCloseMs !== null && at > parseTimestamp(first.scheduled_at) && at < autoCloseMs;
   });
 
-  const key = (round: Pick<RoundInfo, 'schedule_id' | 'scheduled_at'>) => `${round.schedule_id}|${round.scheduled_at}`;
-  const roundsBySlot = new Map(state.rounds.map((round) => [key(round), round]));
-  const slotKeys = new Set(ofShift.map(key));
+  const roundsBySlot = new Map(state.rounds.map((round) => [roundKey(round), round]));
+  const slotKeys = new Set(ofShift.map(roundKey));
   const routesWithNext = new Set<string>();
   let nextAt: Timestamp | null = null;
 
   const rounds = ofShift.map((slot): ShiftRound => {
-    const round = roundsBySlot.get(key(slot));
+    const round = roundsBySlot.get(roundKey(slot));
     if (round !== undefined) return shiftRoundOf(state, round);
     const versionId = state.routes.find((route) => route.id === slot.route_id)?.current_version_id;
     const checkpointIds = state.versions.find((version) => version.id === versionId)?.checkpoint_ids ?? [];
@@ -192,7 +191,7 @@ export function shiftHome(state: GuardState, now: Timestamp): ShiftHome | null {
     return { ...notOpened, state: 'next' };
   });
   for (const round of state.rounds) {
-    if (round.shift_id === shift.id && !slotKeys.has(key(round))) rounds.push(shiftRoundOf(state, round));
+    if (round.shift_id === shift.id && !slotKeys.has(roundKey(round))) rounds.push(shiftRoundOf(state, round));
   }
   rounds.sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at) || a.route_id.localeCompare(b.route_id));
 

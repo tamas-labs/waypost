@@ -4,6 +4,7 @@ import Animated, { Keyframe } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 
 import { Icon, type IconName } from './icon';
 
@@ -88,11 +89,11 @@ export function ResultScreen({ tone, icon, statusLine, title, body, header, chil
           </View>
         </View>
         <View style={[styles.texts, { gap: space.s }]}>
-          <Text style={[typography.resultLine, styles.text, { color: color[fg] }]}>{statusLine}</Text>
-          <Text accessibilityRole="header" style={[typography.result, styles.text, { color: color.text }]}>
+          <Text style={[typography.resultLine, styles.text, tabular, { color: color[fg] }]}>{statusLine}</Text>
+          <Text accessibilityRole="header" style={[typography.result, styles.text, tabular, { color: color.text }]}>
             {title}
           </Text>
-          {body !== undefined && <Text style={[typography.resultBody, styles.text, { color: color.text2 }]}>{body}</Text>}
+          {body !== undefined && <Text style={[typography.resultBody, styles.text, tabular, { color: color.text2 }]}>{body}</Text>}
         </View>
         {children}
       </ScrollView>
@@ -107,5 +108,5 @@ const styles = StyleSheet.create({
   center: { flexGrow: 1, alignItems: 'stretch', justifyContent: 'center' },
   ring: { alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
   texts: { alignItems: 'center' },
-  text: { textAlign: 'center', fontVariant: ['tabular-nums'] },
+  text: { textAlign: 'center' },
 });

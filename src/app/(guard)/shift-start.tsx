@@ -17,6 +17,7 @@ import { fixReadiness, getReadiness, readinessRows, type Readiness, type Readine
 import { t, type TranslationKey } from '@/i18n';
 import { onConfigurationPulled } from '@/sync/events';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 import { parseTimestamp } from '@/time/timestamp';
 import { localTimeOf } from '@/time/zone';
 
@@ -171,7 +172,7 @@ function ShiftRow({ label, value, large = false }: { label: string; value: strin
   return (
     <View style={[styles.row, { gap: space.m }]} accessible>
       <Text style={[typography.rowLabel, { color: color.text2 }]}>{label}</Text>
-      <Text style={[large ? typography.title2 : typography.body, styles.value, { color: color.text }]}>{value}</Text>
+      <Text style={[large ? typography.title2 : typography.body, styles.value, tabular, { color: color.text }]}>{value}</Text>
     </View>
   );
 }
@@ -180,7 +181,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { flexGrow: 1 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  value: { flexShrink: 1, textAlign: 'right', fontVariant: ['tabular-nums'] },
+  value: { flexShrink: 1, textAlign: 'right' },
   // On a tall screen the button sits at the bottom.
   spacer: { flexGrow: 1 },
 });

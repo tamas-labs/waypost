@@ -1,6 +1,7 @@
 import type { Timestamp } from '@waypost/schema';
 import { Text, View } from 'react-native';
 
+import { roundKey } from '@/domain/state';
 import { useTheme } from '@/theme/theme-provider';
 
 import { RoundTimeline, type RoundTimelineProps, type TimelineState } from './round-timeline';
@@ -31,7 +32,7 @@ export function ShiftTimeline({ rounds, time, variant }: ShiftTimelineProps) {
         variant={variant}
         legend={index === routes.length - 1}
         rounds={routeRounds.map((round) => ({
-          id: `${round.schedule_id}|${round.scheduled_at}`,
+          id: roundKey(round),
           time: time(round.scheduled_at),
           state: round.state,
         }))}

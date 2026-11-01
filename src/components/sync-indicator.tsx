@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View, type HostInstance } from 'react-nati
 
 import { t } from '@/i18n';
 import { useTheme } from '@/theme/theme-provider';
-import { syncStyle } from '@/theme/tokens';
+import { syncStyle, tabular } from '@/theme/tokens';
 
 import { Icon, type IconName } from './icon';
 
@@ -70,12 +70,11 @@ export function SyncIndicator({ state, count = 0, onPress, expanded, accessibili
           <Icon name={icon} size={iconSize.sync} color={color[style.fg]} />
         )}
       </View>
-      <Text style={[typography.chip, styles.tabular, { color: color[style.fg] }]}>{label}</Text>
+      <Text style={[typography.chip, tabular, { color: color[style.fg] }]}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   chip: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

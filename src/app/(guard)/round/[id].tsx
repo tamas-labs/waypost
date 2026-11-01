@@ -28,7 +28,7 @@ import { openNfcSettings } from '@/nfc/reader';
 import type { TagReading } from '@/nfc/tag';
 import { useTagReader, type TagReader } from '@/nfc/use-tag-reader';
 import { useTheme } from '@/theme/theme-provider';
-import { statusStyle } from '@/theme/tokens';
+import { statusStyle, tabular } from '@/theme/tokens';
 import { countdownText } from '@/time/countdown';
 import { parseTimestamp } from '@/time/timestamp';
 import { localTimeOf } from '@/time/zone';
@@ -266,7 +266,7 @@ function TimeLeft({ deadline, timezone, compact }: { deadline: Timestamp; timezo
     <View accessible style={[styles.grow, { gap: space.xs }]}>
       <Text style={[typography.rowLabel, { color: color.text2 }]}>{t('round.remaining')}</Text>
       <Text
-        style={[compact ? typography.counterSm : typography.counter, styles.tabular, { color: timeColor }]}
+        style={[compact ? typography.counterSm : typography.counter, tabular, { color: timeColor }]}
         numberOfLines={1}
         adjustsFontSizeToFit
         maxFontSizeMultiplier={1.2}
@@ -274,7 +274,7 @@ function TimeLeft({ deadline, timezone, compact }: { deadline: Timestamp; timezo
         {countdownText(seconds)}
       </Text>
       {!compact && (
-        <Text style={[typography.rowLabel, styles.tabular, { color: color.text2 }]}>
+        <Text style={[typography.rowLabel, tabular, { color: color.text2 }]}>
           {t('round.deadline', { time: localTimeOf(parseTimestamp(deadline), timezone) })}
         </Text>
       )}
@@ -287,5 +287,4 @@ const styles = StyleSheet.create({
   summary: { flexDirection: 'row', alignItems: 'center' },
   row: { flexDirection: 'row', alignItems: 'center' },
   grow: { flex: 1 },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

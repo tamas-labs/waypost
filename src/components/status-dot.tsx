@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '@/theme/theme-provider';
-import { statusStyle } from '@/theme/tokens';
+import { statusStyle, tabular } from '@/theme/tokens';
 
 import { Icon } from './icon';
 
@@ -37,7 +37,7 @@ export function StatusDot(props: StatusDotProps) {
     const fg = tone === 'next' ? color.accent : tone === 'warn' ? color.warn : color.run;
     return (
       <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[styles.dot, circle, fill]}>
-        <Text style={[typography.label, styles.number, { color: fg }]}>{props.number}</Text>
+        <Text style={[typography.label, tabular, { color: fg }]}>{props.number}</Text>
       </View>
     );
   }
@@ -66,5 +66,4 @@ export function StatusDot(props: StatusDotProps) {
 
 const styles = StyleSheet.create({
   dot: { alignItems: 'center', justifyContent: 'center' },
-  number: { fontVariant: ['tabular-nums'] },
 });

@@ -11,6 +11,8 @@
  * press, motion).
  */
 
+import type { TextStyle } from 'react-native';
+
 import type { TranslationKey } from '@/i18n';
 
 export type ThemeName = 'dark' | 'light';
@@ -127,7 +129,10 @@ export const fontFamily = {
   extrabold: 'Manrope_800ExtraBold',
 } as const;
 
-/** Tipográfiai skála. A számokhoz mindig fontVariant: ['tabular-nums']. */
+/** Numbers keep their width: on every text with figures, next to its typography entry. */
+export const tabular: TextStyle = { fontVariant: ['tabular-nums'] };
+
+/** Tipográfiai skála. A számokhoz mindig tabular. */
 export const typography = {
   display: { fontSize: 72, lineHeight: 72, fontFamily: fontFamily.extrabold, letterSpacing: -2 }, // kezdőlap visszaszámláló
   counter: { fontSize: 44, lineHeight: 46, fontFamily: fontFamily.extrabold, letterSpacing: -0.9 }, // kör hátralévő idő, betanítás óra

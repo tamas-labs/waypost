@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { t, type TranslationKey } from '@/i18n';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 import type { ColorTokens } from '@/theme/tokens';
 
 import { Icon, type IconName } from './icon';
@@ -82,7 +83,7 @@ export function RoundTimeline({ rounds, variant = 'full', legend = true }: Round
                 )}
               </View>
               {variant !== 'mini' && (
-                <Text style={[typography.micro, styles.tabular, { color: round.state === 'next' ? color.accent : color.text2 }]}>
+                <Text style={[typography.micro, tabular, { color: round.state === 'next' ? color.accent : color.text2 }]}>
                   {index % labelEvery === 0 ? round.time.slice(0, 2) : ' '}
                 </Text>
               )}
@@ -122,5 +123,4 @@ const styles = StyleSheet.create({
   column: { flex: 1, alignItems: 'center' },
   cell: { alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
   legend: { flexDirection: 'row', flexWrap: 'wrap' },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

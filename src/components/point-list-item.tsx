@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { t, type TranslationKey } from '@/i18n';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 import type { ColorTokens } from '@/theme/tokens';
 
 import { StatusDot, type StatusKey } from './status-dot';
@@ -61,7 +62,7 @@ export function PointListItem({ name, state, meta, position, onPress }: PointLis
       <View style={styles.texts}>
         <Text style={[typography.body, { color: color.text }]}>{name}</Text>
         {state !== 'pending' && metaText !== undefined && (
-          <Text style={[typography.small, styles.tabular, { color: color[s.meta] }]}>{metaText}</Text>
+          <Text style={[typography.small, tabular, { color: color[s.meta] }]}>{metaText}</Text>
         )}
       </View>
       {state === 'pending' && <Text style={[typography.small, { color: color.text2 }]}>{statusText}</Text>}
@@ -72,5 +73,4 @@ export function PointListItem({ name, state, meta, position, onPress }: PointLis
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center' },
   texts: { flex: 1, minWidth: 0 },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

@@ -83,6 +83,15 @@ export class DomainError extends Error {
 
 export const isOpen = (round: Pick<RoundInfo, 'status'>) => round.status === 'open' || round.status === 'in_progress';
 
+/** How a round closes. */
+export type ClosedStatus = 'completed' | 'incomplete' | 'missed';
+
+export const isClosedStatus = (status: string | undefined): status is ClosedStatus =>
+  status === 'completed' || status === 'incomplete' || status === 'missed';
+
+/** A round and its slot in a schedule have the same key. */
+export const roundKey = (round: Pick<RoundInfo, 'schedule_id' | 'scheduled_at'>) => `${round.schedule_id}|${round.scheduled_at}`;
+
 export function versionOf(state: GuardState, versionId: string): RouteVersionInfo {
   const version = state.versions.find((v) => v.id === versionId);
   if (version === undefined) throw new Error(`Route version ${versionId} is not loaded`);

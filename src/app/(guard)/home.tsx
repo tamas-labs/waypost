@@ -13,21 +13,21 @@ import { ScreenHeader } from '@/components/screen-header';
 import { ShiftTimeline } from '@/components/shift-timeline';
 import { StatusDot } from '@/components/status-dot';
 import { getDatabase } from '@/db/open';
+import { isClosedStatus, roundKey, type ClosedStatus } from '@/domain/state';
 import { loadShiftHomeInfo, type ShiftHomeInfo, type ShiftHomeRound } from '@/guard/home';
 import { forgetShownRounds, markRoundShown, wasRoundShown } from '@/guard/round';
 import { useCountdown } from '@/guard/use-countdown';
 import { useLiveQuery } from '@/hooks/use-live-query';
 import { t } from '@/i18n';
 import { useTheme } from '@/theme/theme-provider';
-import { statusStyle } from '@/theme/tokens';
+import { statusStyle, tabular } from '@/theme/tokens';
 import { parseTimestamp } from '@/time/timestamp';
 import { countdownText } from '@/time/countdown';
 import { localTimeOf, MINUTE_MS } from '@/time/zone';
 
-type ClosedRound = ShiftHomeRound & { state: 'completed' | 'incomplete' | 'missed' };
+type ClosedRound = ShiftHomeRound & { state: ClosedStatus };
 
-const isClosed = (round: ShiftHomeRound): round is ClosedRound =>
-  round.state === 'completed' || round.state === 'incomplete' || round.state === 'missed';
+const isClosed = (round: ShiftHomeRound): round is ClosedRound => isClosedStatus(round.state);
 
 /** The shift's rounds, reloaded after a chain entry (a round opened, a scan, a shift closed) and a pull. */
 function useShiftHomeInfo(guardId: string | null): ShiftHomeInfo | null {
@@ -90,12 +90,7 @@ export default function HomeScreen() {
 
         {/* Newest on top. */}
         {[...closed].reverse().map((round) => (
-          <ClosedRoundRow
-            key={`${round.schedule_id}|${round.scheduled_at}`}
-            round={round}
-            time={time(round.scheduled_at)}
-            withRoute={severalRoutes}
-          />
+          <ClosedRoundRow key={roundKey(round)} round={round} time={time(round.scheduled_at)} withRoute={severalRoutes} />
         ))}
       </ScrollView>
 
@@ -149,7 +144,7 @@ function RoundsCard({ rounds, closedCount, time }: { rounds: ShiftHomeRound[]; c
         <Text style={[typography.buttonSm, { color: color.text }]} accessibilityRole="header">
           {t('home.rounds')}
         </Text>
-        <Text style={[typography.rowLabel, styles.tabular, { color: color.text2 }]}>
+        <Text style={[typography.rowLabel, tabular, { color: color.text2 }]}>
           {t('home.closedCount', { closed: closedCount, total: rounds.length })}
         </Text>
       </View>
@@ -192,11 +187,11 @@ function CountdownCard({ title, target, caption, children }: { title: string; ta
   return (
     <Card style={[styles.centre, { paddingVertical: space.xxl, gap: space.xs }]}>
       <View accessible style={[styles.centre, { gap: space.xs }]}>
-        <Text style={[typography.siteName, styles.tabular, { color: color.text2 }]}>{title}</Text>
-        <Text style={[typography.display, styles.tabular, { color: color.text }]} numberOfLines={1} adjustsFontSizeToFit>
+        <Text style={[typography.siteName, tabular, { color: color.text2 }]}>{title}</Text>
+        <Text style={[typography.display, tabular, { color: color.text }]} numberOfLines={1} adjustsFontSizeToFit>
           {countdownText(seconds)}
         </Text>
-        <Text style={[typography.siteName, styles.tabular, { color: color.text2 }]}>{caption}</Text>
+        <Text style={[typography.siteName, tabular, { color: color.text2 }]}>{caption}</Text>
       </View>
       {children}
     </Card>
@@ -231,7 +226,7 @@ function ClosedRoundRow({ round, time, withRoute }: { round: ClosedRound; time: 
     >
       <StatusDot status={round.state} />
       <View style={styles.texts}>
-        <Text style={[typography.body, styles.tabular, { color: color.text }]}>
+        <Text style={[typography.body, tabular, { color: color.text }]}>
           {t('home.closedRound', { time, status: t(statusStyle[round.state].label), done: round.scanned, total: round.total })}
         </Text>
         {detail !== '' && (
@@ -248,7 +243,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   centre: { alignItems: 'center' },
   centredText: { textAlign: 'center' },
-  tabular: { fontVariant: ['tabular-nums'] },
   cardTitle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   row: { flexDirection: 'row', alignItems: 'center' },
   texts: { flex: 1, minWidth: 0 },

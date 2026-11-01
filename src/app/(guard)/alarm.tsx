@@ -16,7 +16,7 @@ import { runSchedulerStep } from '@/guard/scheduler';
 import { useLiveQuery } from '@/hooks/use-live-query';
 import { t } from '@/i18n';
 import { useTheme } from '@/theme/theme-provider';
-import { statusStyle } from '@/theme/tokens';
+import { statusStyle, tabular } from '@/theme/tokens';
 import { parseTimestamp } from '@/time/timestamp';
 import { localTimeOf } from '@/time/zone';
 
@@ -118,10 +118,10 @@ export default function AlarmScreen() {
         <AlarmClock time={time(scheduled_at)} />
 
         <View style={[styles.centre, { gap: space.s }]}>
-          <Text style={[typography.alarm, styles.text, styles.tabular, { color: color.text }]} accessibilityRole="header">
+          <Text style={[typography.alarm, styles.text, tabular, { color: color.text }]} accessibilityRole="header">
             {t('alarm.title', { time: time(scheduled_at) })}
           </Text>
-          <Text style={[typography.resultBody, styles.text, styles.tabular, { color: color.text2 }]}>{alarmDetails(info)}</Text>
+          <Text style={[typography.resultBody, styles.text, tabular, { color: color.text2 }]}>{alarmDetails(info)}</Text>
         </View>
 
         {info.previous !== null && <PreviousRound status={info.previous.status} time={time(info.previous.scheduled_at)} />}
@@ -149,7 +149,7 @@ function AlarmClock({ time }: { time: string }) {
       <View style={[styles.ring, circle(middle), { backgroundColor: color.ring2 }]}>
         <View style={[styles.ring, circle(inner), { backgroundColor: color.accent }]}>
           <Text
-            style={[typography.alarmTime, styles.tabular, { color: color.onAccent }]}
+            style={[typography.alarmTime, tabular, { color: color.onAccent }]}
             numberOfLines={1}
             adjustsFontSizeToFit
             maxFontSizeMultiplier={1.2}
@@ -181,7 +181,7 @@ function PreviousRound({ status, time }: { status: NonNullable<AlarmScreenInfo['
       ]}
     >
       <StatusDot status={status} />
-      <Text style={[typography.siteName, styles.tabular, styles.previousText, { color: color.text }]}>
+      <Text style={[typography.siteName, tabular, styles.previousText, { color: color.text }]}>
         {t('alarm.previous', { time, status: t(statusStyle[status].label).toLowerCase() })}
       </Text>
     </View>
@@ -197,6 +197,5 @@ const styles = StyleSheet.create({
   previous: { flexDirection: 'row', alignItems: 'center' },
   previousText: { flexShrink: 1 },
   text: { textAlign: 'center' },
-  tabular: { fontVariant: ['tabular-nums'] },
   wide: { alignSelf: 'stretch' },
 });

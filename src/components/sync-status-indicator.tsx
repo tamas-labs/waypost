@@ -7,6 +7,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { t } from '@/i18n';
 import { useSyncStatus, type SyncStatus } from '@/sync/status';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 import { parseTimestamp } from '@/time/timestamp';
 import { localDateOf, localTimeOf } from '@/time/zone';
 
@@ -119,8 +120,8 @@ function SyncDetails({ status, anchor, now, onClose }: SyncDetailsProps) {
       <View style={[styles.panel, { top, left, width }]}>
         <Card>
           <View style={{ gap: space.xs }}>
-            <Text style={[typography.body, styles.tabular, { color: color.text }]}>{lastSync}</Text>
-            <Text style={[typography.small, styles.tabular, { color: color.text2 }]}>{pending}</Text>
+            <Text style={[typography.body, tabular, { color: color.text }]}>{lastSync}</Text>
+            <Text style={[typography.small, tabular, { color: color.text2 }]}>{pending}</Text>
           </View>
           {online === false ? (
             <InfoBanner variant="offline" icon="cloudOff" text={t('sync.offlineDetail')} />
@@ -142,5 +143,4 @@ function SyncDetails({ status, anchor, now, onClose }: SyncDetailsProps) {
 
 const styles = StyleSheet.create({
   panel: { position: 'absolute' },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

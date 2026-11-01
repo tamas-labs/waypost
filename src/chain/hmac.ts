@@ -4,16 +4,14 @@ import type { ChainEntry, ChainEntryOf, ChainEntryType, Hash, UnsignedChainEntry
 import { Buffer, createHmac } from 'react-native-quick-crypto';
 
 import { canonicalJson } from './canonical-json';
+import { isDeviceSecret } from './secret';
 
 /** prev_hash of the first entry of a chain. */
 export const GENESIS_HASH: Hash = '0'.repeat(64);
 
-/** 32 bytes in base64, as POST /devices/enroll returns the device secret. */
-const KEY = /^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=$/;
-
 /** Lowercase hex HMAC-SHA256 of the UTF-8 bytes of message. keyBase64: the 32-byte key in base64. */
 export function hmacSha256Hex(keyBase64: string, message: string): Hash {
-  if (!KEY.test(keyBase64)) throw new Error('The HMAC key must be 32 bytes in base64');
+  if (!isDeviceSecret(keyBase64)) throw new Error('The HMAC key must be 32 bytes in base64');
   return createHmac('sha256', Buffer.from(keyBase64, 'base64')).update(message, 'utf8').digest('hex');
 }
 

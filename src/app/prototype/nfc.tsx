@@ -8,6 +8,7 @@ import { openNfcSettings } from '@/nfc/reader';
 import type { TagReading } from '@/nfc/tag';
 import { useTagReader } from '@/nfc/use-tag-reader';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 
 interface Reading {
   key: number;
@@ -113,10 +114,10 @@ export default function NfcScreen() {
       {readings.length === 0 && <Text style={[typography.bodyRegular, { color: color.text2 }]}>{t('prototype.nfc.empty')}</Text>}
       {readings.map(({ key, at, tag }) => (
         <View key={key} style={[styles.card, card]}>
-          <Text style={[small, styles.tabular]}>{t('prototype.nfc.readAt', { time: formatTime(at), tech: techText(tag.tech) })}</Text>
+          <Text style={[small, tabular]}>{t('prototype.nfc.readAt', { time: formatTime(at), tech: techText(tag.tech) })}</Text>
           <Text style={label}>{t('prototype.nfc.uid')}</Text>
           {tag.uid !== null ? (
-            <Text style={[typography.title2, styles.tabular, { color: color.text }]} selectable>
+            <Text style={[typography.title2, tabular, { color: color.text }]} selectable>
               {tag.uid}
             </Text>
           ) : (
@@ -129,12 +130,10 @@ export default function NfcScreen() {
             <Text style={body}>{t('prototype.nfc.ndefEmpty')}</Text>
           ) : (
             <>
-              <Text style={[body, styles.tabular]}>
-                {t('prototype.nfc.ndefSummary', { bytes: tag.ndefLength, records: tag.records.length })}
-              </Text>
+              <Text style={[body, tabular]}>{t('prototype.nfc.ndefSummary', { bytes: tag.ndefLength, records: tag.records.length })}</Text>
               {tag.records.map((record, index) => (
                 <View key={index}>
-                  <Text style={[small, styles.tabular]}>
+                  <Text style={[small, tabular]}>
                     {t('prototype.nfc.record', { tnf: record.tnf, type: record.type, bytes: record.payloadLength })}
                   </Text>
                   {record.text !== null && (
@@ -164,5 +163,4 @@ export default function NfcScreen() {
 const styles = StyleSheet.create({
   card: { borderWidth: 1 },
   button: { alignItems: 'center', justifyContent: 'center' },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

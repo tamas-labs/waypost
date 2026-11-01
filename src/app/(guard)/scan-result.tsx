@@ -17,6 +17,7 @@ import { useCountdown } from '@/guard/use-countdown';
 import { t } from '@/i18n';
 import { formatTagUid } from '@/nfc/tag';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 import type { ColorTokens } from '@/theme/tokens';
 import { countdownText } from '@/time/countdown';
 import { parseTimestamp } from '@/time/timestamp';
@@ -95,7 +96,7 @@ function TimeLeftText({ deadline, left }: { deadline: Timestamp; left: number })
   const { color, typography } = useTheme();
   const seconds = useCountdown(deadline);
   return (
-    <Text style={[typography.small, styles.tabular, { color: color.text2 }]}>
+    <Text style={[typography.small, tabular, { color: color.text2 }]}>
       {t('scanResult.progressRest', { left, time: countdownText(seconds) })}
     </Text>
   );
@@ -108,7 +109,7 @@ function ProgressCard({ round, completed }: { round: RoundScreenInfo; completed:
   return (
     <Card style={{ gap: space.s }}>
       <View style={[styles.row, styles.wrap, { gap: space.s }]}>
-        <Text style={[typography.title2, styles.tabular, styles.grow, { color: color.text }]}>
+        <Text style={[typography.title2, tabular, styles.grow, { color: color.text }]}>
           {t('scanResult.progress', { done: round.scanned, total })}
         </Text>
         {completed ? (
@@ -223,7 +224,7 @@ function UnknownResult({ info, params, leave }: { info: ScanResultInfo; params: 
       <Card style={{ gap: space.xs }}>
         <Text style={[typography.small, { color: color.text2 }]}>{t('scanResult.readId')}</Text>
         <Text
-          style={[typography.body, styles.tabular, { color: color.text }]}
+          style={[typography.body, tabular, { color: color.text }]}
         >{`${t(qr ? 'method.qr' : 'method.nfc')} · ${qr ? readId : formatTagUid(readId)}`}</Text>
       </Card>
     </ResultScreen>
@@ -357,5 +358,4 @@ const styles = StyleSheet.create({
   grow: { flex: 1 },
   instruction: { flexDirection: 'row', alignItems: 'flex-start' },
   centered: { textAlign: 'center' },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

@@ -14,6 +14,7 @@ import { ScreenHeader } from '@/components/screen-header';
 import { ShiftTimeline } from '@/components/shift-timeline';
 import { StatusDot } from '@/components/status-dot';
 import { getDatabase } from '@/db/open';
+import { roundKey } from '@/domain/state';
 import { playFeedback } from '@/feedback/feedback';
 import { closeShiftWithPin, loadShiftCloseInfo, type ShiftCloseInfo } from '@/guard/shift-close';
 import { useLiveQuery } from '@/hooks/use-live-query';
@@ -21,7 +22,7 @@ import { usePinEntry } from '@/hooks/use-pin-entry';
 import { t, type TranslationKey } from '@/i18n';
 import { useSyncStatus } from '@/sync/status';
 import { useTheme } from '@/theme/theme-provider';
-import { statusStyle, type ColorTokens } from '@/theme/tokens';
+import { type ColorTokens, statusStyle, tabular } from '@/theme/tokens';
 import { parseTimestamp } from '@/time/timestamp';
 import { localTimeOf } from '@/time/zone';
 
@@ -57,7 +58,7 @@ function StatTile({ status, label, count }: { status: keyof ShiftCloseInfo['coun
       ]}
     >
       <StatusDot status={status} />
-      <Text style={[typography.title1, styles.tabular, { color: color.text }]}>{count}</Text>
+      <Text style={[typography.title1, tabular, { color: color.text }]}>{count}</Text>
       <Text style={[typography.small, { color: color.text2 }]}>{label}</Text>
     </View>
   );
@@ -92,7 +93,7 @@ function SummaryRow({
         <Icon name={icon} size={iconSize.dot} color={color[fg]} />
       </View>
       <Text style={[typography.body, styles.grow, { color: color.text }]}>{label}</Text>
-      <Text style={[typography.buttonSm, styles.tabular, { color: color.text }]}>{count}</Text>
+      <Text style={[typography.buttonSm, tabular, { color: color.text }]}>{count}</Text>
     </View>
   );
 }
@@ -126,7 +127,7 @@ function PinSheet({ guardId, onClose }: { guardId: string; onClose: () => void }
           <PinDots entered={pin.length} shakeKey={shakeKey} />
           {messageText !== null && (
             <Text
-              style={[typography.body, styles.centred, styles.tabular, { color: color.miss }]}
+              style={[typography.body, styles.centred, tabular, { color: color.miss }]}
               accessibilityLiveRegion="polite"
               accessibilityRole="alert"
             >
@@ -213,7 +214,7 @@ export default function ShiftCloseScreen() {
       />
       <ScrollView style={styles.grow} contentContainerStyle={{ paddingHorizontal: space.l, paddingBottom: space.m, gap: space.m }}>
         {info.open_rounds.map((round) => (
-          <OpenRoundBanner key={`${round.schedule_id}|${round.scheduled_at}`} round={round} severalRoutes={severalRoutes} time={time} />
+          <OpenRoundBanner key={roundKey(round)} round={round} severalRoutes={severalRoutes} time={time} />
         ))}
         <View style={[styles.row, { gap: space.s }]}>
           {STATS.map(({ status, label }) => (
@@ -244,6 +245,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center' },
   dot: { alignItems: 'center', justifyContent: 'center' },
   centred: { textAlign: 'center' },
-  tabular: { fontVariant: ['tabular-nums'] },
   sheet: { maxHeight: '92%' },
 });

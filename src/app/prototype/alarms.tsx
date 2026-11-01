@@ -15,6 +15,7 @@ import { cancelTestAlarms, getScheduledTestAlarms, scheduleTestAlarms, type Sche
 import { TEST_EVERY_MIN, TEST_HOURS } from '@/alarms/test-schedule';
 import { t, type TranslationKey } from '@/i18n';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 
 interface Arrival {
   key: number;
@@ -99,7 +100,7 @@ export default function AlarmsScreen() {
 
   const label = [typography.label, { color: color.text2 }];
   const body = [typography.bodyRegular, { color: color.text }];
-  const small = [typography.small, styles.tabular, { color: color.text2 }];
+  const small = [typography.small, tabular, { color: color.text2 }];
   const card = { backgroundColor: color.surface, borderColor: color.cardBorder, borderRadius: radius.card, padding: space.l, gap: space.m };
   const secondary = [
     styles.button,
@@ -194,7 +195,7 @@ export default function AlarmsScreen() {
           <Text style={[typography.bodyRegular, { color: color.text2 }]}>{t('prototype.alarms.noneScheduled')}</Text>
         ) : (
           <>
-            <Text style={[body, styles.tabular]}>{scheduled.map(({ at }) => formatTime(at)).join(' · ')}</Text>
+            <Text style={[body, tabular]}>{scheduled.map(({ at }) => formatTime(at)).join(' · ')}</Text>
             {button('prototype.alarms.cancel', () => run(cancelTestAlarms))}
           </>
         )}
@@ -224,5 +225,4 @@ export default function AlarmsScreen() {
 const styles = StyleSheet.create({
   card: { borderWidth: 1 },
   button: { alignItems: 'center', justifyContent: 'center' },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

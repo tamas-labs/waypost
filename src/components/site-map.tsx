@@ -7,6 +7,7 @@ import { regionAround, type Coordinate } from '@/location/coordinate';
 import { mapsConfigured } from '@/location/maps';
 import { mapStyleOf } from '@/theme/map-style';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 
 import { IconButton } from './icon-button';
 
@@ -130,7 +131,7 @@ export function SiteMap({ points, walked, walkedLabel, position, accessibilityLa
           <View
             style={{ width: size.mapRouteSwatch, height: size.mapRoute - 1, borderRadius: radius.swatch, backgroundColor: color.accent }}
           />
-          <Text style={[typography.mapCapsule, styles.tabular, { color: color.text }]} numberOfLines={1}>
+          <Text style={[typography.mapCapsule, tabular, { color: color.text }]} numberOfLines={1}>
             {walkedLabel}
           </Text>
         </View>
@@ -204,10 +205,7 @@ function PointMarker({ point }: { point: SiteMapPoint }) {
             : { backgroundColor: fill, borderColor: color.mapBg, borderWidth: size.mapMarkerRing },
         ]}
       >
-        <Text
-          style={[typography.mapMarker, styles.tabular, { color: pending ? color.text2 : color.mapMarkerText }]}
-          maxFontSizeMultiplier={1}
-        >
+        <Text style={[typography.mapMarker, tabular, { color: pending ? color.text2 : color.mapMarkerText }]} maxFontSizeMultiplier={1}>
           {point.number}
         </Text>
       </View>
@@ -267,5 +265,4 @@ const styles = StyleSheet.create({
   legend: { position: 'absolute' },
   legendRow: { flexDirection: 'row', alignItems: 'center' },
   center: { position: 'absolute' },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

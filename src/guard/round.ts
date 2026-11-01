@@ -5,8 +5,8 @@ import { and, eq, isNotNull } from 'drizzle-orm';
 
 import type { Database } from '@/db/database';
 import { checkpoints, rounds, scans } from '@/db/schema';
-import { deadlineOfRound, type ClosedStatus } from '@/domain/rounds';
-import { isOpen, versionOf, type GuardState } from '@/domain/state';
+import { deadlineOfRound } from '@/domain/rounds';
+import { isClosedStatus, isOpen, versionOf, type ClosedStatus, type GuardState } from '@/domain/state';
 import { coordinateOfE7, type Coordinate } from '@/location/coordinate';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 
@@ -168,5 +168,5 @@ export function forgetShownRounds(): void {
 /** What a round came to; null while it is open, or if it is not known. */
 export function closedStatusOf(db: Database, roundId: string): ClosedStatus | null {
   const status = db.select({ status: rounds.status }).from(rounds).where(eq(rounds.id, roundId)).get()?.status;
-  return status === 'completed' || status === 'incomplete' || status === 'missed' ? status : null;
+  return isClosedStatus(status) ? status : null;
 }

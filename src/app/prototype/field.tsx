@@ -10,6 +10,7 @@ import { t } from '@/i18n';
 import { currentLocation, hasLocationPermission, requestLocationPermission } from '@/location/location';
 import { discardPhoto, takePhoto } from '@/photo/photo';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 
 /** The camera box: 3:4, like the photos. */
 const CAMERA_ASPECT_RATIO = 3 / 4;
@@ -63,7 +64,7 @@ export default function FieldScreen() {
 
   const card = { backgroundColor: color.surface, borderColor: color.cardBorder, borderRadius: radius.card, padding: space.l, gap: space.s };
   const label = [typography.label, { color: color.text2 }];
-  const body = [typography.bodyRegular, styles.tabular, { color: color.text }];
+  const body = [typography.bodyRegular, tabular, { color: color.text }];
   const button = [styles.button, { backgroundColor: color.accent, borderRadius: radius.pill, minHeight: size.buttonSecondary }];
   const buttonText = [typography.buttonSm, { color: color.onAccent }];
 
@@ -176,5 +177,4 @@ const styles = StyleSheet.create({
   grow: { flex: 1 },
   camera: { width: '100%', aspectRatio: CAMERA_ASPECT_RATIO, overflow: 'hidden' },
   photo: { width: '100%', aspectRatio: CAMERA_ASPECT_RATIO },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

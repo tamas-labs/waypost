@@ -7,9 +7,9 @@ import { parseTimestamp, toTimestamp } from '@/time/timestamp';
 import { MINUTE_MS } from '@/time/zone';
 
 import { indexSlots } from './deadline';
-import { autoCloseTime, deadlineOf, expectedSlots, type ClosedStatus } from './rounds';
+import { autoCloseTime, deadlineOf, expectedSlots } from './rounds';
 import { shiftHome } from './shift-view';
-import type { GuardState } from './state';
+import { isClosedStatus, roundKey, type ClosedStatus, type GuardState } from './state';
 
 export const ALARM_HORIZON_MS = 36 * 60 * MINUTE_MS;
 /** Under iOS's limit of 64 pending notifications. */
@@ -38,13 +38,13 @@ export function alarmPlan(state: GuardState, now: Timestamp): PlannedAlarm[] {
   const shiftStartedMs = state.shift === null ? null : parseTimestamp(state.shift.started_at);
   const slots = expectedSlots(state, Math.min(nowMs, shiftStartedMs ?? nowMs), horizonMs);
   const autoCloseMs = shiftStartedMs === null ? null : autoCloseTime(state, slots, shiftStartedMs);
-  const statuses = new Map(state.rounds.map((round) => [`${round.schedule_id}|${round.scheduled_at}`, round.status]));
+  const statuses = new Map(state.rounds.map((round) => [roundKey(round), round.status]));
 
   const alarms: PlannedAlarm[] = [];
   for (const slot of slots) {
     const at = parseTimestamp(slot.scheduled_at);
     if (at <= nowMs - REMINDER_AFTER_MS || at > horizonMs) continue;
-    const status = statuses.get(`${slot.schedule_id}|${slot.scheduled_at}`);
+    const status = statuses.get(roundKey(slot));
     const login = shiftStartedMs === null || (autoCloseMs !== null && at >= autoCloseMs);
     const alarm = { route_id: slot.route_id, schedule_id: slot.schedule_id, scheduled_at: slot.scheduled_at, login };
     if (at > nowMs) alarms.push({ ...alarm, kind: 'round', fire_at: slot.scheduled_at });
@@ -93,8 +93,6 @@ export function roundAlarmInfo(state: GuardState, slot: AlarmSlot, now: Timestam
     checkpoints: state.versions.find((version) => version.id === versionId)?.checkpoint_ids.length ?? 0,
     time_limit_min: timing.time_limit_min,
     previous:
-      previous !== undefined && (previous.state === 'completed' || previous.state === 'incomplete' || previous.state === 'missed')
-        ? { scheduled_at: previous.scheduled_at, status: previous.state }
-        : null,
+      previous !== undefined && isClosedStatus(previous.state) ? { scheduled_at: previous.scheduled_at, status: previous.state } : null,
   };
 }

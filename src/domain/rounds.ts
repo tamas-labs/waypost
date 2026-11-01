@@ -9,11 +9,9 @@ import { roundClosed, roundOpened, shiftClosed } from '@/chain/payloads';
 import { parseTimestamp, toTimestamp } from '@/time/timestamp';
 import { DAY_MS, localDateOf } from '@/time/zone';
 
-import { deadlineMs, indexSlots, slotKey, type SlotIndex } from './deadline';
+import { deadlineMs, indexSlots, type SlotIndex } from './deadline';
 import { slotsBetween, type Slot } from './schedule';
-import { isOpen, versionOf, type GuardState, type NewId, type RoundInfo } from './state';
-
-export type ClosedStatus = 'completed' | 'incomplete' | 'missed';
+import { isOpen, roundKey, versionOf, type ClosedStatus, type GuardState, type NewId, type RoundInfo } from './state';
 
 /** How a round closes now: completed if every checkpoint is scanned (manual too), else incomplete or missed. */
 export function closingStatus(round: Pick<RoundInfo, 'scans'>, checkpointIds: readonly string[]): ClosedStatus {
@@ -52,7 +50,7 @@ export function deadlineOf(
   index: SlotIndex,
 ): number {
   // A round whose schedule has changed since: the day is its local date.
-  const startDay = index.slots.get(slotKey(round))?.start_day ?? localDateOf(parseTimestamp(round.scheduled_at), state.timezone);
+  const startDay = index.slots.get(roundKey(round))?.start_day ?? localDateOf(parseTimestamp(round.scheduled_at), state.timezone);
   return deadlineMs(
     { route_id: round.route_id, start_day: startDay, scheduled_at: round.scheduled_at, time_limit_min: round.time_limit_min },
     index,
@@ -127,12 +125,12 @@ export function schedulerStep(state: GuardState, now: Timestamp, newId: NewId): 
     current.set(round.route_id, { round, deadline: deadlineOf(state, round, index) });
   }
 
-  const known = new Set(state.rounds.map((round) => `${round.schedule_id}|${round.scheduled_at}`));
+  const known = new Set(state.rounds.map(roundKey));
   for (const slot of slots) {
     const at = parseTimestamp(slot.scheduled_at);
     if (at > endMs || (autoCloseMs !== null && at >= autoCloseMs)) break;
     const versionId = routes.get(slot.route_id)?.current_version_id;
-    if (versionId == null || known.has(`${slot.schedule_id}|${slot.scheduled_at}`)) continue;
+    if (versionId == null || known.has(roundKey(slot))) continue;
     const deadline = deadlineOf(state, slot, index);
     if (deadline <= shiftStartedMs) continue;
 

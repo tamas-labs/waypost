@@ -22,6 +22,7 @@ import { SyncIndicator } from '@/components/sync-indicator';
 import { TextArea, TextField } from '@/components/text-field';
 import { t, type TranslationKey } from '@/i18n';
 import { useTheme, useThemePreference } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 import type { ThemePreference } from '@/theme/tokens';
 
 const STATUSES: StatusKey[] = ['completed', 'in_progress', 'incomplete', 'missed', 'manual', 'time_suspicious', 'wrong_order', 'pending'];
@@ -126,7 +127,7 @@ export default function ComponentsScreen() {
           <StatusDot status="completed" />
           <View style={styles.flex}>
             <Text style={[typography.body, { color: color.text }]}>{t('dev.components.pointName')}</Text>
-            <Text style={[typography.small, styles.tabular, { color: color.text2 }]}>{t('dev.components.pointMeta')}</Text>
+            <Text style={[typography.small, tabular, { color: color.text2 }]}>{t('dev.components.pointMeta')}</Text>
           </View>
         </View>
       </Card>
@@ -292,10 +293,8 @@ function SampleResult({ kind, onClose }: { kind: ResultKind; onClose: () => void
         >
           <View style={box}>
             <View style={[styles.row, styles.between]}>
-              <Text style={[typography.title2, styles.tabular, { color: color.text }]}>
-                {t('scanResult.progress', { done: 6, total: 9 })}
-              </Text>
-              <Text style={[typography.small, styles.tabular, { color: color.text2 }]}>
+              <Text style={[typography.title2, tabular, { color: color.text }]}>{t('scanResult.progress', { done: 6, total: 9 })}</Text>
+              <Text style={[typography.small, tabular, { color: color.text2 }]}>
                 {t('scanResult.progressRest', { left: 3, time: '12:10' })}
               </Text>
             </View>
@@ -339,7 +338,7 @@ function SampleResult({ kind, onClose }: { kind: ResultKind; onClose: () => void
         >
           <View style={box}>
             <Text style={[typography.small, { color: color.text2 }]}>{t('scanResult.readId')}</Text>
-            <Text style={[typography.body, styles.tabular, { color: color.text }]}>{t('dev.components.tagId')}</Text>
+            <Text style={[typography.body, tabular, { color: color.text }]}>{t('dev.components.tagId')}</Text>
           </View>
         </ResultScreen>
       );
@@ -366,5 +365,4 @@ const styles = StyleSheet.create({
   between: { justifyContent: 'space-between' },
   half: { flexBasis: '48%', flexGrow: 1 },
   full: { flexBasis: '100%' },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { t } from '@/i18n';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 
 interface Reading {
   deviceMs: number;
@@ -44,7 +45,7 @@ export default function ClockScreen() {
 
   const deviceDelta = now.deviceMs - first.deviceMs;
   const uptimeDelta = now.uptimeMs - first.uptimeMs;
-  const numbers = [typography.title2, styles.tabular, { color: color.text }];
+  const numbers = [typography.title2, tabular, { color: color.text }];
   const label = [typography.label, { color: color.text2 }];
   const card = { backgroundColor: color.surface, borderColor: color.cardBorder, borderRadius: radius.card, padding: space.l, gap: space.s };
 
@@ -53,7 +54,7 @@ export default function ClockScreen() {
       <Stack.Screen options={{ title: t('prototype.clock.title') }} />
       <View style={[styles.card, card]}>
         <Text style={label}>{t('prototype.clock.uptime')}</Text>
-        <Text style={[typography.counter, styles.tabular, { color: color.text }]}>{formatDuration(now.uptimeMs)}</Text>
+        <Text style={[typography.counter, tabular, { color: color.text }]}>{formatDuration(now.uptimeMs)}</Text>
         <Text style={numbers}>{t('prototype.clock.seconds', { seconds: Math.floor(now.uptimeMs / 1000) })}</Text>
         <Text style={label}>{t('prototype.clock.bootId')}</Text>
         <Text style={[typography.bodyRegular, { color: color.text }]} selectable>
@@ -77,5 +78,4 @@ export default function ClockScreen() {
 
 const styles = StyleSheet.create({
   card: { borderWidth: 1 },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

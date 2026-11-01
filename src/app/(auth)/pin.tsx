@@ -14,6 +14,7 @@ import { useLiveQuery } from '@/hooks/use-live-query';
 import { usePinEntry } from '@/hooks/use-pin-entry';
 import { t, type TranslationKey } from '@/i18n';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 import { parseTimestamp } from '@/time/timestamp';
 import { DAY_MS, localTimeOf, naiveOf } from '@/time/zone';
 
@@ -106,7 +107,7 @@ export default function PinScreen() {
         <PinDots entered={pin.length} shakeKey={shakeKey} />
         {messageText !== null && (
           <Text
-            style={[typography.body, styles.text, styles.tabular, { color: color.miss }]}
+            style={[typography.body, styles.text, tabular, { color: color.miss }]}
             accessibilityLiveRegion="polite"
             accessibilityRole="alert"
           >
@@ -166,7 +167,7 @@ function PinGreeting({ info }: { info: PinScreenInfo | null }) {
         {/* Before the first pull the site's clock is not known. */}
         {info === null ? t('pin.title') : t(greeting(info))}
       </Text>
-      {line !== null && <Text style={[typography.bodyRegular, styles.text, styles.tabular, { color: color.text2 }]}>{line}</Text>}
+      {line !== null && <Text style={[typography.bodyRegular, styles.text, tabular, { color: color.text2 }]}>{line}</Text>}
     </View>
   );
 }
@@ -178,5 +179,4 @@ const styles = StyleSheet.create({
   // The keypad sits low, near the thumb, on a tall screen.
   pad: { marginTop: 'auto' },
   text: { textAlign: 'center' },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

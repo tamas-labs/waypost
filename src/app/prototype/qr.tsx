@@ -9,6 +9,7 @@ import { t } from '@/i18n';
 import { parseCheckpointQr } from '@/qr/payload';
 import { QrScanner } from '@/qr/qr-scanner';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 
 interface Reading {
   key: number;
@@ -50,7 +51,7 @@ export default function QrScreen() {
 
   const card = { backgroundColor: color.surface, borderColor: color.cardBorder, borderRadius: radius.card, padding: space.l, gap: space.s };
   const pill = { borderRadius: radius.pill, minHeight: size.iconButton, paddingHorizontal: space.l };
-  const small = [typography.small, styles.tabular, { color: color.text2 }];
+  const small = [typography.small, tabular, { color: color.text2 }];
 
   const backButton = (
     <Pressable accessibilityRole="button" onPress={() => router.back()} style={[styles.button, pill, { backgroundColor: color.surface }]}>
@@ -125,9 +126,7 @@ export default function QrScreen() {
         {readings.length === 0 ? (
           <Text style={[typography.bodyRegular, { color: color.text2 }]}>{t('prototype.qr.hint')}</Text>
         ) : (
-          <Text style={[typography.label, styles.tabular, { color: color.text2 }]}>
-            {t('prototype.qr.count', { count: readings.length })}
-          </Text>
+          <Text style={[typography.label, tabular, { color: color.text2 }]}>{t('prototype.qr.count', { count: readings.length })}</Text>
         )}
         {readings.slice(0, SHOWN_READINGS).map(({ key, at, payload }) => {
           const checkpoint = parseCheckpointQr(payload);
@@ -159,5 +158,4 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1 },
   button: { alignItems: 'center', justifyContent: 'center' },
   viewfinder: { borderWidth: 3 },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

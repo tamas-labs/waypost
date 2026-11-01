@@ -3,6 +3,7 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { t } from '@/i18n';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 import type { ColorTokens } from '@/theme/tokens';
 
 // The ring is drawn in a 104 viewBox (B-Kor.dc.html), scaled to its size.
@@ -27,9 +28,7 @@ export function ProgressRing({ done, total, size = 'regular' }: ProgressRingProp
   const fraction = total > 0 ? Math.min(done / total, 1) : 0;
   const count = (
     <View style={small ? undefined : styles.inside}>
-      <Text
-        style={[small ? typography.ringValueSm : typography.ringValue, styles.tabular, { color: color.text }]}
-      >{`${done}/${total}`}</Text>
+      <Text style={[small ? typography.ringValueSm : typography.ringValue, tabular, { color: color.text }]}>{`${done}/${total}`}</Text>
       <Text style={[typography.unit, { color: color.text2 }]}>{t('common.points')}</Text>
     </View>
   );
@@ -93,5 +92,4 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center' },
   inside: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   segment: { flex: 1 },
-  tabular: { fontVariant: ['tabular-nums'] },
 });

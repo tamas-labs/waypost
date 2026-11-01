@@ -6,6 +6,7 @@ import { Button } from '@/components/button';
 import { BENCHMARK_RULES, BENCHMARK_SCHEDULES, runBenchmark, type BenchmarkResult } from '@/guard/benchmark';
 import { t } from '@/i18n';
 import { useTheme } from '@/theme/theme-provider';
+import { tabular } from '@/theme/tokens';
 
 // J-06 device test: how long the scheduling rules take on the phone with the three schedules of the audit.
 export default function BenchmarkScreen() {
@@ -35,7 +36,7 @@ export default function BenchmarkScreen() {
               return (
                 <View key={rule} style={styles.row}>
                   <Text style={[typography.body, { color: color.text2 }]}>{rule}</Text>
-                  <Text style={[typography.body, styles.tabular, { color: color.text }]}>
+                  <Text style={[typography.body, tabular, { color: color.text }]}>
                     {t('prototype.benchmark.ms', { ms: ms.toFixed(1) })}
                   </Text>
                 </View>
@@ -49,5 +50,4 @@ export default function BenchmarkScreen() {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between' },
-  tabular: { fontVariant: ['tabular-nums'] },
 });
