@@ -8,7 +8,7 @@ A Waypost mobilapp (Expo / React Native, TypeScript): az őrök a telephelyi tel
 - Feladatlista: [`docs/tasks.md`](docs/tasks.md) – ennek a repónak az M1, M3 és M5 mérföldkő, az M4 app-oldali feladatai és az M7 próbaidőszak szólnak. A nyitott kérdések (`Q#`) a fájl végén.
 - Döntések: [`docs/decisions.md`](docs/decisions.md) – ami a specifikációban nincs eldöntve, ide kerül (dátum, kérdés, döntés, indok, érintett).
 - Design: [`docs/orjarat-design-handoff/DESIGN_HANDOFF.md`](docs/orjarat-design-handoff/DESIGN_HANDOFF.md) – képernyők, témák, tokenek (`src/theme/tokens.ts` forrása); a `reference/` HTML-fájlok a képernyők mintái.
-- A közös szerződés: `../waypost-schema` (`@waypost/schema`, `file:../waypost-schema`) – JSON Schemák, TS típusok, lánc- és menetrend-tesztvektorok. Ha az API vagy a lánc formátuma változik, **előbb ott** kell módosítani, új verzióval.
+- A közös szerződés: `../waypost-schema` (`@waypost/schema`, `file:../waypost-schema`) – JSON Schemák, TS típusok, lánc- és menetrend-tesztvektorok. Ha az API vagy a lánc formátuma változik, **előbb ott** kell módosítani, új verzióval. Az app által várt tag a `.waypost-schema-version` fájlban van (a `__tests__/schema-package.test.ts` ellenőrzi): új sémaverziónál ezt is át kell írni.
 
 ## Expo
 

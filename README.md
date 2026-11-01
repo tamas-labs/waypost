@@ -30,7 +30,7 @@ Az M3 (offline őr mód) folyamatban, lásd a [feladatlistát](docs/tasks.md). A
 ## Követelmények
 
 - Node.js ≥ 22
-- a `waypost-schema` repo a szomszédos könyvtárban (`../waypost-schema`), mert az app `file:` függőségként használja
+- a `waypost-schema` repo a szomszédos könyvtárban (`../waypost-schema`), a `.waypost-schema-version` fájlban megadott verzióban, mert az app `file:` függőségként használja
 - development build egy Android- vagy iOS-eszközre. Az Expo Go nem elég, mert az app NFC-t és saját natív modulokat használ. A buildhez Expo-fiók kell, iOS-re Apple Developer fiók és regisztrált eszköz is.
 
 ## Indítás
