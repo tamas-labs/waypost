@@ -78,7 +78,7 @@ jest.mock('@/nfc/use-tag-reader', () => ({
 }));
 jest.mock('@/nfc/reader', () => ({ openNfcSettings: jest.fn() }));
 // The readiness check stays pending (NFC is native).
-jest.mock('@/guard/readiness', () => ({ getReadiness: () => new Promise(() => {}), readinessRows: () => [], fixReadiness: jest.fn() }));
+jest.mock('@/device/readiness', () => ({ getReadiness: () => new Promise(() => {}), readinessRows: () => [], fixReadiness: jest.fn() }));
 jest.mock('@/alarms/permissions', () => ({
   ...jest.requireActual<object>('@/alarms/permissions'),
   getAlarmPermissions: () =>

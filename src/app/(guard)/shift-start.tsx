@@ -13,7 +13,7 @@ import { ScreenHeader } from '@/components/screen-header';
 import { getDatabase } from '@/db/open';
 import type { ScheduleOfRoute } from '@/domain/schedule';
 import { loadShiftStartInfo, type ShiftStartInfo } from '@/guard/login';
-import { fixReadiness, getReadiness, readinessRows, type Readiness, type ReadinessItem, type ReadinessRow } from '@/guard/readiness';
+import { fixReadiness, getReadiness, readinessRows, type Readiness, type ReadinessItem, type ReadinessRow } from '@/device/readiness';
 import { t, type TranslationKey } from '@/i18n';
 import { onConfigurationPulled } from '@/sync/events';
 import { useTheme } from '@/theme/theme-provider';
