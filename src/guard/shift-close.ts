@@ -13,7 +13,7 @@ import { shiftSummary, type ShiftRound, type ShiftSummary } from '@/domain/shift
 import { requestSync } from '@/sync/runtime';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 
-import { userName } from './login';
+import { userName } from './names';
 import { loadGuardStateNow } from './state';
 
 type Named<R extends ShiftRound> = R & { route_name: string };

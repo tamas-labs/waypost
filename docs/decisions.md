@@ -432,7 +432,7 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **Lista/Térkép választó nincs** a térkép elkészültéig (M3-34, Q1).
   - **Új elemek:** `qr` ikon, `playHaptic`, `countdownText` (`src/time/countdown.ts`), `useCountdown` (`src/guard/use-countdown.ts`), `deadlineOfRound`, `ShiftHome.running.round_id`, `routeNameAmongSeveral` (`src/guard/alarm.ts`), helyőrzők: `(guard)/scan-result`, `(guard)/manual`.
 - **Indok:** Specifikáció *Mobilapp* (`(guard)/round/[id]`, NFC és QR), *Leolvasás* 6., *Műszak*; DESIGN_HANDOFF 5.6, 5.7, 6 (G3, G5), 7, `B-Kor`.
-- **Érintett:** `src/app/(guard)/round/[id].tsx`, `src/app/(guard)/qr.tsx`, `src/app/(guard)/home.tsx`, `src/app/(guard)/scan-result.tsx`, `src/app/(guard)/manual/index.tsx`, `src/guard/round.ts`, `src/guard/scan.ts`, `src/guard/use-countdown.ts`, `src/guard/alarm.ts`, `src/navigation/use-scan-recorder.ts`, `src/domain/rounds.ts`, `src/domain/shift.ts`, `src/feedback/feedback.ts`, `src/time/countdown.ts`, `src/components/icon.tsx`, `src/i18n/hu.json`, M3-34 – M3-38, Q13.
+- **Érintett:** `src/app/(guard)/round/[id].tsx`, `src/app/(guard)/qr.tsx`, `src/app/(guard)/home.tsx`, `src/app/(guard)/scan-result.tsx`, `src/app/(guard)/manual/index.tsx`, `src/guard/round.ts`, `src/guard/scan.ts`, `src/guard/use-countdown.ts`, `src/guard/alarm.ts`, `src/hooks/use-scan-recorder.ts`, `src/domain/rounds.ts`, `src/domain/shift.ts`, `src/feedback/feedback.ts`, `src/time/countdown.ts`, `src/components/icon.tsx`, `src/i18n/hu.json`, M3-34 – M3-38, Q13.
 
 ## 2026-10-30 – Kör folyamatban, térkép (M3-34, Q1 a G6-ra)
 
@@ -468,7 +468,7 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **Görgetés:** a `ResultScreen` tartalma görgethető, a gombok a helyükön maradnak: az utasítás hossza nincs korlátozva, és a betűméret is nőhet.
   - **Új elemek:** `formatTagUid`, `StatusDot` `tone` (számozott változat), `ScanOutcome.scan_id`, `scanResult.*` feliratok; a `scanResult.screenTitle` megszűnt.
 - **Indok:** DESIGN_HANDOFF 5.17, 6 (G7–G9), 7; `B-Siker`, `B-Ismeretlen`, `B-Sorrend`; Specifikáció *Leolvasás* 1–4., *Mobilapp* (`(guard)/scan-result`).
-- **Érintett:** `src/app/(guard)/scan-result.tsx`, `src/app/(guard)/qr.tsx`, `src/app/(guard)/round/[id].tsx`, `src/guard/scan-result.ts`, `src/guard/round.ts`, `src/guard/scan.ts`, `src/domain/scan.ts`, `src/navigation/use-scan-recorder.ts`, `src/components/result-screen.tsx`, `src/components/status-dot.tsx`, `src/nfc/tag.ts`, `src/i18n/hu.json`, M3-36, M3-37, Q13.
+- **Érintett:** `src/app/(guard)/scan-result.tsx`, `src/app/(guard)/qr.tsx`, `src/app/(guard)/round/[id].tsx`, `src/guard/scan-result.ts`, `src/guard/round.ts`, `src/guard/scan.ts`, `src/domain/scan.ts`, `src/hooks/use-scan-recorder.ts`, `src/components/result-screen.tsx`, `src/components/status-dot.tsx`, `src/nfc/tag.ts`, `src/i18n/hu.json`, M3-36, M3-37, Q13.
 
 ## 2026-10-30 – Kézi rögzítés (M3-36)
 
@@ -488,7 +488,7 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **Eltérés a referenciától:** a fejlécben csak a „Nem igazolt” jelvény van, szinkronjelző nincs (a design szerint, különben nem fér ki). A fotócsempe 92 dp a token szerint.
   - **Új elemek:** `PhotoField`, `usePhotoDraft`, `recordManualEntry`, `nearestOf`, `PointOutcome`, `pointResultParams`, `chevronDown` ikon, `manual.*`, `photoField.*`, `common.gpsRecordedAt`, `scanResult.manualLine` feliratok.
 - **Indok:** Specifikáció *Leolvasás* 5–6., *Mobilapp* (`(guard)/manual/[checkpointId]`), *Fotó*, *Alapszabályok* (az eszközön létrejött adat nem törlődik); DESIGN_HANDOFF 5.14, 6 (G10); `B-Kezi`.
-- **Érintett:** `src/app/(guard)/manual/index.tsx`, `src/app/(guard)/scan-result.tsx`, `src/components/photo-field.tsx`, `src/components/icon.tsx`, `src/photo/use-photo-draft.ts`, `src/guard/scan.ts`, `src/domain/scan.ts`, `src/navigation/use-scan-recorder.ts`, `src/i18n/hu.json`, M3-37.
+- **Érintett:** `src/app/(guard)/manual/index.tsx`, `src/app/(guard)/scan-result.tsx`, `src/components/photo-field.tsx`, `src/components/icon.tsx`, `src/photo/use-photo-draft.ts`, `src/guard/scan.ts`, `src/domain/scan.ts`, `src/hooks/use-scan-recorder.ts`, `src/i18n/hu.json`, M3-37.
 
 ## 2026-10-31 – Esemény rögzítése (M3-37)
 
@@ -515,7 +515,7 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **Nyitott kör:** körönként figyelmeztető sáv a lista tetején: hány pont van kész, és milyen állapottal zárul. Több útvonalnál az útvonal neve is ott áll. Külön megerősítés nincs, a PIN az.
   - **Közben lezárult műszak:** a kezdőlap kilépteti az őrt, mint eddig; a záró képernyő addig csak a fejlécet mutatja. Ha a bejegyzések nem írhatók, az őr belépve marad, és újrapróbálhatja.
 - **Indok:** Specifikáció *Műszak* 3., *Jelölések* (`time_suspect`: szerver), *Mobilapp* (`(guard)/shift/close`); DESIGN_HANDOFF 6 (G12); `B-Zaras`.
-- **Érintett:** `src/app/(guard)/shift/close.tsx`, `src/app/(guard)/home.tsx`, `src/app/(auth)/pin.tsx`, `src/components/shift-timeline.tsx`, `src/navigation/use-pin-lock.ts`, `src/guard/shift-close.ts`, `src/auth/pin.ts`, `src/domain/shift.ts`, `src/i18n/hu.json`.
+- **Érintett:** `src/app/(guard)/shift/close.tsx`, `src/app/(guard)/home.tsx`, `src/app/(auth)/pin.tsx`, `src/components/shift-timeline.tsx`, `src/hooks/use-pin-lock.ts`, `src/guard/shift-close.ts`, `src/auth/pin.ts`, `src/domain/shift.ts`, `src/i18n/hu.json`.
 
 ## 2026-10-31 – Lefedettség és a séma lemaradása (M3-39)
 
@@ -566,7 +566,7 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **Ha a tényleges döntés eltér** (a várakozás alatt zárult egy kör), a tényleges visszajelzés még egyszer szól, és az eredményképernyő a tényleges kimenetet mutatja. Ha az írás bukik, a hibajelzés szól, mint eddig.
   - **A további olvasás rögzítés közben továbbra is elvész:** a dupla érintés ellen kell. A próbán figyelni kell, zavar-e beltérben, ahol a helyadat sokáig tart (`device-test.md`, M3-40).
 - **Indok:** Audit 4. hiba; a 2026-10-29-es döntés „a leolvasás pillanatát” írja.
-- **Érintett:** `src/guard/scan.ts`, `src/navigation/use-scan-recorder.ts`.
+- **Érintett:** `src/guard/scan.ts`, `src/hooks/use-scan-recorder.ts`.
 
 ## 2026-11-01 – Az ütemező gyorsítása (J-12)
 

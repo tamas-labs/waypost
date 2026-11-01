@@ -7,7 +7,7 @@ import { routes, sites } from '@/db/schema';
 import { nextRound, shiftDay, type NextRound, type ShiftDay, type ShiftDayRoute } from '@/domain/shift-view';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 
-import { userName } from './login';
+import { userName } from './names';
 import { loadGuardStateNow } from './state';
 
 /** What the PIN screen shows above the keypad. */

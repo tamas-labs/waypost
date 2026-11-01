@@ -1,23 +1,17 @@
 // The PIN login of the site phone (specification: Azonosítás / PIN-kód, Állapotgépek / Műszak): the PIN identifies the
 // user; a guard's login runs the shift state machine (a new shift, the same guard's goes on, or a handover) and writes
 // its entries before the session opens the guard mode; a supervisor's opens the supervisor mode.
-import { eq } from 'drizzle-orm';
-
 import { pinLogin, type PinLoginResult } from '@/auth/pin';
 import { useSession } from '@/auth/session';
 import { appendDecidedEntries } from '@/chain/writer';
 import type { Database } from '@/db/database';
-import { users } from '@/db/schema';
 import { guardLogin, type GuardLogin } from '@/domain/shift';
 import { uuidv7 } from '@/id/uuidv7';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 
+import { userName } from './names';
 import { requestSchedulerStep } from './scheduler';
 import { loadGuardStateNow } from './state';
-
-export function userName(db: Database, id: string): string | null {
-  return db.select({ name: users.name }).from(users).where(eq(users.id, id)).get()?.name ?? null;
-}
 
 export type PinSignInResult =
   | Exclude<PinLoginResult, { status: 'ok' }>

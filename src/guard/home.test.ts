@@ -7,7 +7,7 @@ import { guardLogin } from '@/domain/shift';
 import { GUARD, idSequence, local, ROUTE_A, SITE } from '@/domain/testing';
 import type { ClockReading } from '@/time/clock';
 
-import { loadShiftHomeInfo, trustedNowMs } from './home';
+import { loadShiftHomeInfo } from './home';
 import { loadGuardState } from './state';
 import { seedSite } from './testing';
 
@@ -74,8 +74,4 @@ it('names the routes and the skipped points of the shift', async () => {
     missing_names: ['Pont 1', 'Pont 2', 'Pont 3'],
   });
   expect(home.next_at).toBe(local('20:30'));
-});
-
-it('counts with the trusted time', () => {
-  expect(trustedNowMs(db, readClock)).toBe(Date.parse(now));
 });

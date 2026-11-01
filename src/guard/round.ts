@@ -10,7 +10,7 @@ import { isClosedStatus, isOpen, versionOf, type ClosedStatus, type GuardState }
 import { coordinateOfE7, type Coordinate } from '@/location/coordinate';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 
-import { routeNameAmongSeveral } from './alarm';
+import { routeNameAmongSeveral } from './names';
 import { loadGuardStateNow } from './state';
 
 export interface RoundPoint {

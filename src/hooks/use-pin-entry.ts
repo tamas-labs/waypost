@@ -4,7 +4,7 @@ import type { PinLoginResult } from '@/auth/pin';
 import { PIN_LENGTH } from '@/components/pin-pad';
 import { playFeedback } from '@/feedback/feedback';
 import { t, type TranslationKey } from '@/i18n';
-import { pinLockedText, usePinLock, wrongPinText } from '@/navigation/use-pin-lock';
+import { pinLockedText, usePinLock, wrongPinText } from './use-pin-lock';
 
 export interface PinEntry {
   pin: string;

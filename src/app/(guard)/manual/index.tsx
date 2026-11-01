@@ -15,14 +15,14 @@ import { TextArea } from '@/components/text-field';
 import { getDatabase } from '@/db/open';
 import { MAX_NOTE_LENGTH } from '@/domain/scan';
 import { playFeedback } from '@/feedback/feedback';
-import { trustedNowMs } from '@/guard/home';
 import { loadRoundScreenInfo, type RoundPoint } from '@/guard/round';
 import { nearestOf, recordManualEntry, scanFeedback } from '@/guard/scan';
 import { useRecordForm } from '@/hooks/use-record-form';
 import { t } from '@/i18n';
-import { pointResultParams } from '@/navigation/use-scan-recorder';
+import { pointResultParams } from '@/hooks/use-scan-recorder';
 import { usePhotoDraft } from '@/photo/use-photo-draft';
 import { useTheme } from '@/theme/theme-provider';
+import { trustedNowMs } from '@/time/trusted-now';
 import { localTimeOf } from '@/time/zone';
 
 function ManualHeader() {

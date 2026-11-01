@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { getDatabase } from '@/db/open';
 import { parseTimestamp } from '@/time/timestamp';
+import { trustedNowMs } from '@/time/trusted-now';
 
-import { trustedNowMs } from './home';
 import { requestSchedulerStep } from './scheduler';
 
 /**

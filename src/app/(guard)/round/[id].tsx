@@ -23,7 +23,7 @@ import { tagReadOf } from '@/guard/scan';
 import { useCountdown } from '@/guard/use-countdown';
 import { t } from '@/i18n';
 import { usePosition } from '@/location/use-position';
-import { useScanRecorder } from '@/navigation/use-scan-recorder';
+import { useScanRecorder } from '@/hooks/use-scan-recorder';
 import { openNfcSettings } from '@/nfc/reader';
 import type { TagReading } from '@/nfc/tag';
 import { useTagReader, type TagReader } from '@/nfc/use-tag-reader';

@@ -5,10 +5,8 @@ import type { Database } from '@/db/database';
 import { checkpoints, routes, sites } from '@/db/schema';
 import { shiftHome, type ShiftHome, type ShiftRound } from '@/domain/shift-view';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
-import { parseTimestamp } from '@/time/timestamp';
-import { trustedTime } from '@/time/trusted-time';
 
-import { userName } from './login';
+import { userName } from './names';
 import { loadGuardStateNow } from './state';
 
 export type ShiftHomeRound = Omit<ShiftRound, 'missing_checkpoint_ids'> & { route_name: string; missing_names: string[] };
@@ -59,9 +57,4 @@ export function loadShiftHomeInfo(db: Database, guardId: string, readClock: Read
             })),
           },
   };
-}
-
-/** The trusted time now, in Unix milliseconds: what the countdowns count to. */
-export function trustedNowMs(db: Database, readClock: ReadClock = readDeviceClock): number {
-  return parseTimestamp(trustedTime(db, readClock()).time);
 }

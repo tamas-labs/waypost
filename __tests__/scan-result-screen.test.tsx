@@ -16,7 +16,7 @@ import { C1, C2, C3, GUARD, idSequence, local } from '@/domain/testing';
 import { recordTagRead } from '@/guard/scan';
 import { loadGuardState } from '@/guard/state';
 import { seedSite } from '@/guard/testing';
-import { pointResultParams, scanResultParams } from '@/navigation/use-scan-recorder';
+import { pointResultParams, scanResultParams } from '@/hooks/use-scan-recorder';
 import { ThemeProvider } from '@/theme/theme-provider';
 import { nowTimestamp } from '@/time/timestamp';
 

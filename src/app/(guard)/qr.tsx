@@ -9,7 +9,7 @@ import { IconButton } from '@/components/icon-button';
 import { InfoBanner } from '@/components/info-banner';
 import { ScreenHeader } from '@/components/screen-header';
 import { t } from '@/i18n';
-import { useScanRecorder } from '@/navigation/use-scan-recorder';
+import { useScanRecorder } from '@/hooks/use-scan-recorder';
 import { QrScanner } from '@/qr/qr-scanner';
 import { useTheme } from '@/theme/theme-provider';
 
