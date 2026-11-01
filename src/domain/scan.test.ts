@@ -1,4 +1,4 @@
-import type { ChainEntryDraft } from '@/chain/writer';
+import type { ChainEntryDraft } from '@/chain/payloads';
 import type { LocationFix } from '@/chain/payloads';
 import { schemaErrors } from '@/api/validation';
 

@@ -3,7 +3,7 @@
 import type { Timestamp } from '@waypost/schema';
 
 import { shiftClosed, shiftStarted } from '@/chain/payloads';
-import type { ChainEntryDraft } from '@/chain/writer';
+import type { ChainEntryDraft } from '@/chain/payloads';
 
 import { parseTimestamp, toTimestamp } from '@/time/timestamp';
 import { DAY_MS } from '@/time/zone';

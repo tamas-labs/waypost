@@ -1,4 +1,4 @@
-import type { ChainEntryDraft } from '@/chain/writer';
+import type { ChainEntryDraft } from '@/chain/payloads';
 
 import { autoCloseTime, closingStatus, deadlineOfRound, schedulerStep, slotsAround } from './rounds';
 import {

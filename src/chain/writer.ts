@@ -1,7 +1,7 @@
 // The chain writer: the only code that appends to chain_entries. One global lock serializes the writes, so the
 // entries get seq 1, 2, 3 … in the order they were requested, each linked to the previous one by prev_hash. The
 // entries of one request and their projections are written in one SQLite transaction: all of them or none.
-import type { ChainEntry, ChainEntryOf, ChainEntryType, ChainPayloadMap, Timestamp } from '@waypost/schema';
+import type { ChainEntry, ChainEntryOf, ChainEntryType } from '@waypost/schema';
 import { desc, eq } from 'drizzle-orm';
 
 import { schemaErrors } from '@/api/validation';
@@ -16,18 +16,8 @@ import { chainTimeReference, getTimeReference } from '@/time/trusted-time';
 import { emitChainEntries } from './events';
 import { GENESIS_HASH, signChainEntry } from './hmac';
 import { recordPhotos } from './media';
-import type { PhotoFile } from './payloads';
+import type { ChainEntryDraft, PhotoFile } from './payloads';
 import { applyProjection } from './projection';
-
-/** What the domain decides about an entry; the writer adds the identity, the position and the clocks. */
-export type ChainEntryDraft<T extends ChainEntryType = ChainEntryType> = {
-  [K in T]: {
-    type: K;
-    payload: ChainPayloadMap[K];
-    /** GNSS time of the location fix in the payload (Android, GPS provider); null otherwise. */
-    gnss_time: Timestamp | null;
-  };
-}[T];
 
 export interface ChainWriterOptions {
   readClock?: ReadClock;

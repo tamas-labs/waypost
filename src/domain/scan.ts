@@ -2,7 +2,7 @@
 import type { IncidentPayload, Timestamp } from '@waypost/schema';
 
 import { incident, normalizeTagUid, roundClosed, scan, type LocationFix, type MediaRef, type ScanDecisionFlag } from '@/chain/payloads';
-import type { ChainEntryDraft } from '@/chain/writer';
+import type { ChainEntryDraft } from '@/chain/payloads';
 
 import { closingStatus } from './rounds';
 import { DomainError, isOpen, versionOf, type CheckpointInfo, type GuardState, type NewId, type RoundInfo } from './state';

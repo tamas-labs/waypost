@@ -10,8 +10,8 @@ import { rounds } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import type { ClockReading } from '@/time/clock';
 
-import { onConfigurationPulled } from './events';
-import { applyPullPages, pullConfiguration, type PullSummary } from './pull';
+import { onConfigurationPulled, type PullSummary } from './events';
+import { applyPullPages, pullConfiguration } from './pull';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 

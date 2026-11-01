@@ -1,7 +1,7 @@
 // Pull (specification, Szinkron protokoll / Pull): the configuration changes since the saved cursor, page by page
 // while has_more is true, applied in one transaction together with the new cursor and the server time. Either the
 // whole pull is applied or nothing, so the guard never works with half of a new configuration.
-import type { SyncPullResponse, Timestamp } from '@waypost/schema';
+import type { SyncPullResponse } from '@waypost/schema';
 import { eq, inArray } from 'drizzle-orm';
 
 import type { ApiClient } from '@/api/client';
@@ -25,22 +25,10 @@ import {
 import { readClock as defaultReadClock, type ClockReading, type ReadClock } from '@/time/clock';
 import { recordServerTime } from '@/time/trusted-time';
 
-import { emitConfigurationPulled } from './events';
+import { emitConfigurationPulled, type PullSummary } from './events';
 
 type Changes = SyncPullResponse['changes'];
 type Deleted = SyncPullResponse['deleted'];
-
-/** What a pull changed in the local configuration. */
-export interface PullSummary {
-  pages: number;
-  /** A page started a full state: the local configuration was replaced. */
-  reset: boolean;
-  /** Upserted records per list of "changes". */
-  changed: Record<keyof Changes, number>;
-  /** Deleted IDs per list of "deleted". */
-  deleted: Record<keyof Deleted, number>;
-  server_time: Timestamp;
-}
 
 export interface PullOptions {
   readClock?: ReadClock;

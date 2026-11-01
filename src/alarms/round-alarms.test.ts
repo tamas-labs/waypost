@@ -11,8 +11,7 @@ import { C1, GUARD, idSequence, local, ROUTE_A, SCHEDULE_A } from '@/domain/test
 import { runSchedulerStep } from '@/guard/scheduler';
 import { loadGuardState } from '@/guard/state';
 import { seedSite } from '@/guard/testing';
-import { emitConfigurationPulled } from '@/sync/events';
-import type { PullSummary } from '@/sync/pull';
+import { emitConfigurationPulled, type PullSummary } from '@/sync/events';
 
 import { alarmRequests, requestAlarmReschedule, rescheduleRoundAlarms, ROUND_ALARM_KIND, startRoundAlarms } from './round-alarms';
 

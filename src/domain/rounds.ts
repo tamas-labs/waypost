@@ -4,7 +4,7 @@
 // scanned (scan.ts), and at its deadline incomplete (some scans) or missed (none).
 import type { Timestamp } from '@waypost/schema';
 
-import type { ChainEntryDraft } from '@/chain/writer';
+import type { ChainEntryDraft } from '@/chain/payloads';
 import { roundClosed, roundOpened, shiftClosed } from '@/chain/payloads';
 import { parseTimestamp, toTimestamp } from '@/time/timestamp';
 import { DAY_MS, localDateOf } from '@/time/zone';

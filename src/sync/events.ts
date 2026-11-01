@@ -1,6 +1,18 @@
 // What the sync tells the other modules. The alarm schedule (M3-24) is rebuilt after a pull that changed the
 // configuration (specification, Szinkron protokoll / Pull: after a schedule change the alarms are rescheduled).
-import type { PullSummary } from './pull';
+import type { SyncPullResponse, Timestamp } from '@waypost/schema';
+
+/** What a pull changed in the local configuration. */
+export interface PullSummary {
+  pages: number;
+  /** A page started a full state: the local configuration was replaced. */
+  reset: boolean;
+  /** Upserted records per list of "changes". */
+  changed: Record<keyof SyncPullResponse['changes'], number>;
+  /** Deleted IDs per list of "deleted". */
+  deleted: Record<keyof SyncPullResponse['deleted'], number>;
+  server_time: Timestamp;
+}
 
 export type ConfigurationPulledListener = (summary: PullSummary) => void;
 

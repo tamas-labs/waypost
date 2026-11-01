@@ -2,6 +2,8 @@
 // metres, photos, the flags it decided) into the exact payload of @waypost/schema – every field present, null when
 // absent, and only integers (lat_e7 / lng_e7 / accuracy_dm instead of floating-point numbers).
 import type {
+  ChainEntryType,
+  ChainPayloadMap,
   IncidentPayload,
   RoundClosedPayload,
   RoundOpenedPayload,
@@ -11,7 +13,15 @@ import type {
   Timestamp,
 } from '@waypost/schema';
 
-import type { ChainEntryDraft } from './writer';
+/** What the domain decides about an entry; the writer adds the identity, the position and the clocks. */
+export type ChainEntryDraft<T extends ChainEntryType = ChainEntryType> = {
+  [K in T]: {
+    type: K;
+    payload: ChainPayloadMap[K];
+    /** GNSS time of the location fix in the payload (Android, GPS provider); null otherwise. */
+    gnss_time: Timestamp | null;
+  };
+}[T];
 
 /** A location fix as the location service delivers it. */
 export interface LocationFix {
