@@ -12,6 +12,8 @@ import { guardLogin } from '@/domain/shift';
 import type { GuardState } from '@/domain/state';
 import { C1, C2, C3, GUARD, idSequence, local, OTHER_GUARD } from '@/domain/testing';
 import type { ClockReading } from '@/time/clock';
+import { parseTimestamp, toTimestamp } from '@/time/timestamp';
+import { recordServerTime, trustedTime } from '@/time/trusted-time';
 
 import { loadGuardState } from './state';
 import { seedSite } from './testing';
@@ -106,5 +108,52 @@ describe('a night on the site phone', () => {
         .all()
         .map((entry) => entry.seq),
     ).toEqual(Array.from({ length: 14 }, (_, i) => i + 1));
+  });
+});
+
+describe('a wall clock that is wrong', () => {
+  const SYNCED_AT = parseTimestamp(local('19:00'));
+  /** The clock at a real time, with the wall clock off by offsetMin; the uptime follows the real time. */
+  const clockAt = (real: string, offsetMin: number, boot = 'android-boot:12'): ClockReading => ({
+    device_time: toTimestamp(parseTimestamp(real) + offsetMin * 60_000),
+    uptime_ms: 1000 + parseTimestamp(real) - SYNCED_AT,
+    boot_id: boot,
+  });
+  const syncAt1900 = () => recordServerTime(db, local('19:00'), clockAt(local('19:00'), 0));
+
+  /** A login at a real time, then a scheduler step, as the app does them. */
+  async function loginAt(real: string, offsetMin: number, boot?: string) {
+    const clock = () => clockAt(real, offsetMin, boot);
+    const at = trustedTime(db, clock()).time;
+    await appendChainEntries(db, guardLogin(loadGuardState(db, at)!, GUARD, at, newId).drafts, { readClock: clock });
+    await appendChainEntries(db, schedulerStep(loadGuardState(db, at)!, at, newId), { readClock: clock });
+    return at;
+  }
+
+  it('still opens the running round when the clock is 30 minutes fast', async () => {
+    syncAt1900();
+    await loginAt(local('20:05'), 30);
+    expect(db.select().from(shifts).get()!.started_at).toBe(local('20:05'));
+    expect(roundStatuses()).toEqual([{ scheduled_at: local('20:00'), status: 'open' }]);
+  });
+
+  it('does not create a missed round when the clock is 60 minutes slow', async () => {
+    syncAt1900();
+    await loginAt(local('21:05'), -60);
+    expect(db.select().from(shifts).get()!.started_at).toBe(local('21:05'));
+    expect(roundStatuses()).toEqual([
+      { scheduled_at: local('20:30'), status: 'open' },
+      { scheduled_at: local('21:00'), status: 'open' },
+    ]);
+  });
+
+  it('goes by the wall clock without a reference, and after a restart', async () => {
+    await loginAt(local('20:05'), 30);
+    expect(db.select().from(shifts).get()!.started_at).toBe(toTimestamp(parseTimestamp(local('20:05')) + 30 * 60_000));
+    ({ db } = await createTestDatabase());
+    await seedSite(db);
+    syncAt1900();
+    await loginAt(local('20:05'), 30, 'android-boot:13');
+    expect(db.select().from(shifts).get()!.started_at).toBe(toTimestamp(parseTimestamp(local('20:05')) + 30 * 60_000));
   });
 });

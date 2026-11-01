@@ -432,7 +432,7 @@ Cél: az eszköz adatai hibátlanul a szerverre kerülnek, és a szerver ellenő
   - Kész, ha: feature teszt: 1, 2, 4, 5, majd 3 → minden `ok`, a vetület teljes.
 
 - [ ] **M4-05 Vetületek**
-  - Mit: a hat típus alkalmazása a `shifts`, `rounds`, `scans`, `incidents` és `media` (helyőrző) táblákra, idempotensen a payload ID-k alapján.
+  - Mit: a hat típus alkalmazása a `shifts`, `rounds`, `scans`, `incidents` és `media` (helyőrző) táblákra, idempotensen a payload ID-k alapján. Az időpontok (`started_at`, `ended_at`, `scanned_at`, `occurred_at`) a bejegyzés megbízható ideje legyenek, ugyanúgy számolva, mint az appban (`entryTrustedTime`, `src/time/trusted-time.ts`), különben a telefon és a jelentés eltérhet.
   - Kész, ha: unit tesztek típusonként és a kétszeri alkalmazásra.
 
 - [ ] **M4-06 Szerveroldali jelölések**

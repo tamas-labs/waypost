@@ -16,6 +16,7 @@ import { GENESIS_HASH, verifyChainEntry } from './hmac';
 import { incident, roundClosed, roundOpened, scan, shiftClosed, shiftStarted, type PhotoFile } from './payloads';
 import { ProjectionError } from './projection';
 import { appendChainEntries, appendChainEntry, appendDecidedEntries, ChainWriteError, type ChainWriterOptions } from './writer';
+import { entryTrustedTime, recordServerTime } from '@/time/trusted-time';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn() }));
@@ -115,21 +116,21 @@ describe('chain writer', () => {
         site_id: SITE,
         device_id: DEVICE,
         guard_id: GUARD,
-        started_at: FIRST.device_time,
+        started_at: entryTrustedTime(FIRST),
         ended_at: null,
         closed_by: null,
         chain_entry_id: FIRST.id,
       },
     ]);
     expect(db.select().from(rounds).all()).toEqual([
-      { id: ROUND, shift_id: SHIFT, ...ROUND_FIELDS, started_at: THIRD.device_time, finished_at: null, status: 'in_progress' },
+      { id: ROUND, shift_id: SHIFT, ...ROUND_FIELDS, started_at: entryTrustedTime(THIRD), finished_at: null, status: 'in_progress' },
     ]);
     expect(db.select().from(scans).all()).toEqual([
       expect.objectContaining({
         id: '019a2b3c-4d5e-7f00-8a00-000000000022',
         round_id: ROUND,
         method: 'qr',
-        scanned_at: THIRD.device_time,
+        scanned_at: entryTrustedTime(THIRD),
         lat_e7: 474979000,
         is_mock: false,
         flags: [],
@@ -315,6 +316,24 @@ describe('chain projections', () => {
       occurred_at: entry.device_time,
       chain_entry_id: entry.id,
     });
+  });
+
+  it('store the trusted time, not the wall clock, when there is a reference', async () => {
+    recordServerTime(db, '2026-10-27T10:00:00.000Z', readClock());
+    const scan = await scanCheckpoint(uuidv7());
+    const reported = await appendChainEntry(
+      db,
+      incident({ incident_id: uuidv7(), shift_id: SHIFT, category: 'open_door', note: 'Nyitva.', location: null }),
+      options,
+    );
+    const closed = await appendChainEntry(db, shiftClosed({ shift_id: SHIFT, closed_by: 'guard' }), options);
+    const at = entryTrustedTime(scan);
+    expect(at).toMatch(/^2026-10-27T10:00:/);
+    expect(at).not.toBe(scan.device_time);
+    expect(round()!.started_at).toBe(at);
+    expect(db.select().from(scans).get()!.scanned_at).toBe(at);
+    expect(db.select().from(incidents).get()!.occurred_at).toBe(entryTrustedTime(reported));
+    expect(db.select().from(shifts).get()!.ended_at).toBe(entryTrustedTime(closed));
   });
 
   it('reject entries for closed or unknown rounds and shifts', async () => {

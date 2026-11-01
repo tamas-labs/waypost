@@ -525,3 +525,14 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **A séma:** a GitHubon a `main` és a `v0.1.0` tag is a 2026-10-27-i `M0-10` commit, az app viszont újabbat vár (`pinVectors`, a pull `reset` mezője, `api/site-list.response`, `SiteListResponse`, `server_error`, `bad_request`). A hiányzó részt itt nem pótoljuk és a sémát nem írjuk újra emlékezetből, mert a szerződés forrása a séma repója, és a két változat szétválna. Az M3-39 addig nyitott, amíg a friss séma fel nem kerül. Ideiglenes, repón kívüli sémamásolattal ellenőrizve: ezekkel a kiegészítésekkel a `typecheck` hibátlan, és a teljes Jest-futás zöld, tehát más oka nincs a pirosnak.
 - **Indok:** Specifikáció *Automatikus tesztek*; `CLAUDE.md` (a közös szerződés előbb a sémában változik); Q11.
 - **Érintett:** `package.json`, `.gitignore`, `src/sync/runtime.test.ts`, M3-39, M3-40.
+
+## 2026-11-01 – A projekció időalapja (J-08)
+
+- **Kérdés:** Melyik idő kerüljön a vetületekbe, ha a szabályok a megbízható `now`-val hasonlítanak, a `device_time` viszont a falióra?
+- **Döntés:**
+  - **Mind az öt idő a bejegyzés megbízható ideje:** `started_at` (műszak és kör), `ended_at`, `scanned_at`, `occurred_at`. Az `entryTrustedTime` a bejegyzés saját `ref_*`, `uptime_ms`, `boot_id` és `device_time` mezőiből számol, ugyanazzal a szabállyal, mint a `now`: hivatkozás nélkül vagy más boot után a falióra.
+  - **A lánc nem változik:** a `device_time` megmarad, a szerver ebből számolja a `time_suspect` jelölést. Séma- és adatbázis-migráció nem kell, éles adat még nincs.
+  - **A szerver:** az M4-05 vetületei ugyanezt a számítást használják, különben a telefon és a jelentés eltérhet (a `tasks.md`-ben rögzítve).
+  - **Ami megmarad:** ha a műszak szerveridővel indult, majd a telefon újraindul hálózat nélkül és rossz az órája, a `started_at` szerveridő, a `now` falióra lesz. Friss hivatkozás nélkül ez nem oldható meg; a `device-test.md` F8 tételénél figyelni kell.
+- **Indok:** Audit 1. hiba: 30 percet siető órával a 20:05-kor belépett őrnek a 20:00-s kör nem nyílt meg, 60 percet késővel 21:05-kor azonnal elmaradt kör jött létre.
+- **Érintett:** `src/chain/projection.ts`, `src/time/trusted-time.ts`, M4-05.

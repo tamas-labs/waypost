@@ -1,7 +1,7 @@
 import { createTestDatabase } from '@/db/testing';
 
 import type { ClockReading } from './clock';
-import { chainTimeReference, estimateTrustedTime, getTimeReference, recordServerTime, trustedTime } from './trusted-time';
+import { chainTimeReference, entryTrustedTime, estimateTrustedTime, getTimeReference, recordServerTime, trustedTime } from './trusted-time';
 
 const SYNC_CLOCK: ClockReading = { device_time: '2026-10-27T19:58:10.000Z', uptime_ms: 82_500_000, boot_id: 'android-boot:12' };
 const REF = { server_time: '2026-10-27T19:58:02.511Z', uptime_ms: 82_500_000, boot_id: 'android-boot:12' };
@@ -35,6 +35,13 @@ describe('trusted time', () => {
     expect(trustedTime(db, clock).source).toBe('device');
     recordServerTime(db, REF.server_time, SYNC_CLOCK);
     expect(trustedTime(db, clock)).toEqual({ time: '2026-10-27T19:58:12.511Z', source: 'server' });
+  });
+
+  it('tells the time of a chain entry from its own fields', () => {
+    const clock: ClockReading = { device_time: '2026-10-27T20:30:00.000Z', uptime_ms: 82_510_000, boot_id: 'android-boot:12' };
+    expect(entryTrustedTime({ ...clock, ...chainTimeReference(REF) })).toBe('2026-10-27T19:58:12.511Z');
+    expect(entryTrustedTime({ ...clock, ...chainTimeReference(null) })).toBe(clock.device_time);
+    expect(entryTrustedTime({ ...clock, boot_id: 'android-boot:13', ...chainTimeReference(REF) })).toBe(clock.device_time);
   });
 
   it('gives the ref_* fields of a chain entry, also from an earlier boot', () => {

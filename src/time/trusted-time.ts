@@ -52,6 +52,19 @@ export function estimateTrustedTime(ref: TimeReference | null, clock: ClockReadi
   return { time: clock.device_time, source: 'device' };
 }
 
+/**
+ * The trusted time of a chain entry, from its own clock and reference fields. It tells the same as trustedTime did when
+ * the entry was written, and the projections store it: the rules compare their times with the trusted now.
+ */
+export function entryTrustedTime(entry: ClockReading & ChainTimeReference): Timestamp {
+  const { ref_server_time, ref_uptime_ms, ref_boot_id } = entry;
+  const ref =
+    ref_server_time === null || ref_uptime_ms === null || ref_boot_id === null
+      ? null
+      : { server_time: ref_server_time, uptime_ms: ref_uptime_ms, boot_id: ref_boot_id };
+  return estimateTrustedTime(ref, entry).time;
+}
+
 /** estimateTrustedTime with the reference saved in the database. */
 export function trustedTime(db: Database, clock: ClockReading): TrustedTime {
   return estimateTrustedTime(getTimeReference(db), clock);

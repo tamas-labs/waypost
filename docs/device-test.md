@@ -187,7 +187,7 @@ Előtte: friss `waypost-schema` (M3-39), a telefon hozzárendelve, a címkék be
 | F5 | Egy körön ismeretlen címke, dupla leolvasás, rossz sorrend. | A leolvasás eredményei (E3–E5). |
 | F6 | Egy kört félbehagyni, egyet teljesen kihagyni. | A határidőnél „Hiányos”, illetve „Elmaradt”, toast a kör képernyőjén. |
 | F7 | Esemény rögzítése fotóval. | Toast, a záró képernyőn az eseményszám nő. |
-| F8 | Újraindítás műszak közben. | A műszak folytatódik, a kimaradt kör eredeti időponttal megnyílik, az ébresztések újraütemeződnek. |
+| F8 | Újraindítás műszak közben. Külön figyeld: ha a műszak szerveridővel indult, újraindítás után hálózat nélkül és rossz órával a műszak ideje és a „most” eltérhet (`decisions.md`, 2026-11-01). | A műszak folytatódik, a kimaradt kör eredeti időponttal megnyílik, az ébresztések újraütemeződnek. |
 | F9 | Zárás PIN-nel az óra végén, majd a repülőgép üzemmód kikapcsolása. | Az összegzés egyezik a történtekkel. Hálózat után a pull lefut; a lánc feltöltése az M4-ben készül el, addig a tételek a helyi sorban várnak. |
 
 ### ÉÉÉÉ-HH-NN – M1

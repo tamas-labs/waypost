@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 
 import type { Database } from '@/db/database';
 import { incidents, rounds, scans, shifts } from '@/db/schema';
+import { entryTrustedTime } from '@/time/trusted-time';
 
 /** An entry that does not fit the current projection (a bug in whoever built it); its transaction rolls back. */
 export class ProjectionError extends Error {
@@ -25,20 +26,33 @@ function roundStatus(tx: Database, roundId: string) {
   return round.status;
 }
 
-/** Applies one entry to the projections. Times of what happened on the phone are the entry's device_time. */
+/**
+ * Applies one entry to the projections. Times of what happened on the phone are the entry's trusted time, the one the
+ * rules compare them with; the chain keeps the device_time, for the server's time_suspect check.
+ */
 export function applyProjection(tx: Database, entry: ChainEntry): void {
   switch (entry.type) {
     case 'shift_started': {
       const { shift_id, site_id, guard_id } = entry.payload;
       tx.insert(shifts)
-        .values({ id: shift_id, site_id, device_id: entry.device_id, guard_id, started_at: entry.device_time, chain_entry_id: entry.id })
+        .values({
+          id: shift_id,
+          site_id,
+          device_id: entry.device_id,
+          guard_id,
+          started_at: entryTrustedTime(entry),
+          chain_entry_id: entry.id,
+        })
         .run();
       return;
     }
     case 'shift_closed': {
       const { shift_id, closed_by } = entry.payload;
       openShift(tx, shift_id);
-      tx.update(shifts).set({ ended_at: entry.device_time, closed_by }).where(eq(shifts.id, shift_id)).run();
+      tx.update(shifts)
+        .set({ ended_at: entryTrustedTime(entry), closed_by })
+        .where(eq(shifts.id, shift_id))
+        .run();
       return;
     }
     case 'round_opened': {
@@ -53,7 +67,10 @@ export function applyProjection(tx: Database, entry: ChainEntry): void {
       const { scan_id, round_id, checkpoint_id, method, lat_e7, lng_e7, accuracy_dm, is_mock, flags, note } = entry.payload;
       // The first scan of a checkpoint in a round starts it (Kör / Folyamatban); an unknown tag does not.
       if (round_id !== null && roundStatus(tx, round_id) === 'open' && checkpoint_id !== null) {
-        tx.update(rounds).set({ status: 'in_progress', started_at: entry.device_time }).where(eq(rounds.id, round_id)).run();
+        tx.update(rounds)
+          .set({ status: 'in_progress', started_at: entryTrustedTime(entry) })
+          .where(eq(rounds.id, round_id))
+          .run();
       }
       tx.insert(scans)
         .values({
@@ -61,7 +78,7 @@ export function applyProjection(tx: Database, entry: ChainEntry): void {
           round_id,
           checkpoint_id,
           method,
-          scanned_at: entry.device_time,
+          scanned_at: entryTrustedTime(entry),
           lat_e7,
           lng_e7,
           accuracy_dm,
@@ -81,7 +98,7 @@ export function applyProjection(tx: Database, entry: ChainEntry): void {
           shift_id,
           category,
           note,
-          occurred_at: entry.device_time,
+          occurred_at: entryTrustedTime(entry),
           lat_e7,
           lng_e7,
           accuracy_dm,
