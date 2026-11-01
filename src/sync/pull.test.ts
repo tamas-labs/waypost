@@ -244,6 +244,51 @@ describe('pull', () => {
     expect(pulled).toHaveLength(2);
   });
 
+  describe('with a round running on the phone', () => {
+    const OTHER_POINT = '019a2b3c-4d5e-7f00-8a00-0000000000f1';
+    const points = (sqlite: Awaited<ReturnType<typeof fullyPulled>>['sqlite']) =>
+      sqlite.prepare('SELECT name, active FROM checkpoints ORDER BY name').all();
+
+    /** The pulled site with a running round on its route version, and one more point outside that version. */
+    async function withRunningRound() {
+      const pulled = await fullyPulled();
+      insertRound(pulled.db);
+      const [point] = example('full-state').changes.checkpoints;
+      const { api } = fakeApi(page({ cursor: CURSOR_1, changes: { checkpoints: [{ ...point!, id: OTHER_POINT, name: 'Másik pont' }] } }));
+      await pullConfiguration(pulled.db, api, 'device-token', { readClock: fakeClock() });
+      return pulled;
+    }
+
+    it('keeps a deleted point of the round as inactive, and deletes the others', async () => {
+      const { db, sqlite } = await withRunningRound();
+      const ofRound = example('full-state').changes.route_version_checkpoints[0]!.checkpoint_id;
+      const { api } = fakeApi(page({ cursor: CURSOR_2, deleted: { checkpoints: [ofRound, OTHER_POINT] } }));
+      await pullConfiguration(db, api, 'device-token', { readClock: fakeClock() });
+      expect(points(sqlite)).toEqual([
+        { name: 'Kazánház', active: 0 },
+        { name: 'Raktár hátsó ajtó', active: 1 },
+      ]);
+    });
+
+    it('keeps the points of the round through a reset that no longer has them', async () => {
+      const { db, sqlite } = await withRunningRound();
+      const { api } = fakeApi(page({ cursor: CURSOR_2, reset: true }));
+      await pullConfiguration(db, api, 'device-token', { readClock: fakeClock() });
+      expect(points(sqlite)).toEqual([
+        { name: 'Kazánház', active: 0 },
+        { name: 'Raktár hátsó ajtó', active: 0 },
+      ]);
+    });
+
+    it('deletes every point once no round is running', async () => {
+      const { db, sqlite } = await withRunningRound();
+      db.update(rounds).set({ status: 'completed' }).run();
+      const { api } = fakeApi(page({ cursor: CURSOR_2, reset: true }));
+      await pullConfiguration(db, api, 'device-token', { readClock: fakeClock() });
+      expect(points(sqlite)).toEqual([]);
+    });
+  });
+
   it('does not tell the other modules about a pull that changed nothing', async () => {
     const { db } = await fullyPulled();
     pulled = [];

@@ -13,6 +13,7 @@ import {
   checkpoints,
   devices,
   reportSubscriptions,
+  rounds,
   routes,
   routeVersionCheckpoints,
   routeVersions,
@@ -89,9 +90,37 @@ export async function fetchPullPages(
   }
 }
 
+/**
+ * Deletes checkpoints. A round keeps its route version to the end, so the points of the running rounds stay as inactive:
+ * they can still be scanned there (src/domain/scan.ts), and nothing else uses them. A later pull restores them, or a
+ * reset without a running round deletes them.
+ */
+function removeCheckpoints(tx: Database, ids: readonly string[]): void {
+  const ofRunningRounds = new Set(
+    tx
+      .select({ id: routeVersionCheckpoints.checkpoint_id })
+      .from(routeVersionCheckpoints)
+      .innerJoin(rounds, eq(rounds.route_version_id, routeVersionCheckpoints.route_version_id))
+      .where(inArray(rounds.status, ['open', 'in_progress']))
+      .all()
+      .map((row) => row.id),
+  );
+  const [kept, gone] = [ids.filter((id) => ofRunningRounds.has(id)), ids.filter((id) => !ofRunningRounds.has(id))];
+  if (kept.length > 0) tx.update(checkpoints).set({ active: false }).where(inArray(checkpoints.id, kept)).run();
+  if (gone.length > 0) tx.delete(checkpoints).where(inArray(checkpoints.id, gone)).run();
+}
+
 /** Deletes the configuration before a full state. Route versions stay: they never change, and a round in progress keeps using its own. */
 function deleteConfiguration(tx: Database): void {
-  for (const table of [sites, users, siteUser, devices, checkpoints, routes, schedules, reportSubscriptions]) tx.delete(table).run();
+  for (const table of [sites, users, siteUser, devices, routes, schedules, reportSubscriptions]) tx.delete(table).run();
+  removeCheckpoints(
+    tx,
+    tx
+      .select({ id: checkpoints.id })
+      .from(checkpoints)
+      .all()
+      .map((row) => row.id),
+  );
 }
 
 function applyChanges(tx: Database, changes: Changes): void {
@@ -128,7 +157,7 @@ function applyDeleted(tx: Database, deleted: Deleted): void {
     tx.delete(siteUser).where(inArray(siteUser.user_id, deleted.users)).run();
   }
   if (deleted.devices.length > 0) tx.delete(devices).where(inArray(devices.id, deleted.devices)).run();
-  if (deleted.checkpoints.length > 0) tx.delete(checkpoints).where(inArray(checkpoints.id, deleted.checkpoints)).run();
+  removeCheckpoints(tx, deleted.checkpoints);
   if (deleted.routes.length > 0) tx.delete(routes).where(inArray(routes.id, deleted.routes)).run();
   if (deleted.schedules.length > 0) tx.delete(schedules).where(inArray(schedules.id, deleted.schedules)).run();
   if (deleted.report_subscriptions.length > 0)

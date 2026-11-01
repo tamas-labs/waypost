@@ -543,3 +543,10 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
 - **Döntés:** A címke feloldása két lépés: előbb a nyitott körök útvonalverzióinak pontjai között keres az `active` mezőtől függetlenül, utána a többi aktív pont között. Ha egy címke egy inaktív és egy aktív ponthoz is tartozik, a futó kör verziója nyer. Verzión kívüli inaktív pont továbbra is `unknown_tag`, és a `nearestCheckpoint` sem változik.
 - **Indok:** Specifikáció *Kör*: a kör a megnyitáskor rögzített verziót használja végig. Audit 2. hiba: a kör címkeolvasással nem volt befejezhető.
 - **Érintett:** `src/domain/scan.ts`.
+
+## 2026-11-01 – Futó kör közben törölt pont (J-09)
+
+- **Kérdés:** A pull a `deleted.checkpoints` pontjait és a `reset` oldal előtt az összes pontot fizikailag törölte, a verzió pontlistája viszont megmaradt. A futó kör így befejezhetetlenné vált címkével, és a kézi rögzítés listájában névtelen sor maradt. Mi legyen?
+- **Döntés:** A futó kör (`open`, `in_progress`) verziójának pontja törlés helyett inaktív lesz. A J-09 szabálya szerint így a körben leolvasható, máshol nem számít. Ha a szerver később újra elküldi, visszaáll; ha nem, a következő, futó kör nélküli `reset` törli. A többi pont törlődik, ahogy eddig.
+- **Indok:** Specifikáció *Kör*: a kör a megnyitáskor rögzített verziót használja végig. Az inaktív sor kisebb kockázat, mint egy félbehagyott kör, és a telefonon végzett munka megmarad.
+- **Érintett:** `src/sync/pull.ts`.
