@@ -70,7 +70,7 @@ Importban a `@/…` alias a `src/…`-ra mutat.
 - `npm install` – függőségek (Node ≥ 22). A `@waypost/schema` symlink a `../waypost-schema`-ra; ott előbb `npm install` sem kell (nincs futásidejű függősége).
 - `npm start` – Metro dev szerver a development buildhez.
 - `npm run typecheck` – `tsc --noEmit`.
-- `npm run lint` – `expo lint` (ESLint, `eslint-config-expo`).
+- `npm run lint` – `expo lint` (ESLint, `eslint-config-expo`). Tiltja a függőségi köröket (`import/no-cycle`) és a rétegek megsértését: a `domain` futásidőben csak a `time/zone`, `time/timestamp`, `chain/payloads` fájlt éri el, a `chain` a felette lévő mappákat nem, a `db` a `domain`-t nem.
 - `npm run format`, `npm run format:check` – Prettier (`.prettierrc`, 140 karakter); a `docs/`, a Markdown-fájlok és a generált fájlok kimaradnak (`.prettierignore`). A nagy formázó commit a `.git-blame-ignore-revs`-ben van: `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 - `npm run test:coverage` – Jest lefedettséggel; a `src/domain`, `src/chain` és `src/sync` mappának mappánként 90% alatt hibát ad.
 - `npm test` – Jest (`jest-expo` preset). A `jest.testTimeout` 30 mp, mert párhuzamos futásnál egy csomag első képernyőtesztje lassan indul (a Babel és a natív mockok betöltése miatt), és az alap 5 mp véletlenszerű bukást okozott. A `jest.modulePaths` azért kell, mert a symlinkelt `@waypost/schema` fájljait a Jest a valódi útvonalukon fordítja, és a Babel-segédeket innen kell feloldani. A `jest.moduleNameMapper` a lucide-ikonokat a CommonJS-változatukra irányítja (az ESM-változat a Jestben nem fut). A `jest.resolver` a Reanimated saját resolvere (a natív helyett a webes megvalósítás fut).

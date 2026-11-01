@@ -4,6 +4,17 @@ const expoConfig = require('eslint-config-expo/flat');
 const prettierConfig = require('eslint-config-prettier/flat');
 const reactNative = require('eslint-plugin-react-native');
 
+/** A pattern of imports a folder must not have; its tests and test helpers are free. */
+function layerRule(folder, pattern) {
+  return [
+    {
+      files: [`${folder}/**/*.{ts,tsx}`],
+      ignores: ['**/*.test.{ts,tsx}', '**/testing.ts'],
+      rules: { '@typescript-eslint/no-restricted-imports': ['error', { patterns: [pattern] }] },
+    },
+  ];
+}
+
 module.exports = defineConfig([
   globalIgnores(['dist/*', '.expo/*', 'android/*', 'ios/*', 'docs/*']),
   expoConfig,
@@ -26,6 +37,24 @@ module.exports = defineConfig([
       ],
     },
   },
-  // Formatting is Prettier's: it has to stay last, to switch off the rules that would disagree with it.
+  {
+    files: ['**/*.{ts,tsx}'],
+    rules: { 'import/no-cycle': ['error', { ignoreExternal: true }] },
+  },
+  // The layers (J-17). Type imports are allowed where a layer only names what another one holds.
+  ...layerRule('src/domain', {
+    regex: '^(?!@waypost/schema$|@/time/zone$|@/time/timestamp$|@/chain/payloads$|\\.)',
+    allowTypeImports: true,
+    message: 'The domain is pure: it reaches only time/zone, time/timestamp and chain/payloads.',
+  }),
+  ...layerRule('src/chain', {
+    regex: '^@/(domain|sync|guard|api|auth|alarms|navigation|app|components)(/|$)',
+    message: 'The chain is below these: they follow it through its events.',
+  }),
+  ...layerRule('src/db', {
+    regex: '^@/domain(/|$)',
+    allowTypeImports: true,
+    message: 'The database does not reach the domain when it runs.',
+  }),
   prettierConfig,
 ]);

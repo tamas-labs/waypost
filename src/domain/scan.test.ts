@@ -1,5 +1,4 @@
-import type { ChainEntryDraft } from '@/chain/payloads';
-import type { LocationFix } from '@/chain/payloads';
+import type { ChainEntryDraft, LocationFix } from '@/chain/payloads';
 import { schemaErrors } from '@/schema/validation';
 
 import { findCheckpoint, manualScan, nearestCheckpoint, reportIncident, resolveScan, type ScanContext } from './scan';
