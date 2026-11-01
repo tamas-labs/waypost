@@ -4,7 +4,8 @@ import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { useSession } from '@/auth/session';
 import { SegmentedControl } from '@/components/segmented-control';
 import { t, type TranslationKey } from '@/i18n';
-import { useTheme, useThemePreference, type ThemePreference } from '@/theme/theme-provider';
+import { useTheme, useThemePreference } from '@/theme/theme-provider';
+import type { ThemePreference } from '@/theme/tokens';
 
 const SCREENS: { href: Href; title: TranslationKey }[] = [
   { href: '/dev/enroll', title: 'dev.screens.enroll' },

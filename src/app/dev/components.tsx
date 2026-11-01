@@ -21,7 +21,8 @@ import { Switch } from '@/components/switch';
 import { SyncIndicator } from '@/components/sync-indicator';
 import { TextArea, TextField } from '@/components/text-field';
 import { t, type TranslationKey } from '@/i18n';
-import { useTheme, useThemePreference, type ThemePreference } from '@/theme/theme-provider';
+import { useTheme, useThemePreference } from '@/theme/theme-provider';
+import type { ThemePreference } from '@/theme/tokens';
 
 const STATUSES: StatusKey[] = ['completed', 'in_progress', 'incomplete', 'missed', 'manual', 'time_suspicious', 'wrong_order', 'pending'];
 const THEME_PREFERENCES: ThemePreference[] = ['system', 'dark', 'light'];

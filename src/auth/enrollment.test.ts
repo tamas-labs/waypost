@@ -9,7 +9,7 @@ import { getKv, setKv } from '@/db/kv';
 import { devices } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 
-import { getDeviceCredentials, getSupervisorToken, setSupervisorToken } from './credentials';
+import { getDeviceCredentials, getSupervisorToken, setSupervisorToken } from '@/device/credentials';
 import { enrollThisPhone } from './enrollment';
 import { loadSession, useSession } from './session';
 

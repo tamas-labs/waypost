@@ -6,7 +6,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 
 import { createApiClient, type ApiClient } from '@/api/client';
 import { apiBaseUrl } from '@/api/config';
-import { getDeviceCredentials, getSupervisorToken } from '@/auth/credentials';
+import { getDeviceCredentials, getSupervisorToken } from '@/device/credentials';
 import { useSession } from '@/auth/session';
 import { onChainEntries } from '@/chain/events';
 import type { Database } from '@/db/database';

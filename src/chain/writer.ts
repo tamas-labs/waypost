@@ -4,8 +4,8 @@
 import type { ChainEntry, ChainEntryOf, ChainEntryType } from '@waypost/schema';
 import { desc, eq } from 'drizzle-orm';
 
-import { schemaErrors } from '@/api/validation';
-import { getDeviceCredentials } from '@/auth/credentials';
+import { schemaErrors } from '@/schema/validation';
+import { getDeviceCredentials } from '@/device/credentials';
 import type { Database } from '@/db/database';
 import { getKv } from '@/db/kv';
 import { chainEntries } from '@/db/schema';

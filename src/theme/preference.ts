@@ -1,7 +1,7 @@
 import type { Database } from '@/db/database';
 import { getKv, setKv } from '@/db/kv';
 
-import type { ThemePreference } from './theme-provider';
+import type { ThemePreference } from './tokens';
 
 const PREFERENCES: readonly ThemePreference[] = ['system', 'dark', 'light'];
 

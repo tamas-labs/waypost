@@ -2,7 +2,7 @@ import { addNotificationReceivedListener, addNotificationResponseReceivedListene
 import { asc } from 'drizzle-orm';
 import { AppState, type AppStateStatus } from 'react-native';
 
-import { deleteDeviceCredentials } from '@/auth/credentials';
+import { deleteDeviceCredentials } from '@/device/credentials';
 import { appendChainEntries } from '@/chain/writer';
 import type { Database } from '@/db/database';
 import { deleteKv, setKv } from '@/db/kv';

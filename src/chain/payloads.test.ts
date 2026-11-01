@@ -1,7 +1,7 @@
 import type { ChainEntry, ChainEntryOf } from '@waypost/schema';
 import { chainVectors } from '@waypost/schema/vectors';
 
-import { schemaErrors } from '@/api/validation';
+import { schemaErrors } from '@/schema/validation';
 
 import { incident, roundClosed, roundOpened, scan, shiftClosed, shiftStarted, toAccuracyDm, toE7, type LocationFix } from './payloads';
 

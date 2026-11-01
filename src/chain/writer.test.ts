@@ -2,7 +2,7 @@ import type { ChainEntry, ChainEntryOf, ChainEntryType } from '@waypost/schema';
 import { chainVectors } from '@waypost/schema/vectors';
 import { asc } from 'drizzle-orm';
 
-import { setDeviceCredentials } from '@/auth/credentials';
+import { setDeviceCredentials } from '@/device/credentials';
 import type { Database } from '@/db/database';
 import { deleteKv, setKv } from '@/db/kv';
 import { chainEntries, incidents, media, rounds, scans, shifts } from '@/db/schema';

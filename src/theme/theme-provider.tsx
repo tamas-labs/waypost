@@ -2,10 +2,7 @@ import * as SystemUI from 'expo-system-ui';
 import { createContext, use, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 
-import { theme, type Theme, type ThemeName } from './tokens';
-
-/** The user's choice in the settings: follow the system, or always dark / light. */
-export type ThemePreference = 'system' | ThemeName;
+import { theme, type Theme, type ThemeName, type ThemePreference } from './tokens';
 
 interface ThemeContextValue {
   theme: Theme;

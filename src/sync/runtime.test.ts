@@ -3,7 +3,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 
 import { emitChainEntries } from '@/chain/events';
 import { ApiError } from '@/api/errors';
-import { deleteDeviceCredentials, deleteSupervisorToken, setDeviceCredentials, setSupervisorToken } from '@/auth/credentials';
+import { deleteDeviceCredentials, deleteSupervisorToken, setDeviceCredentials, setSupervisorToken } from '@/device/credentials';
 import { useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
 import { deleteKv, getKv, setKv } from '@/db/kv';

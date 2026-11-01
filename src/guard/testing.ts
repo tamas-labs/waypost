@@ -1,6 +1,6 @@
 // Test helper: the site of src/domain/testing.ts in the database, as a pull would store it, with this phone enrolled
 // on it. Only tests import it.
-import { setDeviceCredentials } from '@/auth/credentials';
+import { setDeviceCredentials } from '@/device/credentials';
 import type { Database } from '@/db/database';
 import { setKv } from '@/db/kv';
 import { checkpoints, devices, routes, routeVersionCheckpoints, routeVersions, schedules, sites } from '@/db/schema';

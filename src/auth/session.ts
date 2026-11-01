@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import type { Database } from '@/db/database';
 import { getKv } from '@/db/kv';
 
-import { deleteDeviceCredentials, deleteSupervisorToken, getDeviceCredentials, getSupervisorToken } from './credentials';
+import { deleteDeviceCredentials, deleteSupervisorToken, getDeviceCredentials, getSupervisorToken } from '@/device/credentials';
 import { resolveStartup, type DeviceMode } from './startup';
 
 /** The user logged in with a PIN on the site phone. */

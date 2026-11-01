@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm';
 
+// Types only: what the keys hold. The database does not depend on the domain or the theme when it runs.
 import type { PinLockout } from '@/domain/pin-lockout';
-import type { ThemePreference } from '@/theme/theme-provider';
+import type { ThemePreference } from '@/theme/tokens';
 
 import type { Database } from './database';
 import { kv } from './schema';

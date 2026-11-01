@@ -20,7 +20,8 @@ import { startTagEvents } from '@/nfc/tag-events';
 import { AppStack } from '@/navigation/app-stack';
 import { startSync } from '@/sync/runtime';
 import { loadThemePreference, saveThemePreference } from '@/theme/preference';
-import { ThemeProvider, useTheme, type ThemePreference } from '@/theme/theme-provider';
+import { ThemeProvider, useTheme } from '@/theme/theme-provider';
+import type { ThemePreference } from '@/theme/tokens';
 
 // The splash screen stays until the fonts are loaded and the session is known (DESIGN_HANDOFF 3).
 void SplashScreen.preventAutoHideAsync();

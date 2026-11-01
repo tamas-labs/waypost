@@ -10,7 +10,7 @@ import type { Database } from '@/db/database';
 import { deleteKv, setKv } from '@/db/kv';
 import { devices } from '@/db/schema';
 
-import { deleteSupervisorToken, setDeviceCredentials } from './credentials';
+import { deleteSupervisorToken, setDeviceCredentials } from '@/device/credentials';
 import { loadSession } from './session';
 
 /** The enrollment request of this phone for a site. */

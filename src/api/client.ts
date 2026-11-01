@@ -3,9 +3,9 @@
 import type { ErrorCode, ErrorResponse, SchemaPath, SchemaTypes } from '@waypost/schema';
 
 import { uuidv7 } from '@/id/uuidv7';
+import { schemaErrors } from '@/schema/validation';
 
 import { ApiError, codeForStatus, InvalidResponseError, NetworkError } from './errors';
-import { schemaErrors } from './validation';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 

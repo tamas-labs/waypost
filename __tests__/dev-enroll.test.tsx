@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import DevEnrollScreen from '@/app/dev/enroll';
-import { getDeviceCredentials } from '@/auth/credentials';
+import { getDeviceCredentials } from '@/device/credentials';
 import { useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
 import { getKv } from '@/db/kv';

@@ -26,13 +26,14 @@ src/
   navigation/ # melyik csoport nyitott az állapot szerint (Stack.Protected), kezdőképernyő
   components/ # közös UI-komponensek (DESIGN_HANDOFF 5); ikon: icon.tsx (lucide, ikononként importálva); képernyőfejléc: screen-header.tsx (jobbra a szinkronjelző); rövid üzenet: toast.tsx (`showToast`)
   api/        # API-kliens: client.ts (token, Idempotency-Key, típusos hibák, __DEV__ Ajv), endpoints.ts
-  auth/       # secure store (tokenek, eszköztitok), indulási állapot, munkamenet (Zustand), hozzárendelés
+  auth/       # indulási állapot, munkamenet (Zustand), hozzárendelés, PIN
   db/         # expo-sqlite + Drizzle: schema.ts, migrations/ (generált), kv.ts, testing.ts (better-sqlite3 a tesztekhez)
   id/         # uuidv7()
   time/       # időbélyeg, readClock() (waypost-clock), megbízható idő
   domain/     # üzleti szabályok (menetrend → körök, műszak, kör, leolvasás) – UI és I/O nélkül
   guard/      # a domain és az adatbázis között: a GuardState betöltése, az ütemező futtató; testing.ts (a domain-fixture az adatbázisban)
-  device/     # a telefon állapota, a domaintól függetlenül: készenlét (readiness.ts)
+  device/     # a telefon saját adatai és állapota, a domaintól függetlenül: tokenek és eszköztitok a secure store-ban (credentials.ts), készenlét (readiness.ts)
+  schema/     # JSON Schema-ellenőrzés fejlesztői módban (validation.ts, Ajv)
   sync/       # pull, push, outbox, média
   chain/      # láncbejegyzés: kanonikus JSON, HMAC
   nfc/        # olvasás (reader.ts), Androidon az app-szintű figyelés (tag-events.ts), useTagReader a kör és a betanítás képernyőjére

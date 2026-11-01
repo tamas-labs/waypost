@@ -15,6 +15,9 @@ import type { TranslationKey } from '@/i18n';
 
 export type ThemeName = 'dark' | 'light';
 
+/** The user's choice in the settings: follow the system, or always dark / light. */
+export type ThemePreference = 'system' | ThemeName;
+
 export const palette = {
   dark: {
     // felületek
