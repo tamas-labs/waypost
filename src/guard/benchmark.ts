@@ -5,7 +5,7 @@ import type { Timestamp } from '@waypost/schema';
 import { alarmPlan, roundAlarmInfo } from '@/domain/alarms';
 import { schedulerStep } from '@/domain/rounds';
 import { slotsBetween, type ScheduleOfRoute } from '@/domain/schedule';
-import { shiftHome } from '@/domain/shift';
+import { shiftHome } from '@/domain/shift-view';
 import type { GuardState } from '@/domain/state';
 import { parseTimestamp } from '@/time/timestamp';
 import { DAY_MS } from '@/time/zone';

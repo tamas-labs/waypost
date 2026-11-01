@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 
 import type { Database } from '@/db/database';
 import { checkpoints, routes, sites } from '@/db/schema';
-import { shiftHome, type ShiftHome, type ShiftRound } from '@/domain/shift';
+import { shiftHome, type ShiftHome, type ShiftRound } from '@/domain/shift-view';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 import { parseTimestamp } from '@/time/timestamp';
 import { trustedTime } from '@/time/trusted-time';

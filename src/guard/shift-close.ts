@@ -8,7 +8,8 @@ import { useSession } from '@/auth/session';
 import { appendDecidedEntries } from '@/chain/writer';
 import type { Database } from '@/db/database';
 import { incidents, rounds, routes, scans } from '@/db/schema';
-import { closeShiftByGuard, shiftSummary, type ShiftRound, type ShiftSummary } from '@/domain/shift';
+import { closeShiftByGuard } from '@/domain/shift';
+import { shiftSummary, type ShiftRound, type ShiftSummary } from '@/domain/shift-view';
 import { requestSync } from '@/sync/runtime';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 

@@ -8,7 +8,7 @@ import { MINUTE_MS } from '@/time/zone';
 
 import { indexSlots } from './deadline';
 import { autoCloseTime, deadlineOf, expectedSlots, type ClosedStatus } from './rounds';
-import { shiftHome } from './shift';
+import { shiftHome } from './shift-view';
 import type { GuardState } from './state';
 
 export const ALARM_HORIZON_MS = 36 * 60 * MINUTE_MS;

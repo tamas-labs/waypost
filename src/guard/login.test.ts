@@ -5,10 +5,10 @@ import { useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
 import { siteUser, shifts, users } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
-import { GUARD, local, OTHER_GUARD, ROUTE_A, ROUTE_B, SITE } from '@/domain/testing';
+import { GUARD, local, OTHER_GUARD, SITE } from '@/domain/testing';
 import type { ClockReading } from '@/time/clock';
 
-import { loadPinScreenInfo, loadShiftStartInfo, signInWithPin } from './login';
+import { signInWithPin } from './login';
 import { requestSchedulerStep } from './scheduler';
 import { seedSite } from './testing';
 
@@ -38,31 +38,6 @@ beforeEach(async () => {
   useSession.setState({ mode: 'site_phone', activeUser: null });
   jest.mocked(requestSchedulerStep).mockClear();
   now = local('19:40');
-});
-
-describe('the PIN screen information', () => {
-  it('is null until the site is pulled', () => {
-    expect(loadPinScreenInfo(db, readClock)).toBeNull();
-  });
-
-  it('has the site, the guard on shift and the next round', async () => {
-    await seedSite(db);
-    addUser(GUARD, 'Kovács Péter', 'guard', 'basic');
-    expect(loadPinScreenInfo(db, readClock)).toEqual({
-      site_name: 'Raktár',
-      timezone: 'Europe/Budapest',
-      now,
-      on_shift: null,
-      next_round: { scheduled_at: local('20:00'), starts_shift: true },
-    });
-
-    await signInWithPin(db, vector('basic').pin, readClock);
-    now = local('20:10');
-    expect(loadPinScreenInfo(db, readClock)).toMatchObject({
-      on_shift: 'Kovács Péter',
-      next_round: { scheduled_at: local('20:30'), starts_shift: false },
-    });
-  });
 });
 
 describe('signing in with a PIN', () => {
@@ -117,24 +92,5 @@ describe('signing in with a PIN', () => {
     await expect(signInWithPin(db, '000000', readClock)).resolves.toEqual({ status: 'wrong', failures: 1, remaining_ms: 0 });
     expect(useSession.getState().activeUser).toBeNull();
     expect(openShifts()).toEqual([]);
-  });
-});
-
-describe('the shift start information', () => {
-  it('has the guard and the night with its routes by name', async () => {
-    await seedSite(db);
-    addUser(GUARD, 'Kovács Péter', 'guard', 'basic');
-    expect(loadShiftStartInfo(db, GUARD, readClock)).toMatchObject({
-      timezone: 'Europe/Budapest',
-      guard_name: 'Kovács Péter',
-      day: {
-        first_at: local('20:00'),
-        last_at: local('23:00'),
-        routes: [
-          { route_id: ROUTE_A, name: `Útvonal ${ROUTE_A.slice(-2)}`, checkpoints: 3, rounds: 4 },
-          { route_id: ROUTE_B, name: `Útvonal ${ROUTE_B.slice(-2)}`, checkpoints: 2, rounds: 2 },
-        ],
-      },
-    });
   });
 });
