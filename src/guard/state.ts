@@ -8,11 +8,19 @@ import type { Database } from '@/db/database';
 import { getKv } from '@/db/kv';
 import { checkpoints, devices, routes, routeVersionCheckpoints, routeVersions, rounds, scans, schedules, shifts, sites } from '@/db/schema';
 import type { GuardState, RoundInfo, RouteVersionInfo } from '@/domain/state';
+import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 import { parseTimestamp, toTimestamp } from '@/time/timestamp';
+import { trustedTime } from '@/time/trusted-time';
 import { DAY_MS } from '@/time/zone';
 
 /** Closed rounds are loaded from this many days before the shift start (or now), so their slots do not open again. */
 export const CLOSED_ROUNDS_DAYS = 2;
+
+/** The trusted time at a clock reading, and the state at that time. */
+export function loadGuardStateNow(db: Database, readClock: ReadClock = readDeviceClock): { now: Timestamp; state: GuardState | null } {
+  const now = trustedTime(db, readClock()).time;
+  return { now, state: loadGuardState(db, now) };
+}
 
 /** The state of the phone's site at now; null while the phone is not enrolled or its site is not pulled yet. */
 export function loadGuardState(db: Database, now: Timestamp): GuardState | null {

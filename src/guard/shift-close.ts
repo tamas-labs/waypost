@@ -11,10 +11,9 @@ import { incidents, rounds, routes, scans } from '@/db/schema';
 import { closeShiftByGuard, shiftSummary, type ShiftRound, type ShiftSummary } from '@/domain/shift';
 import { requestSync } from '@/sync/runtime';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
-import { trustedTime } from '@/time/trusted-time';
 
 import { userName } from './login';
-import { loadGuardState } from './state';
+import { loadGuardStateNow } from './state';
 
 type Named<R extends ShiftRound> = R & { route_name: string };
 
@@ -35,8 +34,7 @@ export interface ShiftCloseInfo {
 
 /** Null without an open shift (it may have closed automatically), or while the site is not pulled yet. */
 export function loadShiftCloseInfo(db: Database, readClock: ReadClock = readDeviceClock): ShiftCloseInfo | null {
-  const now = trustedTime(db, readClock()).time;
-  const state = loadGuardState(db, now);
+  const { now, state } = loadGuardStateNow(db, readClock);
   const shift = state?.shift ?? null;
   const summary = state === null ? null : shiftSummary(state, now);
   if (state === null || shift === null || summary === null) return null;
@@ -84,8 +82,7 @@ export async function closeShiftWithPin(
   await appendDecidedEntries(
     db,
     () => {
-      const now = trustedTime(db, readClock()).time;
-      const state = loadGuardState(db, now);
+      const { now, state } = loadGuardStateNow(db, readClock);
       if (state === null) throw new Error('The site of the phone is not pulled yet');
       return { drafts: closeShiftByGuard(state, now) };
     },

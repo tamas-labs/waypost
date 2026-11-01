@@ -11,9 +11,8 @@ import { schedulerStep } from '@/domain/rounds';
 import { uuidv7 } from '@/id/uuidv7';
 import { requestSync } from '@/sync/runtime';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
-import { trustedTime } from '@/time/trusted-time';
 
-import { loadGuardState } from './state';
+import { loadGuardStateNow } from './state';
 
 /** Every 30 seconds while the app is in the foreground. */
 export const SCHEDULER_INTERVAL_MS = 30 * 1000;
@@ -28,8 +27,7 @@ export async function runSchedulerStep(db: Database, readClock: ReadClock = read
   const { entries } = await appendDecidedEntries(
     db,
     () => {
-      const now = trustedTime(db, readClock()).time;
-      const state = loadGuardState(db, now);
+      const { now, state } = loadGuardStateNow(db, readClock);
       return { drafts: state === null ? [] : schedulerStep(state, now, uuidv7) };
     },
     { readClock },

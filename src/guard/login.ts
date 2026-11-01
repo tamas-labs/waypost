@@ -12,10 +12,9 @@ import { routes, sites, users } from '@/db/schema';
 import { guardLogin, nextRound, shiftDay, type GuardLogin, type NextRound, type ShiftDay, type ShiftDayRoute } from '@/domain/shift';
 import { uuidv7 } from '@/id/uuidv7';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
-import { trustedTime } from '@/time/trusted-time';
 
 import { requestSchedulerStep } from './scheduler';
-import { loadGuardState } from './state';
+import { loadGuardStateNow } from './state';
 
 export function userName(db: Database, id: string): string | null {
   return db.select({ name: users.name }).from(users).where(eq(users.id, id)).get()?.name ?? null;
@@ -34,8 +33,7 @@ export interface PinScreenInfo {
 
 /** The site of the phone and its shift at the trusted time; null while the site is not pulled yet (nobody can log in). */
 export function loadPinScreenInfo(db: Database, readClock: ReadClock = readDeviceClock): PinScreenInfo | null {
-  const now = trustedTime(db, readClock()).time;
-  const state = loadGuardState(db, now);
+  const { now, state } = loadGuardStateNow(db, readClock);
   if (state === null) return null;
   const site = db.select({ name: sites.name }).from(sites).where(eq(sites.id, state.site_id)).get();
   return {
@@ -69,8 +67,7 @@ export async function signInWithPin(db: Database, pin: string, readClock: ReadCl
   const { decision } = await appendDecidedEntries(
     db,
     () => {
-      const now = trustedTime(db, readClock()).time;
-      const state = loadGuardState(db, now);
+      const { now, state } = loadGuardStateNow(db, readClock);
       if (state === null) throw new Error('The site of the phone is not pulled yet');
       return { ...guardLogin(state, id, now, uuidv7), now };
     },
@@ -96,8 +93,7 @@ export interface ShiftStartInfo {
 }
 
 export function loadShiftStartInfo(db: Database, guardId: string, readClock: ReadClock = readDeviceClock): ShiftStartInfo | null {
-  const now = trustedTime(db, readClock()).time;
-  const state = loadGuardState(db, now);
+  const { now, state } = loadGuardStateNow(db, readClock);
   if (state === null) return null;
   const day = shiftDay(state, now);
   const names = new Map(

@@ -18,12 +18,11 @@ import { onChainEntries } from '@/chain/events';
 import type { Database } from '@/db/database';
 import { routes } from '@/db/schema';
 import { alarmPlan, type AlarmSlot, type PlannedAlarm } from '@/domain/alarms';
-import { loadGuardState } from '@/guard/state';
+import { loadGuardStateNow } from '@/guard/state';
 import { t } from '@/i18n';
 import { onConfigurationPulled } from '@/sync/events';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 import { parseTimestamp } from '@/time/timestamp';
-import { trustedTime } from '@/time/trusted-time';
 import { localTimeOf } from '@/time/zone';
 
 import { ROUNDS_CHANNEL_ID, ROUND_ALARM_SOUND, ROUND_ALARM_VIBRATION, ensureRoundsChannel } from './channel';
@@ -98,8 +97,7 @@ export async function replaceRoundAlarms(requests: readonly RoundAlarmRequest[])
 /** Recomputes the plan at the trusted time and replaces the pending round alarms (none on a phone that is not enrolled). */
 export async function rescheduleRoundAlarms(db: Database, readClock: ReadClock = readDeviceClock): Promise<void> {
   const clock = readClock();
-  const now = trustedTime(db, clock).time;
-  const state = loadGuardState(db, now);
+  const { now, state } = loadGuardStateNow(db, () => clock);
   const plan = state === null ? [] : alarmPlan(state, now);
   const routeIds = [...new Set(plan.map((alarm) => alarm.route_id))];
   const routeNames = new Map(

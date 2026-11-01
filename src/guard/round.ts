@@ -9,10 +9,9 @@ import { deadlineOfRound, type ClosedStatus } from '@/domain/rounds';
 import { isOpen, versionOf, type GuardState } from '@/domain/state';
 import { coordinateOfE7, type Coordinate } from '@/location/coordinate';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
-import { trustedTime } from '@/time/trusted-time';
 
 import { routeNameAmongSeveral } from './alarm';
-import { loadGuardState } from './state';
+import { loadGuardStateNow } from './state';
 
 export interface RoundPoint {
   checkpoint_id: string;
@@ -45,8 +44,7 @@ export interface RoundScreenInfo {
 
 /** Null: the round is not open (any more), or it is not known. */
 export function loadRoundScreenInfo(db: Database, roundId: string, readClock: ReadClock = readDeviceClock): RoundScreenInfo | null {
-  const now = trustedTime(db, readClock()).time;
-  const state = loadGuardState(db, now);
+  const { state } = loadGuardStateNow(db, readClock);
   if (state === null || !state.rounds.some((round) => round.id === roundId && isOpen(round))) return null;
   return roundDetailsOf(db, state, roundId);
 }

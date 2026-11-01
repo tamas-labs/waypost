@@ -24,9 +24,8 @@ import { currentLocation } from '@/location/location';
 import type { TagReading } from '@/nfc/tag';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 import { parseTimestamp } from '@/time/timestamp';
-import { trustedTime } from '@/time/trusted-time';
 
-import { loadGuardState } from './state';
+import { loadGuardStateNow } from './state';
 
 /** Null: the tag gave no valid UID, so there is nothing to look up or to record. */
 export function tagReadOf(tag: TagReading): TagRead | null {
@@ -35,8 +34,7 @@ export function tagReadOf(tag: TagReading): TagRead | null {
 
 /** The context of a domain rule, read under the chain lock. */
 function scanContext(db: Database, location: LocationFix | null, readClock: ReadClock): ScanContext {
-  const now = trustedTime(db, readClock()).time;
-  const state = loadGuardState(db, now);
+  const { now, state } = loadGuardStateNow(db, readClock);
   if (state === null) throw new Error('The site is not pulled yet');
   return { state, now, location, newId: uuidv7 };
 }
@@ -106,8 +104,7 @@ export function incidentPlace(
   location: LocationFix | null,
   readClock: ReadClock = readDeviceClock,
 ): IncidentPlace | null {
-  const now = trustedTime(db, readClock()).time;
-  const state = loadGuardState(db, now);
+  const { now, state } = loadGuardStateNow(db, readClock);
   if (state === null) return null;
   const id = checkpointId ?? nearestCheckpoint(state.checkpoints, location);
   const point = id === null ? undefined : db.select({ name: checkpoints.name }).from(checkpoints).where(eq(checkpoints.id, id)).get();
@@ -121,7 +118,7 @@ export function nearestOf(
   location: LocationFix | null,
   readClock: ReadClock = readDeviceClock,
 ): string | null {
-  const state = loadGuardState(db, trustedTime(db, readClock()).time);
+  const { state } = loadGuardStateNow(db, readClock);
   return nearestCheckpoint(state?.checkpoints.filter((checkpoint) => checkpointIds.includes(checkpoint.id)) ?? [], location);
 }
 

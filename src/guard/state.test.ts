@@ -8,6 +8,8 @@ import type { RoundInfo } from '@/domain/state';
 import { loadGuardState } from './state';
 import { DEVICE, seedSite } from './testing';
 
+jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
+
 let db: Database;
 const NOW = local('21:10');
 const OTHER_SITE = '019a2b3c-4d5e-7f00-8a00-000000000012';

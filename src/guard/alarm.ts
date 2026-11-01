@@ -6,9 +6,8 @@ import { routes } from '@/db/schema';
 import { roundAlarmInfo, type AlarmSlot, type RoundAlarmInfo } from '@/domain/alarms';
 import type { GuardState } from '@/domain/state';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
-import { trustedTime } from '@/time/trusted-time';
 
-import { loadGuardState } from './state';
+import { loadGuardStateNow } from './state';
 
 export interface AlarmScreenInfo extends RoundAlarmInfo {
   timezone: string;
@@ -25,8 +24,7 @@ export function routeNameAmongSeveral(db: Database, state: GuardState, routeId: 
 
 /** Null: the alarm has nothing to say any more (roundAlarmInfo), or the site is not pulled yet. */
 export function loadAlarmScreenInfo(db: Database, slot: AlarmSlot, readClock: ReadClock = readDeviceClock): AlarmScreenInfo | null {
-  const now = trustedTime(db, readClock()).time;
-  const state = loadGuardState(db, now);
+  const { now, state } = loadGuardStateNow(db, readClock);
   const info = state === null ? null : roundAlarmInfo(state, slot, now);
   if (state === null || info === null) return null;
   return { ...info, timezone: state.timezone, route_name: routeNameAmongSeveral(db, state, slot.route_id) };

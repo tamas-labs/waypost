@@ -6,10 +6,9 @@ import type { Database } from '@/db/database';
 import { checkpoints, scans } from '@/db/schema';
 import { isOpen } from '@/domain/state';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
-import { trustedTime } from '@/time/trusted-time';
 
 import { roundDetailsOf, type RoundPoint, type RoundScreenInfo } from './round';
-import { loadGuardState } from './state';
+import { loadGuardStateNow } from './state';
 
 export interface ScanResultInfo {
   timezone: string;
@@ -28,8 +27,7 @@ export function loadScanResultInfo(
   ids: { round_id?: string; checkpoint_id?: string; scan_id?: string },
   readClock: ReadClock = readDeviceClock,
 ): ScanResultInfo | null {
-  const now = trustedTime(db, readClock()).time;
-  const state = loadGuardState(db, now);
+  const { state } = loadGuardStateNow(db, readClock);
   if (state === null) return null;
   const { round_id, checkpoint_id, scan_id } = ids;
   const round = round_id === undefined ? null : roundDetailsOf(db, state, round_id);

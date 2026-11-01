@@ -9,7 +9,7 @@ import { parseTimestamp } from '@/time/timestamp';
 import { trustedTime } from '@/time/trusted-time';
 
 import { userName } from './login';
-import { loadGuardState } from './state';
+import { loadGuardStateNow } from './state';
 
 export type ShiftHomeRound = Omit<ShiftRound, 'missing_checkpoint_ids'> & { route_name: string; missing_names: string[] };
 
@@ -23,8 +23,7 @@ export interface ShiftHomeInfo {
 
 /** Null while the site is not pulled yet. */
 export function loadShiftHomeInfo(db: Database, guardId: string, readClock: ReadClock = readDeviceClock): ShiftHomeInfo | null {
-  const now = trustedTime(db, readClock()).time;
-  const state = loadGuardState(db, now);
+  const { now, state } = loadGuardStateNow(db, readClock);
   if (state === null) return null;
   const site = db.select({ name: sites.name }).from(sites).where(eq(sites.id, state.site_id)).get();
   const home = shiftHome(state, now);
