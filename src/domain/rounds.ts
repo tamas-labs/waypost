@@ -7,11 +7,14 @@ import type { Timestamp } from '@waypost/schema';
 import type { ChainEntryDraft } from '@/chain/payloads';
 import { roundClosed, roundOpened, shiftClosed } from '@/chain/payloads';
 import { parseTimestamp, toTimestamp } from '@/time/timestamp';
-import { DAY_MS, localDateOf } from '@/time/zone';
+import { DAY_MS, localDateOf, MINUTE_MS } from '@/time/zone';
 
 import { deadlineMs, indexSlots, type SlotIndex } from './deadline';
 import { slotsBetween, type Slot } from './schedule';
 import { isOpen, roundKey, versionOf, type ClosedStatus, type GuardState, type NewId, type RoundInfo } from './state';
+
+/** The shift closes automatically this long after the latest deadline of its day (Q10). */
+const AUTO_CLOSE_AFTER_MIN = 60;
 
 /** How a round closes now: completed if every checkpoint is scanned (manual too), else incomplete or missed. */
 export function closingStatus(round: Pick<RoundInfo, 'scans'>, checkpointIds: readonly string[]): ClosedStatus {
@@ -83,7 +86,7 @@ export function autoCloseTime(
   const lastDeadline = Math.max(
     ...withDeadline.filter(({ slot }) => slot.start_day === first.slot.start_day).map(({ deadline }) => deadline),
   );
-  return lastDeadline + 60 * 60_000;
+  return lastDeadline + AUTO_CLOSE_AFTER_MIN * MINUTE_MS;
 }
 
 interface Event {

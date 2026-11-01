@@ -169,9 +169,13 @@ export function shiftHome(state: GuardState, now: Timestamp): ShiftHome | null {
   const routesWithNext = new Set<string>();
   let nextAt: Timestamp | null = null;
 
-  const rounds = ofShift.map((slot): ShiftRound => {
+  const rounds: ShiftRound[] = [];
+  for (const slot of ofShift) {
     const round = roundsBySlot.get(roundKey(slot));
-    if (round !== undefined) return shiftRoundOf(state, round);
+    if (round !== undefined) {
+      rounds.push(shiftRoundOf(state, round));
+      continue;
+    }
     const versionId = state.routes.find((route) => route.id === slot.route_id)?.current_version_id;
     const checkpointIds = state.versions.find((version) => version.id === versionId)?.checkpoint_ids ?? [];
     const notOpened = {
@@ -184,12 +188,14 @@ export function shiftHome(state: GuardState, now: Timestamp): ShiftHome | null {
       missing_checkpoint_ids: checkpointIds,
       duration_ms: null,
     };
-    if (deadlineOf(state, slot, index) <= startedMs) return { ...notOpened, state: 'missed' };
+    if (deadlineOf(state, slot, index) <= startedMs) {
+      rounds.push({ ...notOpened, state: 'missed' });
+      continue;
+    }
     nextAt ??= slot.scheduled_at;
-    if (routesWithNext.has(slot.route_id)) return { ...notOpened, state: 'future' };
+    rounds.push({ ...notOpened, state: routesWithNext.has(slot.route_id) ? 'future' : 'next' });
     routesWithNext.add(slot.route_id);
-    return { ...notOpened, state: 'next' };
-  });
+  }
   for (const round of state.rounds) {
     if (round.shift_id === shift.id && !slotKeys.has(roundKey(round))) rounds.push(shiftRoundOf(state, round));
   }
