@@ -23,7 +23,7 @@ jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBo
 jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), replace: jest.fn() }, useIsFocused: jest.fn(() => true) }));
 jest.mock('@/guard/scheduler', () => ({ requestSchedulerStep: jest.fn() }));
-jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn(), requestSync: jest.fn() }));
+jest.mock('@/sync/runtime', () => ({ requestSync: jest.fn() }));
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 const AT = '2026-10-27T12:00:00.000Z';

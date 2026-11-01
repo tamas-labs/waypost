@@ -1,5 +1,5 @@
-// What the chain writer tells the other modules after a write has been committed: the round alarms (M3-24) are
-// rebuilt when a shift starts or closes and when a round starts or closes.
+// What the chain writer tells the other modules after a write has been committed: the sync (a count and a sync soon),
+// and the round alarms (M3-24), which are rebuilt when a shift starts or closes and when a round starts or closes.
 import type { ChainEntry } from '@waypost/schema';
 
 export type ChainEntriesListener = (entries: readonly ChainEntry[]) => void;

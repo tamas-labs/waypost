@@ -1,6 +1,7 @@
 import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import { AppState, type AppStateStatus } from 'react-native';
 
+import { emitChainEntries } from '@/chain/events';
 import { ApiError } from '@/api/errors';
 import { deleteDeviceCredentials, deleteSupervisorToken, setDeviceCredentials, setSupervisorToken } from '@/auth/credentials';
 import { useSession } from '@/auth/session';
@@ -8,7 +9,7 @@ import type { Database } from '@/db/database';
 import { deleteKv, getKv, setKv } from '@/db/kv';
 import { createTestDatabase } from '@/db/testing';
 
-import { FOREGROUND_SYNC_INTERVAL_MS, notifyChainEntry, requestSync, startSync, syncContext, syncSteps, type SyncContext } from './runtime';
+import { FOREGROUND_SYNC_INTERVAL_MS, requestSync, startSync, syncContext, syncSteps, type SyncContext } from './runtime';
 import { useSyncStatus } from './status';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
@@ -170,8 +171,8 @@ describe('sync runtime', () => {
   it('syncs 2 s after a chain entry, and on request', async () => {
     stop = startSync(db);
     await settle();
-    notifyChainEntry();
-    notifyChainEntry();
+    emitChainEntries([]);
+    emitChainEntries([]);
     await jest.advanceTimersByTimeAsync(2000);
     expect(pulls).toHaveLength(2);
     await expect(requestSync('shift_closed')).resolves.toEqual({ status: 'ok' });
@@ -187,6 +188,7 @@ describe('sync runtime', () => {
     expect(unsubscribeNetInfo).toHaveBeenCalled();
     useSession.setState({ mode: 'unassigned' });
     useSession.setState({ mode: 'site_phone' });
+    emitChainEntries([]);
     await jest.advanceTimersByTimeAsync(FOREGROUND_SYNC_INTERVAL_MS);
     await expect(requestSync('manual')).resolves.toEqual({ status: 'skipped' });
     expect(pulls).toHaveLength(1);

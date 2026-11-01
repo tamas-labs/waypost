@@ -19,7 +19,7 @@ import { ThemeProvider } from '@/theme/theme-provider';
 let mockUptime = 5_000_000;
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => mockUptime, getBootId: () => 'android-boot:12' }));
 jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
-jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn(), requestSync: jest.fn() }));
+jest.mock('@/sync/runtime', () => ({ requestSync: jest.fn() }));
 jest.mock('@/guard/scheduler', () => ({ requestSchedulerStep: jest.fn() }));
 jest.mock('@/feedback/feedback', () => ({ playFeedback: jest.fn() }));
 jest.mock('@/alarms/permissions', () => ({ ...jest.requireActual<object>('@/alarms/permissions'), getAlarmPermissions: jest.fn() }));

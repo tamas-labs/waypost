@@ -10,7 +10,6 @@ import type { Database } from '@/db/database';
 import { getKv } from '@/db/kv';
 import { chainEntries } from '@/db/schema';
 import { uuidv7 } from '@/id/uuidv7';
-import { notifyChainEntry } from '@/sync/runtime';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 import { chainTimeReference, getTimeReference } from '@/time/trusted-time';
 
@@ -110,7 +109,6 @@ async function writeDrafts(db: Database, drafts: readonly ChainEntryDraft[], opt
     return entries;
   });
 
-  notifyChainEntry();
   emitChainEntries(written);
   return written;
 }

@@ -10,7 +10,7 @@ import { loadGuardState } from './state';
 import { seedSite } from './testing';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
-jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn(), requestSync: jest.fn() }));
+jest.mock('@/sync/runtime', () => ({ requestSync: jest.fn() }));
 
 const SLOT = { route_id: ROUTE_A, schedule_id: SCHEDULE_A, scheduled_at: local('20:00') };
 

@@ -13,7 +13,7 @@ import { requestSchedulerStep } from './scheduler';
 import { seedSite } from './testing';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
-jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn(), requestSync: jest.fn() }));
+jest.mock('@/sync/runtime', () => ({ requestSync: jest.fn() }));
 jest.mock('./scheduler', () => ({ requestSchedulerStep: jest.fn() }));
 
 const SUPERVISOR = '019a2b3c-4d5e-7f00-8a00-000000000002';

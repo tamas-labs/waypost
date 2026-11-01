@@ -17,7 +17,7 @@ import type { PullSummary } from '@/sync/pull';
 import { alarmRequests, requestAlarmReschedule, rescheduleRoundAlarms, ROUND_ALARM_KIND, startRoundAlarms } from './round-alarms';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
-jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn(), requestSync: jest.fn(() => Promise.resolve({ status: 'skipped' })) }));
+jest.mock('@/sync/runtime', () => ({ requestSync: jest.fn(() => Promise.resolve({ status: 'skipped' })) }));
 jest.mock('expo-notifications', () => ({
   ...jest.requireActual<object>('expo-notifications/build/NotificationChannelManager.types'),
   SchedulableTriggerInputTypes: { DATE: 'date' },

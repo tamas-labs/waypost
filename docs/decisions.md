@@ -577,3 +577,10 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **Mért javulás Node-ban, Jest alatt** (`schedulerStep` / `shiftHome` / `alarmPlan`, ms hívásonként): 5 percenként 20:00–08:00: 159 / 253 / 224 → 26 / 28 / 38; 5 percenként 00:00–23:55: 509 / 897 / 754 → 51 / 53 / 76. A maradék nagy része a `slotsBetween` (23 és 46 ms).
 - **Indok:** Audit 3. hiba: a `deadlineOf` négyzetes költsége a JS-szálon fut, az M3-40 pedig 5 perces körökkel megy.
 - **Érintett:** `src/domain/deadline.ts`, `src/domain/rounds.ts`, `src/domain/shift.ts`, `src/domain/alarms.ts`.
+
+## 2026-11-01 – A láncíró nem ismeri a szinkront (J-13)
+
+- **Kérdés:** A láncíró közvetlenül hívta a szinkron futtatóját, és ennek kivétele elutasította a már rögzített írást. Hogyan szűnik meg a `chain → sync` él?
+- **Döntés:** A `startSync` iratkozik fel az `onChainEntries` eseményre, és a `stop`-ban leiratkozik. Az esemény egy kivételt dobó figyelőt elkülönít, így a hívó nem kap hibát, ha a bejegyzés már rögzült. A viselkedés más nem változik: frissül a számláló, és 2 mp múlva indul a szinkron.
+- **Indok:** Audit 6. hiba, „a legrosszabb él”.
+- **Érintett:** `src/chain/writer.ts`, `src/sync/runtime.ts`.

@@ -14,7 +14,7 @@ import { loadGuardState } from './state';
 import { seedSite } from './testing';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
-jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn(), requestSync: jest.fn() }));
+jest.mock('@/sync/runtime', () => ({ requestSync: jest.fn() }));
 jest.mock('@/location/location', () => ({
   currentLocation: jest.fn(() => Promise.resolve({ latitude: 47.5, longitude: 19, accuracy_m: 8, mocked: false, gnss_time: null })),
 }));

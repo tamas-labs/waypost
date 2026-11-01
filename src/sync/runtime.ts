@@ -1,6 +1,6 @@
 // The app's sync: one controller, its context (token and API client by the session), its steps, and the triggers of
 // the specification (Szinkron protokoll / Mikor fut). startSync() is called once the database and the session are
-// loaded; the chain writer calls notifyChainEntry(), the shift close requestSync('shift_closed').
+// loaded; it follows the chain writer's events, and the shift close calls requestSync('shift_closed').
 import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import { AppState, type AppStateStatus } from 'react-native';
 
@@ -8,6 +8,7 @@ import { createApiClient, type ApiClient } from '@/api/client';
 import { apiBaseUrl } from '@/api/config';
 import { getDeviceCredentials, getSupervisorToken } from '@/auth/credentials';
 import { useSession } from '@/auth/session';
+import { onChainEntries } from '@/chain/events';
 import type { Database } from '@/db/database';
 import { getKv, setKv } from '@/db/kv';
 import { readClock } from '@/time/clock';
@@ -63,12 +64,6 @@ export function refreshPendingCount(): void {
 /** A sync now (or right after the running one); skipped before startSync(). */
 export function requestSync(trigger: SyncTrigger): Promise<SyncOutcome> {
   return controller?.sync(trigger) ?? Promise.resolve({ status: 'skipped' });
-}
-
-/** After a chain entry: a sync 2 s later, merged with the entries written meanwhile. */
-export function notifyChainEntry(): void {
-  refreshPendingCount();
-  controller?.syncSoon('chain_entry');
 }
 
 function finished(db: Database, outcome: SyncOutcome): void {
@@ -148,6 +143,12 @@ export function startSync(db: Database): () => void {
     if (state.mode !== previous.mode) void sync.sync('session');
   });
 
+  // After a chain entry: a sync 2 s later, merged with the entries written meanwhile.
+  const unsubscribeChainEntries = onChainEntries(() => {
+    refreshPendingCount();
+    sync.syncSoon('chain_entry');
+  });
+
   void sync.sync('start');
 
   const stop = () => {
@@ -156,6 +157,7 @@ export function startSync(db: Database): () => void {
     appStateSubscription.remove();
     unsubscribeNetInfo();
     unsubscribeSession();
+    unsubscribeChainEntries();
     if (controller === sync) controller = null;
     if (stopSync === stop) stopSync = null;
     setSyncNowHandler(() => Promise.resolve({ status: 'skipped' }));

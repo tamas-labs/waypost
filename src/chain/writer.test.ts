@@ -8,18 +8,16 @@ import { deleteKv, setKv } from '@/db/kv';
 import { chainEntries, incidents, media, rounds, scans, shifts } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import { uuidv7 } from '@/id/uuidv7';
-import { notifyChainEntry } from '@/sync/runtime';
 import type { ClockReading } from '@/time/clock';
+import { entryTrustedTime, recordServerTime } from '@/time/trusted-time';
 
 import { onChainEntries } from './events';
 import { GENESIS_HASH, verifyChainEntry } from './hmac';
 import { incident, roundClosed, roundOpened, scan, shiftClosed, shiftStarted, type PhotoFile } from './payloads';
 import { ProjectionError } from './projection';
 import { appendChainEntries, appendChainEntry, appendDecidedEntries, ChainWriteError, type ChainWriterOptions } from './writer';
-import { entryTrustedTime, recordServerTime } from '@/time/trusted-time';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
-jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn() }));
 jest.mock('@/id/uuidv7', () => {
   const actual = jest.requireActual<typeof import('@/id/uuidv7')>('@/id/uuidv7');
   return { ...actual, uuidv7: jest.fn(actual.uuidv7) };
@@ -48,6 +46,9 @@ const ROUND_FIELDS = {
   scheduled_at: '2026-10-27T20:00:00.000Z',
   time_limit_min: 20,
 };
+
+const notified = jest.fn();
+onChainEntries(notified);
 
 let db: Database;
 let clockMs: number;
@@ -81,7 +82,7 @@ beforeEach(async () => {
   setKv(db, 'device.id', DEVICE);
   await setDeviceCredentials({ token: 'device-token', secret: KEY });
   clockMs = Date.UTC(2026, 9, 27, 20, 0, 0);
-  jest.mocked(notifyChainEntry).mockClear();
+  notified.mockClear();
 });
 
 describe('chain writer', () => {
@@ -137,7 +138,7 @@ describe('chain writer', () => {
         chain_entry_id: THIRD.id,
       }),
     ]);
-    expect(notifyChainEntry).toHaveBeenCalledTimes(2);
+    expect(notified).toHaveBeenCalledTimes(2);
   });
 
   it('starts the chain at seq 1 with 64 zeros, without a sync reference before the first sync', async () => {
@@ -209,7 +210,7 @@ describe('chain writer', () => {
     expect(allEntries().map((entry) => entry.seq)).toEqual([1]);
     expect(db.select().from(rounds).all()).toEqual([]);
     expect(db.select().from(shifts).all()).toHaveLength(1);
-    expect(notifyChainEntry).toHaveBeenCalledTimes(1);
+    expect(notified).toHaveBeenCalledTimes(1);
 
     const next = await openRound();
     expect(next).toMatchObject({ seq: 2, prev_hash: allEntries()[0]!.hash });
@@ -232,7 +233,7 @@ describe('chain writer', () => {
 
     await expect(startShift()).resolves.toMatchObject({ seq: 1 });
     await expect(appendChainEntries(db, [], options)).resolves.toEqual([]);
-    expect(notifyChainEntry).toHaveBeenCalledTimes(1);
+    expect(notified).toHaveBeenCalledTimes(1);
   });
 
   it('decides under the lock: a decision reads the state the earlier writes left', async () => {
@@ -269,6 +270,18 @@ describe('chain writer', () => {
     unsubscribe();
     await openRound(uuidv7()).catch(() => undefined);
     expect(heard).toEqual([[1], [2, 3]]);
+  });
+
+  it('keeps the entry when a listener throws, and the write is not rejected', async () => {
+    const error = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const unsubscribe = onChainEntries(() => {
+      throw new Error('Listener failed');
+    });
+    await expect(startShift()).resolves.toMatchObject({ seq: 1 });
+    expect(allEntries()).toHaveLength(1);
+    expect(notified).toHaveBeenCalledTimes(1);
+    unsubscribe();
+    error.mockRestore();
   });
 
   it('starts a new chain for a newly enrolled device', async () => {
