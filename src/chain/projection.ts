@@ -30,7 +30,9 @@ export function applyProjection(tx: Database, entry: ChainEntry): void {
   switch (entry.type) {
     case 'shift_started': {
       const { shift_id, site_id, guard_id } = entry.payload;
-      tx.insert(shifts).values({ id: shift_id, site_id, device_id: entry.device_id, guard_id, started_at: entry.device_time, chain_entry_id: entry.id }).run();
+      tx.insert(shifts)
+        .values({ id: shift_id, site_id, device_id: entry.device_id, guard_id, started_at: entry.device_time, chain_entry_id: entry.id })
+        .run();
       return;
     }
     case 'shift_closed': {
@@ -42,7 +44,9 @@ export function applyProjection(tx: Database, entry: ChainEntry): void {
     case 'round_opened': {
       const { round_id, shift_id, route_version_id, schedule_id, scheduled_at, time_limit_min } = entry.payload;
       openShift(tx, shift_id);
-      tx.insert(rounds).values({ id: round_id, shift_id, route_version_id, schedule_id, scheduled_at, time_limit_min, status: 'open' }).run();
+      tx.insert(rounds)
+        .values({ id: round_id, shift_id, route_version_id, schedule_id, scheduled_at, time_limit_min, status: 'open' })
+        .run();
       return;
     }
     case 'scan': {
@@ -52,14 +56,39 @@ export function applyProjection(tx: Database, entry: ChainEntry): void {
         tx.update(rounds).set({ status: 'in_progress', started_at: entry.device_time }).where(eq(rounds.id, round_id)).run();
       }
       tx.insert(scans)
-        .values({ id: scan_id, round_id, checkpoint_id, method, scanned_at: entry.device_time, lat_e7, lng_e7, accuracy_dm, is_mock, flags, note, chain_entry_id: entry.id })
+        .values({
+          id: scan_id,
+          round_id,
+          checkpoint_id,
+          method,
+          scanned_at: entry.device_time,
+          lat_e7,
+          lng_e7,
+          accuracy_dm,
+          is_mock,
+          flags,
+          note,
+          chain_entry_id: entry.id,
+        })
         .run();
       return;
     }
     case 'incident': {
       const { incident_id, shift_id, category, note, lat_e7, lng_e7, accuracy_dm, nearest_checkpoint_id, scan_id } = entry.payload;
       tx.insert(incidents)
-        .values({ id: incident_id, shift_id, category, note, occurred_at: entry.device_time, lat_e7, lng_e7, accuracy_dm, nearest_checkpoint_id, scan_id, chain_entry_id: entry.id })
+        .values({
+          id: incident_id,
+          shift_id,
+          category,
+          note,
+          occurred_at: entry.device_time,
+          lat_e7,
+          lng_e7,
+          accuracy_dm,
+          nearest_checkpoint_id,
+          scan_id,
+          chain_entry_id: entry.id,
+        })
         .run();
       return;
     }

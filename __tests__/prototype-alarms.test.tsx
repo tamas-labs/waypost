@@ -3,7 +3,13 @@ import { addNotificationReceivedListener, type Notification } from 'expo-notific
 import { Platform } from 'react-native';
 
 import { showAlarmsInForeground } from '@/alarms/foreground';
-import { getAlarmPermissions, requestBatteryExemption, requestExactAlarms, requestNotifications, type AlarmPermissions } from '@/alarms/permissions';
+import {
+  getAlarmPermissions,
+  requestBatteryExemption,
+  requestExactAlarms,
+  requestNotifications,
+  type AlarmPermissions,
+} from '@/alarms/permissions';
 import { cancelTestAlarms, getScheduledTestAlarms, scheduleTestAlarms } from '@/alarms/test-alarms';
 import AlarmsScreen from '@/app/prototype/alarms';
 import { ThemeProvider } from '@/theme/theme-provider';
@@ -16,7 +22,11 @@ jest.mock('@/alarms/permissions', () => ({
   requestExactAlarms: jest.fn(),
   requestBatteryExemption: jest.fn(),
 }));
-jest.mock('@/alarms/test-alarms', () => ({ scheduleTestAlarms: jest.fn(), getScheduledTestAlarms: jest.fn(), cancelTestAlarms: jest.fn() }));
+jest.mock('@/alarms/test-alarms', () => ({
+  scheduleTestAlarms: jest.fn(),
+  getScheduledTestAlarms: jest.fn(),
+  cancelTestAlarms: jest.fn(),
+}));
 jest.mock('expo-router', () => ({ Stack: { Screen: () => null } }));
 
 const permissions = jest.mocked(getAlarmPermissions);
@@ -112,7 +122,9 @@ test('a notification arriving in the foreground is listed with its delay', async
   const { unmount } = await renderScreen('android');
   const onReceived = jest.mocked(addNotificationReceivedListener).mock.calls[0]![0];
   const scheduledAt = new Date(Date.now() - 4000);
-  await act(async () => onReceived({ request: { content: { data: { scheduledAt: scheduledAt.toISOString() } } } } as unknown as Notification));
+  await act(async () =>
+    onReceived({ request: { content: { data: { scheduledAt: scheduledAt.toISOString() } } } } as unknown as Notification),
+  );
   expect(screen.getByText(/ · ütemezve \d\d:\d\d · \+4 mp$/)).toBeOnTheScreen();
 
   await act(async () => unmount());

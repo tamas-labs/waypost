@@ -3,7 +3,17 @@
 import type { LocalTime, Schedule, Timestamp } from '@waypost/schema';
 
 import { toTimestamp } from '@/time/timestamp';
-import { DAY_MS, MINUTE_MS, formatLocalDate, formatLocalTime, formatLocalWithOffset, localDateOf, parseLocalDate, parseLocalTime, resolveLocal } from '@/time/zone';
+import {
+  DAY_MS,
+  MINUTE_MS,
+  formatLocalDate,
+  formatLocalTime,
+  formatLocalWithOffset,
+  localDateOf,
+  parseLocalDate,
+  parseLocalTime,
+  resolveLocal,
+} from '@/time/zone';
 
 /** The fields of a schedule that decide its times. */
 export type ScheduleRules = Pick<Schedule, 'weekdays' | 'mode' | 'interval_from' | 'interval_to' | 'interval_every_min'> & {
@@ -33,7 +43,8 @@ export function windowMinutes(schedule: ScheduleRules): number[] {
     });
   }
   const { interval_from, interval_to, interval_every_min } = schedule;
-  if (interval_from === null || interval_to === null || interval_every_min === null || interval_every_min < 1) throw new Error('Incomplete interval schedule');
+  if (interval_from === null || interval_to === null || interval_every_min === null || interval_every_min < 1)
+    throw new Error('Incomplete interval schedule');
   const from = parseLocalTime(interval_from);
   const to = parseLocalTime(interval_to) + (parseLocalTime(interval_to) <= from ? 1440 : 0);
   const minutes: number[] = [];
@@ -56,7 +67,12 @@ export function expandSchedule(schedule: ScheduleRules, timeZone: string, fromDa
       // Two wall-clock times moved onto the same instant (spring gap) are one round.
       if (seen.has(utc)) continue;
       seen.add(utc);
-      rounds.push({ start_day: formatLocalDate(day), wall_time: formatLocalTime(minutes), local: formatLocalWithOffset(utc, timeZone), utc: toTimestamp(utc) });
+      rounds.push({
+        start_day: formatLocalDate(day),
+        wall_time: formatLocalTime(minutes),
+        local: formatLocalWithOffset(utc, timeZone),
+        utc: toTimestamp(utc),
+      });
     }
   }
   return rounds;
@@ -94,7 +110,14 @@ export function slotsBetween(schedules: readonly ScheduleOfRoute[], timeZone: st
     for (const round of expandSchedule(schedule, timeZone, fromDate, toDate)) {
       const ms = Date.parse(round.utc);
       if (ms < fromMs || ms > toMs) continue;
-      slots.push({ route_id: schedule.route_id, schedule_id: schedule.id, start_day: round.start_day, scheduled_at: round.utc, time_limit_min: schedule.time_limit_min, ms });
+      slots.push({
+        route_id: schedule.route_id,
+        schedule_id: schedule.id,
+        start_day: round.start_day,
+        scheduled_at: round.utc,
+        time_limit_min: schedule.time_limit_min,
+        ms,
+      });
     }
   }
   slots.sort((a, b) => a.ms - b.ms || a.route_id.localeCompare(b.route_id) || a.schedule_id.localeCompare(b.schedule_id));

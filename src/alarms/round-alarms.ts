@@ -67,7 +67,14 @@ export function alarmRequests(plan: readonly PlannedAlarm[], context: AlarmConte
       content: {
         title,
         body,
-        data: { kind: ROUND_ALARM_KIND, alarm: alarm.kind, route_id: alarm.route_id, schedule_id: alarm.schedule_id, scheduled_at: alarm.scheduled_at, fingerprint: JSON.stringify([title, body, date.getTime()]) },
+        data: {
+          kind: ROUND_ALARM_KIND,
+          alarm: alarm.kind,
+          route_id: alarm.route_id,
+          schedule_id: alarm.schedule_id,
+          scheduled_at: alarm.scheduled_at,
+          fingerprint: JSON.stringify([title, body, date.getTime()]),
+        },
         sound: ROUND_ALARM_SOUND,
         vibrate: ROUND_ALARM_VIBRATION,
         interruptionLevel: 'timeSensitive',
@@ -103,7 +110,11 @@ export async function rescheduleRoundAlarms(db: Database, readClock: ReadClock =
       .all()
       .map((route) => [route.id, route.name]),
   );
-  const context = { timezone: state?.timezone ?? 'UTC', routeNames, clockOffsetMs: parseTimestamp(clock.device_time) - parseTimestamp(now) };
+  const context = {
+    timezone: state?.timezone ?? 'UTC',
+    routeNames,
+    clockOffsetMs: parseTimestamp(clock.device_time) - parseTimestamp(now),
+  };
   await replaceRoundAlarms(alarmRequests(plan, context));
 }
 

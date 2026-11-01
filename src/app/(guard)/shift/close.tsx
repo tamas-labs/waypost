@@ -46,7 +46,21 @@ function useShiftCloseInfo(): ShiftCloseInfo | null {
 function StatTile({ status, label, count }: { status: keyof ShiftCloseInfo['counts']; label: string; count: number }) {
   const { color, typography, space, radius, border } = useTheme();
   return (
-    <View accessible accessibilityLabel={`${count} ${label}`} style={[styles.grow, { gap: space.xs, padding: space.m, borderRadius: radius.item, borderWidth: border.thin, borderColor: color.cardBorder, backgroundColor: color.surface }]}>
+    <View
+      accessible
+      accessibilityLabel={`${count} ${label}`}
+      style={[
+        styles.grow,
+        {
+          gap: space.xs,
+          padding: space.m,
+          borderRadius: radius.item,
+          borderWidth: border.thin,
+          borderColor: color.cardBorder,
+          backgroundColor: color.surface,
+        },
+      ]}
+    >
       <StatusDot status={status} />
       <Text style={[typography.title1, styles.tabular, { color: color.text }]}>{count}</Text>
       <Text style={[typography.small, { color: color.text2 }]}>{label}</Text>
@@ -54,11 +68,32 @@ function StatTile({ status, label, count }: { status: keyof ShiftCloseInfo['coun
   );
 }
 
-function SummaryRow({ icon, fg, bg, label, count }: { icon: IconName; fg: keyof ColorTokens; bg: keyof ColorTokens; label: string; count: number }) {
+function SummaryRow({
+  icon,
+  fg,
+  bg,
+  label,
+  count,
+}: {
+  icon: IconName;
+  fg: keyof ColorTokens;
+  bg: keyof ColorTokens;
+  label: string;
+  count: number;
+}) {
   const { color, typography, size, space, iconSize } = useTheme();
   return (
-    <View accessible accessibilityLabel={`${label}: ${count}`} style={[styles.row, { minHeight: size.listItem, gap: space.m, paddingHorizontal: space.l }]}>
-      <View style={[styles.dot, { width: size.statusDot, height: size.statusDot, borderRadius: size.statusDot / 2, backgroundColor: color[bg] }]}>
+    <View
+      accessible
+      accessibilityLabel={`${label}: ${count}`}
+      style={[styles.row, { minHeight: size.listItem, gap: space.m, paddingHorizontal: space.l }]}
+    >
+      <View
+        style={[
+          styles.dot,
+          { width: size.statusDot, height: size.statusDot, borderRadius: size.statusDot / 2, backgroundColor: color[bg] },
+        ]}
+      >
         <Icon name={icon} size={iconSize.dot} color={color[fg]} />
       </View>
       <Text style={[typography.body, styles.grow, { color: color.text }]}>{label}</Text>
@@ -112,7 +147,13 @@ function PinSheet({ guardId, onClose }: { guardId: string; onClose: () => void }
   return (
     <>
       {/* A tap outside the sheet closes it; for a screen reader it is the close button. */}
-      <Pressable style={[styles.grow, { backgroundColor: color.scrim }]} disabled={checking} onPress={onClose} accessibilityRole="button" accessibilityLabel={t('common.cancel')} />
+      <Pressable
+        style={[styles.grow, { backgroundColor: color.scrim }]}
+        disabled={checking}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel={t('common.cancel')}
+      />
       <View style={[styles.sheet, { backgroundColor: color.bg, borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card }]}>
         <ScrollView contentContainerStyle={{ padding: space.l, paddingBottom: insets.bottom + space.l, gap: space.l }}>
           <Text accessibilityRole="header" style={[typography.title2, styles.centred, { color: color.text }]}>
@@ -120,7 +161,11 @@ function PinSheet({ guardId, onClose }: { guardId: string; onClose: () => void }
           </Text>
           <PinDots entered={pin.length} shakeKey={shakeKey} />
           {messageText !== null && (
-            <Text style={[typography.body, styles.centred, styles.tabular, { color: color.miss }]} accessibilityLiveRegion="polite" accessibilityRole="alert">
+            <Text
+              style={[typography.body, styles.centred, styles.tabular, { color: color.miss }]}
+              accessibilityLiveRegion="polite"
+              accessibilityRole="alert"
+            >
               {messageText}
             </Text>
           )}
@@ -132,7 +177,11 @@ function PinSheet({ guardId, onClose }: { guardId: string; onClose: () => void }
             }}
             onDelete={() => setPin((current) => current.slice(0, -1))}
           />
-          <Button label={t(checking ? 'shiftEnd.closing' : 'shiftEnd.confirm')} disabled={!enabled || pin.length < PIN_LENGTH} onPress={() => void submit()} />
+          <Button
+            label={t(checking ? 'shiftEnd.closing' : 'shiftEnd.confirm')}
+            disabled={!enabled || pin.length < PIN_LENGTH}
+            onPress={() => void submit()}
+          />
         </ScrollView>
       </View>
     </>
@@ -164,13 +213,21 @@ export default function ShiftCloseScreen() {
 
   return (
     <View style={[styles.grow, { backgroundColor: color.bg }]}>
-      <ScreenHeader title={t('shiftEnd.title')} subtitle={t('shiftEnd.subtitle', { name: info.guard_name, from: time(info.started_at), to: time(info.now) })} onBack={() => router.back()} />
+      <ScreenHeader
+        title={t('shiftEnd.title')}
+        subtitle={t('shiftEnd.subtitle', { name: info.guard_name, from: time(info.started_at), to: time(info.now) })}
+        onBack={() => router.back()}
+      />
       <ScrollView style={styles.grow} contentContainerStyle={{ paddingHorizontal: space.l, paddingBottom: space.m, gap: space.m }}>
         {info.open_rounds.map((round) => (
           <InfoBanner
             key={`${round.schedule_id}|${round.scheduled_at}`}
             variant="warn"
-            title={t('shiftEnd.openRound', { round: severalRoutes ? `${round.route_name}, ${t('round.title', { time: time(round.scheduled_at) })}` : t('round.title', { time: time(round.scheduled_at) }) })}
+            title={t('shiftEnd.openRound', {
+              round: severalRoutes
+                ? `${round.route_name}, ${t('round.title', { time: time(round.scheduled_at) })}`
+                : t('round.title', { time: time(round.scheduled_at) }),
+            })}
             text={t('shiftEnd.openRoundBody', { done: round.scanned, total: round.total, status: t(statusStyle[round.closes_as].label) })}
           />
         ))}
@@ -194,7 +251,14 @@ export default function ShiftCloseScreen() {
         <Button label={t('shiftEnd.submit')} onPress={() => setSheetOpen(true)} />
       </View>
       {/* It gives way to a screen pushed over this one (an alarm), which it would cover. */}
-      <Modal visible={sheetOpen && focused} transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={() => setSheetOpen(false)}>
+      <Modal
+        visible={sheetOpen && focused}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={() => setSheetOpen(false)}
+      >
         <PinSheet guardId={guardId} onClose={() => setSheetOpen(false)} />
       </Modal>
     </View>

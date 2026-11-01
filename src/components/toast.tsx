@@ -40,7 +40,13 @@ export function ToastHost() {
   if (toast === null) return null;
   return (
     <View pointerEvents="none" style={[styles.host, { top: insets.top + space.s, paddingHorizontal: space.l }]}>
-      <Animated.View key={toast.id} entering={FadeIn.duration(motion.toastFadeMs)} exiting={FadeOut.duration(motion.toastFadeMs)} accessibilityLiveRegion="polite" accessibilityRole="alert">
+      <Animated.View
+        key={toast.id}
+        entering={FadeIn.duration(motion.toastFadeMs)}
+        exiting={FadeOut.duration(motion.toastFadeMs)}
+        accessibilityLiveRegion="polite"
+        accessibilityRole="alert"
+      >
         <InfoBanner variant={toast.variant} text={toast.text} />
       </Animated.View>
     </View>

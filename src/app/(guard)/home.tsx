@@ -27,7 +27,8 @@ import { localTimeOf, MINUTE_MS } from '@/time/zone';
 
 type ClosedRound = ShiftHomeRound & { state: 'completed' | 'incomplete' | 'missed' };
 
-const isClosed = (round: ShiftHomeRound): round is ClosedRound => round.state === 'completed' || round.state === 'incomplete' || round.state === 'missed';
+const isClosed = (round: ShiftHomeRound): round is ClosedRound =>
+  round.state === 'completed' || round.state === 'incomplete' || round.state === 'missed';
 
 /** The shift's rounds, reloaded after a chain entry (a round opened, a scan, a shift closed) and a pull. */
 function useShiftHomeInfo(guardId: string | null): ShiftHomeInfo | null {
@@ -78,19 +79,43 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: color.bg }]}>
-      <ScreenHeader overline={info?.site_name} title={t('home.onShift', { name: info?.guard_name ?? '' })} onBack={logOut} backLabel={t('home.logout')} />
+      <ScreenHeader
+        overline={info?.site_name}
+        title={t('home.onShift', { name: info?.guard_name ?? '' })}
+        onBack={logOut}
+        backLabel={t('home.logout')}
+      />
       <ScrollView style={styles.screen} contentContainerStyle={{ paddingHorizontal: space.l, paddingBottom: space.l, gap: space.m }}>
         {home !== null && home.running !== null ? (
-          <CountdownCard key={home.running.deadline} title={t('round.title', { time: time(home.running.scheduled_at) })} target={home.running.deadline} caption={t('home.remaining', { time: time(home.running.deadline) })}>
-            <Button hero label={t('home.openRound')} onPress={() => router.push({ pathname: '/round/[id]', params: { id: home.running!.round_id } })} style={styles.wide} />
+          <CountdownCard
+            key={home.running.deadline}
+            title={t('round.title', { time: time(home.running.scheduled_at) })}
+            target={home.running.deadline}
+            caption={t('home.remaining', { time: time(home.running.deadline) })}
+          >
+            <Button
+              hero
+              label={t('home.openRound')}
+              onPress={() => router.push({ pathname: '/round/[id]', params: { id: home.running!.round_id } })}
+              style={styles.wide}
+            />
           </CountdownCard>
         ) : home !== null && home.next_at !== null ? (
-          <CountdownCard key={home.next_at} title={t('home.nextRound', { time: time(home.next_at) })} target={home.next_at} caption={t('home.startsIn')} />
+          <CountdownCard
+            key={home.next_at}
+            title={t('home.nextRound', { time: time(home.next_at) })}
+            target={home.next_at}
+            caption={t('home.startsIn')}
+          />
         ) : (
           rounds.length > 0 && (
             <Card style={styles.centre}>
               <Text style={[typography.title2, styles.centredText, { color: color.text }]}>{t('home.noMoreRounds')}</Text>
-              {home?.auto_close_at != null && <Text style={[typography.bodyRegular, styles.centredText, { color: color.text2 }]}>{t('home.autoClose', { time: time(home.auto_close_at) })}</Text>}
+              {home?.auto_close_at != null && (
+                <Text style={[typography.bodyRegular, styles.centredText, { color: color.text2 }]}>
+                  {t('home.autoClose', { time: time(home.auto_close_at) })}
+                </Text>
+              )}
             </Card>
           )
         )}
@@ -103,7 +128,9 @@ export default function HomeScreen() {
               <Text style={[typography.buttonSm, { color: color.text }]} accessibilityRole="header">
                 {t('home.rounds')}
               </Text>
-              <Text style={[typography.rowLabel, styles.tabular, { color: color.text2 }]}>{t('home.closedCount', { closed: closed.length, total: rounds.length })}</Text>
+              <Text style={[typography.rowLabel, styles.tabular, { color: color.text2 }]}>
+                {t('home.closedCount', { closed: closed.length, total: rounds.length })}
+              </Text>
             </View>
             <ShiftTimeline rounds={rounds} time={time} />
           </Card>
@@ -111,13 +138,33 @@ export default function HomeScreen() {
 
         {/* Newest on top. */}
         {[...closed].reverse().map((round) => (
-          <ClosedRoundRow key={`${round.schedule_id}|${round.scheduled_at}`} round={round} time={time(round.scheduled_at)} withRoute={severalRoutes} />
+          <ClosedRoundRow
+            key={`${round.schedule_id}|${round.scheduled_at}`}
+            round={round}
+            time={time(round.scheduled_at)}
+            withRoute={severalRoutes}
+          />
         ))}
       </ScrollView>
 
-      <View style={[styles.buttons, { paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: insets.bottom + space.l, gap: space.s }]}>
-        <Button variant="secondary" label={t('home.incident')} icon="flag" iconColor="warn" onPress={() => router.push('/incident/new')} style={[styles.button, { paddingHorizontal: space.s }]} />
-        <Button variant="secondary" label={t('home.endShift')} icon="shiftEnd" onPress={() => router.push('/shift/close')} style={[styles.button, { paddingHorizontal: space.s }]} />
+      <View
+        style={[styles.buttons, { paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: insets.bottom + space.l, gap: space.s }]}
+      >
+        <Button
+          variant="secondary"
+          label={t('home.incident')}
+          icon="flag"
+          iconColor="warn"
+          onPress={() => router.push('/incident/new')}
+          style={[styles.button, { paddingHorizontal: space.s }]}
+        />
+        <Button
+          variant="secondary"
+          label={t('home.endShift')}
+          icon="shiftEnd"
+          onPress={() => router.push('/shift/close')}
+          style={[styles.button, { paddingHorizontal: space.s }]}
+        />
       </View>
     </View>
   );
@@ -154,11 +201,25 @@ function ClosedRoundRow({ round, time, withRoute }: { round: ClosedRound; time: 
   return (
     <View
       accessible
-      style={[styles.row, { minHeight: size.listItem, paddingHorizontal: space.l, paddingVertical: space.s, gap: space.m, borderRadius: radius.item, backgroundColor: color.card, borderWidth: border.thin, borderColor: color.cardBorder }]}
+      style={[
+        styles.row,
+        {
+          minHeight: size.listItem,
+          paddingHorizontal: space.l,
+          paddingVertical: space.s,
+          gap: space.m,
+          borderRadius: radius.item,
+          backgroundColor: color.card,
+          borderWidth: border.thin,
+          borderColor: color.cardBorder,
+        },
+      ]}
     >
       <StatusDot status={round.state} />
       <View style={styles.texts}>
-        <Text style={[typography.body, styles.tabular, { color: color.text }]}>{t('home.closedRound', { time, status: t(statusStyle[round.state].label), done: round.scanned, total: round.total })}</Text>
+        <Text style={[typography.body, styles.tabular, { color: color.text }]}>
+          {t('home.closedRound', { time, status: t(statusStyle[round.state].label), done: round.scanned, total: round.total })}
+        </Text>
         {detail !== '' && (
           <Text style={[typography.small, { color: color.text2 }]} numberOfLines={2}>
             {detail}

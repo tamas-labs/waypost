@@ -15,7 +15,11 @@ import { ThemeProvider } from '@/theme/theme-provider';
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
-jest.mock('@/guard/readiness', () => ({ ...jest.requireActual<object>('@/guard/readiness'), getReadiness: jest.fn(), fixReadiness: jest.fn() }));
+jest.mock('@/guard/readiness', () => ({
+  ...jest.requireActual<object>('@/guard/readiness'),
+  getReadiness: jest.fn(),
+  fixReadiness: jest.fn(),
+}));
 jest.mock('@/nfc/reader', () => ({ getNfcStatus: jest.fn(), openNfcSettings: jest.fn() }));
 jest.mock('@/guard/scheduler', () => ({ requestSchedulerStep: jest.fn() }));
 jest.mock('@/alarms/permissions', () => ({}));
@@ -37,7 +41,19 @@ beforeEach(async () => {
   jest.mocked(getReadiness).mockResolvedValue(READY);
   jest.mocked(fixReadiness).mockResolvedValue();
   await seedSite(db);
-  db.insert(users).values({ id: GUARD, name: 'Nagy Péter', role: 'guard', pin_hash: null, pin_salt: null, pin_iterations: null, active: true, created_at: AT, updated_at: AT }).run();
+  db.insert(users)
+    .values({
+      id: GUARD,
+      name: 'Nagy Péter',
+      role: 'guard',
+      pin_hash: null,
+      pin_salt: null,
+      pin_iterations: null,
+      active: true,
+      created_at: AT,
+      updated_at: AT,
+    })
+    .run();
   db.insert(siteUser).values({ site_id: SITE, user_id: GUARD }).run();
   useSession.setState({ mode: 'site_phone', activeUser: { id: GUARD, role: 'guard' }, shiftStart: { handover: null } });
 });

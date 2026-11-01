@@ -80,12 +80,20 @@ test('enrolls the phone to the chosen site', async () => {
   expect(await screen.findByText('A telefon a(z) Telephely A telephelyhez rendelve.')).toBeOnTheScreen();
   expect(await getDeviceCredentials()).not.toBeNull();
   expect(useSession.getState().mode).toBe('site_phone');
-  expect(fetchMock.mock.calls.map(([url]) => String(url).slice(BASE_URL.length))).toEqual(['/auth/login', '/sites', '/devices/enroll', '/auth/logout']);
+  expect(fetchMock.mock.calls.map(([url]) => String(url).slice(BASE_URL.length))).toEqual([
+    '/auth/login',
+    '/sites',
+    '/devices/enroll',
+    '/auth/logout',
+  ]);
 });
 
 test('shows the server message of a failed login', async () => {
   fetchMock.mockImplementationOnce(async () =>
-    Response.json({ server_time: '2026-10-27T20:00:00.000Z', error: { code: 'unauthenticated', message: 'Hibás e-mail-cím vagy jelszó.' } }, { status: 401 }),
+    Response.json(
+      { server_time: '2026-10-27T20:00:00.000Z', error: { code: 'unauthenticated', message: 'Hibás e-mail-cím vagy jelszó.' } },
+      { status: 401 },
+    ),
   );
   await renderScreen();
   await logIn();

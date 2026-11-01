@@ -37,7 +37,10 @@ export default function QrScreen() {
         {permission !== null && (
           <View style={{ padding: space.l, gap: space.l }}>
             <InfoBanner variant="warn" text={t(canAsk ? 'qr.permissionNeeded' : 'qr.permissionDenied')} />
-            <Button label={t(canAsk ? 'qr.allow' : 'qr.openSettings')} onPress={() => void (canAsk ? requestPermission() : Linking.openSettings())} />
+            <Button
+              label={t(canAsk ? 'qr.allow' : 'qr.openSettings')}
+              onPress={() => void (canAsk ? requestPermission() : Linking.openSettings())}
+            />
           </View>
         )}
       </View>
@@ -48,7 +51,12 @@ export default function QrScreen() {
   const problem = scanner.failed ? t('round.recordFailed') : cameraFailed ? t('qr.cameraFailed') : null;
   return (
     <View style={[styles.screen, { backgroundColor: color.bg }]}>
-      <QrScanner style={StyleSheet.absoluteFill} torch={torch} onScan={(qr_payload) => void scanner.record({ method: 'qr', qr_payload })} onError={() => setCameraFailed(true)} />
+      <QrScanner
+        style={StyleSheet.absoluteFill}
+        torch={torch}
+        onScan={(qr_payload) => void scanner.record({ method: 'qr', qr_payload })}
+        onError={() => setCameraFailed(true)}
+      />
 
       <View style={[styles.top, { paddingTop: insets.top + space.s, paddingHorizontal: space.l }]}>
         <IconButton icon="back" accessibilityLabel={t('common.back')} onPress={() => router.back()} />
@@ -56,7 +64,9 @@ export default function QrScreen() {
       </View>
 
       <View pointerEvents="none" style={[styles.screen, styles.centre]}>
-        <View style={{ width: viewfinder, height: viewfinder, borderWidth: border.thick, borderColor: color.accent, borderRadius: radius.card }} />
+        <View
+          style={{ width: viewfinder, height: viewfinder, borderWidth: border.thick, borderColor: color.accent, borderRadius: radius.card }}
+        />
       </View>
 
       <View style={{ padding: space.l, paddingBottom: insets.bottom + space.l }}>
@@ -64,7 +74,9 @@ export default function QrScreen() {
           <InfoBanner variant="error" text={problem} />
         ) : (
           <View style={{ padding: space.m, borderRadius: radius.item, backgroundColor: color.surface }}>
-            <Text style={[typography.bodyRegular, styles.text, { color: color.text }]}>{scanner.recording ? t('round.recording') : t('qr.hint')}</Text>
+            <Text style={[typography.bodyRegular, styles.text, { color: color.text }]}>
+              {scanner.recording ? t('round.recording') : t('qr.hint')}
+            </Text>
           </View>
         )}
       </View>

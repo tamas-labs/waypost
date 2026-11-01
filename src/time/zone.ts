@@ -10,7 +10,16 @@ const formatters = new Map<string, Intl.DateTimeFormat>();
 function formatter(timeZone: string): Intl.DateTimeFormat {
   let format = formatters.get(timeZone);
   if (format === undefined) {
-    format = new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    format = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
     formatters.set(timeZone, format);
   }
   return format;
@@ -22,7 +31,7 @@ export function naiveOf(utcMs: number, timeZone: string): number {
   for (const { type, value } of formatter(timeZone).formatToParts(new Date(utcMs))) parts[type] = Number(value);
   const { year = 0, month = 1, day = 1, hour = 0, minute = 0, second = 0 } = parts;
   // Some ICU versions write midnight as 24 even with h23.
-  return Date.UTC(year, month - 1, day, hour % 24, minute, second) + (utcMs % 1000 + 1000) % 1000;
+  return Date.UTC(year, month - 1, day, hour % 24, minute, second) + (((utcMs % 1000) + 1000) % 1000);
 }
 
 /**

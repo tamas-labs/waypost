@@ -31,12 +31,24 @@ beforeEach(async () => {
 it('names the route on a site with several routes', async () => {
   await seedSite(db);
   await startShift();
-  expect(loadAlarmScreenInfo(db, SLOT, readClock)).toEqual({ round_id: null, checkpoints: 3, time_limit_min: 20, previous: null, timezone: TIMEZONE, route_name: 'Útvonal 61' });
+  expect(loadAlarmScreenInfo(db, SLOT, readClock)).toEqual({
+    round_id: null,
+    checkpoints: 3,
+    time_limit_min: 20,
+    previous: null,
+    timezone: TIMEZONE,
+    route_name: 'Útvonal 61',
+  });
 });
 
 it('does not name the only route', async () => {
   const state = guardState();
-  await seedSite(db, { ...state, routes: state.routes.slice(0, 1), schedules: SCHEDULES.slice(0, 1), versions: state.versions.slice(0, 1) });
+  await seedSite(db, {
+    ...state,
+    routes: state.routes.slice(0, 1),
+    schedules: SCHEDULES.slice(0, 1),
+    versions: state.versions.slice(0, 1),
+  });
   await startShift();
   expect(loadAlarmScreenInfo(db, SLOT, readClock)?.route_name).toBeNull();
 });

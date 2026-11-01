@@ -42,7 +42,13 @@ export interface SyncController {
 
 export const SYNC_DEBOUNCE_MS = 2000;
 
-export function createSyncController<C>({ context, steps, debounceMs = SYNC_DEBOUNCE_MS, onStart, onFinish }: SyncControllerOptions<C>): SyncController {
+export function createSyncController<C>({
+  context,
+  steps,
+  debounceMs = SYNC_DEBOUNCE_MS,
+  onStart,
+  onFinish,
+}: SyncControllerOptions<C>): SyncController {
   let current: Promise<SyncOutcome> | null = null;
   let next: Promise<SyncOutcome> | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;

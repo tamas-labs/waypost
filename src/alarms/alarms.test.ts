@@ -98,7 +98,12 @@ describe('test alarms', () => {
     expect(scheduled[0]).toEqual({ id: 'n0', at: new Date(2026, 9, 28, 22, 0) });
 
     const first = native.scheduleNotificationAsync.mock.calls[0]![0];
-    expect(first.trigger).toEqual({ type: 'date', date: new Date(2026, 9, 28, 22, 0), channelId: ROUNDS_CHANNEL_ID, delivery: 'alarmClock' });
+    expect(first.trigger).toEqual({
+      type: 'date',
+      date: new Date(2026, 9, 28, 22, 0),
+      channelId: ROUNDS_CHANNEL_ID,
+      delivery: 'alarmClock',
+    });
     expect(first.content).toMatchObject({
       title: 'Próbaébresztés 22:00',
       body: '1/12. értesítés. Ha késve szólt, írd fel, mennyit.',

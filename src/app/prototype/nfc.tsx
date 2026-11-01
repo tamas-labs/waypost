@@ -84,7 +84,9 @@ export default function NfcScreen() {
             <Text style={[typography.buttonSm, { color: color.text }]}>{t('prototype.nfc.openSettings')}</Text>
           </Pressable>
         )}
-        {status?.enabled && <Text style={body}>{t(Platform.OS === 'android' ? 'prototype.nfc.listening' : 'prototype.nfc.pressToRead')}</Text>}
+        {status?.enabled && (
+          <Text style={body}>{t(Platform.OS === 'android' ? 'prototype.nfc.listening' : 'prototype.nfc.pressToRead')}</Text>
+        )}
         {error !== null && <Text style={[typography.bodyRegular, { color: color.miss }]}>{t('prototype.nfc.error', { error })}</Text>}
       </View>
 
@@ -96,7 +98,12 @@ export default function NfcScreen() {
           onPress={read}
           style={[
             styles.button,
-            { backgroundColor: color.accent, borderRadius: radius.pill, minHeight: size.buttonHero, opacity: reading || !status?.enabled ? 0.5 : 1 },
+            {
+              backgroundColor: color.accent,
+              borderRadius: radius.pill,
+              minHeight: size.buttonHero,
+              opacity: reading || !status?.enabled ? 0.5 : 1,
+            },
           ]}
         >
           <Text style={[typography.button, { color: color.onAccent }]}>{t('round.scan')}</Text>
@@ -122,10 +129,14 @@ export default function NfcScreen() {
             <Text style={body}>{t('prototype.nfc.ndefEmpty')}</Text>
           ) : (
             <>
-              <Text style={[body, styles.tabular]}>{t('prototype.nfc.ndefSummary', { bytes: tag.ndefLength, records: tag.records.length })}</Text>
+              <Text style={[body, styles.tabular]}>
+                {t('prototype.nfc.ndefSummary', { bytes: tag.ndefLength, records: tag.records.length })}
+              </Text>
               {tag.records.map((record, index) => (
                 <View key={index}>
-                  <Text style={[small, styles.tabular]}>{t('prototype.nfc.record', { tnf: record.tnf, type: record.type, bytes: record.payloadLength })}</Text>
+                  <Text style={[small, styles.tabular]}>
+                    {t('prototype.nfc.record', { tnf: record.tnf, type: record.type, bytes: record.payloadLength })}
+                  </Text>
                   {record.text !== null && (
                     <Text style={body} selectable>
                       {record.text}

@@ -10,7 +10,8 @@ jest.mock('expo-haptics', () => ({
 }));
 
 const vibrate = jest.spyOn(Vibration, 'vibrate').mockImplementation(() => {});
-const players = () => jest.mocked(createAudioPlayer).mock.results.map((result) => result.value as { seekTo: jest.Mock; play: jest.Mock; remove: jest.Mock });
+const players = () =>
+  jest.mocked(createAudioPlayer).mock.results.map((result) => result.value as { seekTo: jest.Mock; play: jest.Mock; remove: jest.Mock });
 const settle = () => new Promise(setImmediate);
 
 let stop = () => {};

@@ -8,8 +8,16 @@ import { recordTagRead, scanFeedback } from '@/guard/scan';
 
 /** The params of the result screen for a known checkpoint (a tag read or a manual entry). */
 export function pointResultParams(outcome: PointOutcome): Record<string, string> {
-  if (outcome.kind === 'already_scanned') return { kind: outcome.kind, checkpoint_id: outcome.checkpoint_id, round_id: outcome.round_id, scanned_at: outcome.scanned_at };
-  return { kind: outcome.kind, scan_id: outcome.scan_id, checkpoint_id: outcome.checkpoint_id, ...(outcome.round_id === null ? {} : { round_id: outcome.round_id }), out_of_order: String(outcome.out_of_order), completed: String(outcome.completed) };
+  if (outcome.kind === 'already_scanned')
+    return { kind: outcome.kind, checkpoint_id: outcome.checkpoint_id, round_id: outcome.round_id, scanned_at: outcome.scanned_at };
+  return {
+    kind: outcome.kind,
+    scan_id: outcome.scan_id,
+    checkpoint_id: outcome.checkpoint_id,
+    ...(outcome.round_id === null ? {} : { round_id: outcome.round_id }),
+    out_of_order: String(outcome.out_of_order),
+    completed: String(outcome.completed),
+  };
 }
 
 /** The params of the result screen. An unknown tag has no round of its own: it belongs to the round the guard was on. */

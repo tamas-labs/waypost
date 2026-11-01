@@ -93,7 +93,8 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
   async function request<P extends SchemaPath>(req: ApiRequest<P>): Promise<ApiResponse<SchemaTypes[P]>> {
     if (validate && req.bodySchema !== undefined) {
       const errors = schemaErrors(req.bodySchema, req.body);
-      if (errors.length > 0) throw new Error(`Request body of ${req.method} ${req.path} is invalid against ${req.bodySchema}: ${errors.join('; ')}`);
+      if (errors.length > 0)
+        throw new Error(`Request body of ${req.method} ${req.path} is invalid against ${req.bodySchema}: ${errors.join('; ')}`);
     }
 
     const query = Object.entries(req.query ?? {}).filter((entry): entry is [string, string] => entry[1] !== null && entry[1] !== undefined);
@@ -135,14 +136,25 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         const { code, message, details } = body.error;
         throw new ApiError(response.status, code, message, details ?? null, retryAfter(response.headers));
       }
-      throw new ApiError(response.status, codeForStatus(response.status), `HTTP ${response.status}`, null, retryAfter(response.headers), false);
+      throw new ApiError(
+        response.status,
+        codeForStatus(response.status),
+        `HTTP ${response.status}`,
+        null,
+        retryAfter(response.headers),
+        false,
+      );
     }
 
     if (!parsed) throw new InvalidResponseError(response.status, `${req.method} ${req.path}: the response is not JSON`);
     if (validate) {
       const errors = schemaErrors(req.responseSchema, body);
       if (errors.length > 0) {
-        throw new InvalidResponseError(response.status, `${req.method} ${req.path}: the response is invalid against ${req.responseSchema}`, errors);
+        throw new InvalidResponseError(
+          response.status,
+          `${req.method} ${req.path}: the response is invalid against ${req.responseSchema}`,
+          errors,
+        );
       }
     }
     return { status: response.status, data: body as SchemaTypes[P] };

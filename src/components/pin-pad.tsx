@@ -57,7 +57,12 @@ export function PinDots({ entered, length = PIN_LENGTH, shakeKey = 0 }: PinDotsP
         <View
           // The dots are positions: the index is their identity.
           key={index}
-          style={{ width: size.pinDot, height: size.pinDot, borderRadius: size.pinDot / 2, backgroundColor: index < entered ? color.accent : color.line }}
+          style={{
+            width: size.pinDot,
+            height: size.pinDot,
+            borderRadius: size.pinDot / 2,
+            backgroundColor: index < entered ? color.accent : color.line,
+          }}
         />
       ))}
     </Animated.View>

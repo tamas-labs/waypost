@@ -36,7 +36,13 @@ export default function DevToolsScreen() {
             // Link asChild needs a flat style object.
             style={StyleSheet.flatten([
               styles.item,
-              { backgroundColor: color.surface, borderColor: color.cardBorder, borderRadius: radius.item, minHeight: size.listItem, paddingHorizontal: space.l },
+              {
+                backgroundColor: color.surface,
+                borderColor: color.cardBorder,
+                borderRadius: radius.item,
+                minHeight: size.listItem,
+                paddingHorizontal: space.l,
+              },
             ])}
           >
             <Text style={[typography.body, { color: color.text }]}>{t(screen.title)}</Text>

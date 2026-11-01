@@ -41,7 +41,19 @@ beforeEach(async () => {
   ({ db } = await createTestDatabase());
   jest.mocked(getDatabase).mockReturnValue(db);
   await seedSite(db);
-  db.insert(users).values({ id: GUARD, name: 'Nagy Péter', role: 'guard', pin_hash: null, pin_salt: null, pin_iterations: null, active: true, created_at: AT, updated_at: AT }).run();
+  db.insert(users)
+    .values({
+      id: GUARD,
+      name: 'Nagy Péter',
+      role: 'guard',
+      pin_hash: null,
+      pin_salt: null,
+      pin_iterations: null,
+      active: true,
+      created_at: AT,
+      updated_at: AT,
+    })
+    .run();
   db.insert(siteUser).values({ site_id: SITE, user_id: GUARD }).run();
   useSession.setState({ mode: 'site_phone', activeUser: { id: GUARD, role: 'guard' }, shiftStart: null });
   await write(guardLogin(loadGuardState(db, nowTimestamp())!, GUARD, nowTimestamp(), newId).drafts);
@@ -105,11 +117,27 @@ it('goes on to the screen of a round open for the first time, and offers it by a
   useIsFocused.mockReturnValueOnce(false);
   await renderScreen();
   expect(router.push).not.toHaveBeenCalled();
-  await act(async () => screen.rerender(<SafeAreaProvider initialMetrics={METRICS}><ThemeProvider><HomeScreen /></ThemeProvider></SafeAreaProvider>));
+  await act(async () =>
+    screen.rerender(
+      <SafeAreaProvider initialMetrics={METRICS}>
+        <ThemeProvider>
+          <HomeScreen />
+        </ThemeProvider>
+      </SafeAreaProvider>,
+    ),
+  );
   expect(router.push).toHaveBeenCalledTimes(1);
   expect(router.push).toHaveBeenLastCalledWith(target);
 
-  await act(async () => screen.rerender(<SafeAreaProvider initialMetrics={METRICS}><ThemeProvider><HomeScreen /></ThemeProvider></SafeAreaProvider>));
+  await act(async () =>
+    screen.rerender(
+      <SafeAreaProvider initialMetrics={METRICS}>
+        <ThemeProvider>
+          <HomeScreen />
+        </ThemeProvider>
+      </SafeAreaProvider>,
+    ),
+  );
   expect(router.push).toHaveBeenCalledTimes(1);
   fireEvent.press(screen.getByRole('button', { name: 'Kör megnyitása' }));
   expect(router.push).toHaveBeenCalledTimes(2);
@@ -122,7 +150,12 @@ it('lists the closed rounds, newest on top, under the timelines of the routes', 
   setNow(local('21:02'));
   await step();
   const tag = loadGuardState(db, nowTimestamp())!.checkpoints.find((checkpoint) => checkpoint.id === C1)!.tag_uid!;
-  await write(resolveScan({ state: loadGuardState(db, nowTimestamp())!, now: nowTimestamp(), location: null, newId }, { method: 'nfc', tag_uid: tag, ndef_raw: null }).drafts);
+  await write(
+    resolveScan(
+      { state: loadGuardState(db, nowTimestamp())!, now: nowTimestamp(), location: null, newId },
+      { method: 'nfc', tag_uid: tag, ndef_raw: null },
+    ).drafts,
+  );
   setNow(local('21:25'));
   await step();
 

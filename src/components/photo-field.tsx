@@ -47,19 +47,30 @@ function PhotoCamera({ onTaken, onClose }: { onTaken: (photo: PhotoFile) => void
   const canAsk = permission?.canAskAgain ?? true;
   return (
     <View style={[styles.grow, { backgroundColor: color.bg }]}>
-      {granted && <CameraView ref={camera} style={StyleSheet.absoluteFill} facing="back" onMountError={() => setProblem(t('qr.cameraFailed'))} />}
+      {granted && (
+        <CameraView ref={camera} style={StyleSheet.absoluteFill} facing="back" onMountError={() => setProblem(t('qr.cameraFailed'))} />
+      )}
       <View style={[styles.close, { paddingTop: insets.top + space.s, paddingHorizontal: space.l }]}>
         <IconButton icon="x" accessibilityLabel={t('common.cancel')} onPress={onClose} />
       </View>
       <View style={[styles.controls, { padding: space.l, paddingBottom: insets.bottom + space.l, gap: space.m }]}>
         {problem !== null && <InfoBanner variant="error" text={problem} />}
         {granted ? (
-          <Button hero icon="camera" label={t(taking ? 'photoField.taking' : 'common.addPhoto')} disabled={taking} onPress={() => void shoot()} />
+          <Button
+            hero
+            icon="camera"
+            label={t(taking ? 'photoField.taking' : 'common.addPhoto')}
+            disabled={taking}
+            onPress={() => void shoot()}
+          />
         ) : (
           permission !== null && (
             <>
               <InfoBanner variant="warn" text={t(canAsk ? 'photoField.permissionNeeded' : 'qr.permissionDenied')} />
-              <Button label={t(canAsk ? 'qr.allow' : 'qr.openSettings')} onPress={() => void (canAsk ? requestPermission() : Linking.openSettings())} />
+              <Button
+                label={t(canAsk ? 'qr.allow' : 'qr.openSettings')}
+                onPress={() => void (canAsk ? requestPermission() : Linking.openSettings())}
+              />
             </>
           )
         )}
@@ -98,12 +109,25 @@ export function PhotoField({ photos, onAdd, onRemove, required = false, disabled
       </Text>
       <View style={[styles.tiles, { gap: space.s }]}>
         {photos.map((photo, index) => (
-          <PhotoSlot key={photo.id} uri={photo.local_uri} number={index + 1} accessibilityHint={t('photoField.removeHint')} onPress={disabled ? undefined : () => askRemove(photo)} style={styles.tile} />
+          <PhotoSlot
+            key={photo.id}
+            uri={photo.local_uri}
+            number={index + 1}
+            accessibilityHint={t('photoField.removeHint')}
+            onPress={disabled ? undefined : () => askRemove(photo)}
+            style={styles.tile}
+          />
         ))}
         {photos.length < MAX_PHOTOS && <PhotoAdd disabled={disabled} onPress={() => setCameraOpen(true)} style={styles.tile} />}
       </View>
       {/* It gives way to a screen pushed over the form (an alarm), which it would cover. */}
-      <Modal visible={cameraOpen && focused} animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={() => setCameraOpen(false)}>
+      <Modal
+        visible={cameraOpen && focused}
+        animationType="slide"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={() => setCameraOpen(false)}
+      >
         <PhotoCamera onTaken={onAdd} onClose={() => setCameraOpen(false)} />
       </Modal>
     </View>

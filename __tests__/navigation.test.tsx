@@ -73,13 +73,16 @@ jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn(), requestSync: j
 jest.mock('expo-keep-awake', () => ({ useKeepAwake: jest.fn() }));
 jest.mock('expo-camera', () => ({ useCameraPermissions: () => [null, jest.fn()] }));
 // The tag reader is native.
-jest.mock('@/nfc/use-tag-reader', () => ({ useTagReader: () => ({ status: null, listening: false, reading: false, read: jest.fn(), error: null }) }));
+jest.mock('@/nfc/use-tag-reader', () => ({
+  useTagReader: () => ({ status: null, listening: false, reading: false, read: jest.fn(), error: null }),
+}));
 jest.mock('@/nfc/reader', () => ({ openNfcSettings: jest.fn() }));
 // The readiness check stays pending (NFC is native).
 jest.mock('@/guard/readiness', () => ({ getReadiness: () => new Promise(() => {}), readinessRows: () => [], fixReadiness: jest.fn() }));
 jest.mock('@/alarms/permissions', () => ({
   ...jest.requireActual<object>('@/alarms/permissions'),
-  getAlarmPermissions: () => Promise.resolve({ notifications: { granted: true, canAskAgain: true }, exactAlarms: true, batteryExempt: true }),
+  getAlarmPermissions: () =>
+    Promise.resolve({ notifications: { granted: true, canAskAgain: true }, exactAlarms: true, batteryExempt: true }),
 }));
 
 beforeEach(async () => {
@@ -179,7 +182,14 @@ describe('the round alarm', () => {
   const newId = idSequence();
   let db: Database;
 
-  const alarmData = (time: string): RoundAlarmData => ({ kind: ROUND_ALARM_KIND, alarm: 'round', route_id: ROUTE_A, schedule_id: SCHEDULE_A, scheduled_at: local(time), fingerprint: alarmIdentifier('round', { route_id: ROUTE_A, schedule_id: SCHEDULE_A, scheduled_at: local(time) }) });
+  const alarmData = (time: string): RoundAlarmData => ({
+    kind: ROUND_ALARM_KIND,
+    alarm: 'round',
+    route_id: ROUTE_A,
+    schedule_id: SCHEDULE_A,
+    scheduled_at: local(time),
+    fingerprint: alarmIdentifier('round', { route_id: ROUTE_A, schedule_id: SCHEDULE_A, scheduled_at: local(time) }),
+  });
   const setNow = (at: string) => jest.setSystemTime(Date.parse(at));
   const write = (drafts: Parameters<typeof appendChainEntries>[1]) => appendChainEntries(db, drafts);
   const now = () => new Date().toISOString();

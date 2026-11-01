@@ -51,8 +51,30 @@ const checkpoint = (id: string, n: number): CheckpointInfo => ({
 });
 
 export const SCHEDULES: ScheduleOfRoute[] = [
-  { id: SCHEDULE_A, route_id: ROUTE_A, weekdays: 127, mode: 'interval', start_times: null, interval_from: '20:00', interval_to: '23:00', interval_every_min: 60, time_limit_min: 20, active: true },
-  { id: SCHEDULE_B, route_id: ROUTE_B, weekdays: 127, mode: 'list', start_times: ['20:30', '22:30'], interval_from: null, interval_to: null, interval_every_min: null, time_limit_min: null, active: true },
+  {
+    id: SCHEDULE_A,
+    route_id: ROUTE_A,
+    weekdays: 127,
+    mode: 'interval',
+    start_times: null,
+    interval_from: '20:00',
+    interval_to: '23:00',
+    interval_every_min: 60,
+    time_limit_min: 20,
+    active: true,
+  },
+  {
+    id: SCHEDULE_B,
+    route_id: ROUTE_B,
+    weekdays: 127,
+    mode: 'list',
+    start_times: ['20:30', '22:30'],
+    interval_from: null,
+    interval_to: null,
+    interval_every_min: null,
+    time_limit_min: null,
+    active: true,
+  },
 ];
 
 export function guardState(overrides: Partial<GuardState> = {}): GuardState {

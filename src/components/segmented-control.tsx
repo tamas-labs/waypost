@@ -48,9 +48,15 @@ export function SegmentedControl<T extends string>({ options, value, onChange, a
             onPress={() => {
               if (!active) onChange(option.value);
             }}
-            style={[styles.option, { minHeight: size.segmentOption, borderRadius: radius.pill }, active && { backgroundColor: color.accent }]}
+            style={[
+              styles.option,
+              { minHeight: size.segmentOption, borderRadius: radius.pill },
+              active && { backgroundColor: color.accent },
+            ]}
           >
-            <Text style={[typography.segment, active ? { color: color.onAccent } : { color: color.text2, fontFamily: fontFamily.bold }]}>{option.label}</Text>
+            <Text style={[typography.segment, active ? { color: color.onAccent } : { color: color.text2, fontFamily: fontFamily.bold }]}>
+              {option.label}
+            </Text>
           </Pressable>
         );
       })}

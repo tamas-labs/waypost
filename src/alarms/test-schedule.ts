@@ -13,7 +13,10 @@ const MINUTE_MS = 60_000;
  * hours after now, starting at least a minute ahead. On whole quarter-hours it is easy to check on the phone how
  * late a notification came.
  */
-export function testAlarmTimes(now: Date, { everyMin = TEST_EVERY_MIN, hours = TEST_HOURS }: { everyMin?: 1 | 5 | 15; hours?: number } = {}): Date[] {
+export function testAlarmTimes(
+  now: Date,
+  { everyMin = TEST_EVERY_MIN, hours = TEST_HOURS }: { everyMin?: 1 | 5 | 15; hours?: number } = {},
+): Date[] {
   const stepMs = everyMin * MINUTE_MS;
   const count = (hours * 60) / everyMin;
   // Every UTC offset is a multiple of 15 minutes, so a step dividing 15 minutes lines up with local time too,

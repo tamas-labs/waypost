@@ -22,7 +22,14 @@ export interface ScreenHeaderProps {
 }
 
 /** The header of a screen (DESIGN_HANDOFF 6): below the safe area, back button, title (20/800) and subtitle (13/600), sync indicator at the right. */
-export function ScreenHeader({ overline, title, subtitle, onBack, backLabel = t('common.back'), right = <SyncStatusIndicator /> }: ScreenHeaderProps) {
+export function ScreenHeader({
+  overline,
+  title,
+  subtitle,
+  onBack,
+  backLabel = t('common.back'),
+  right = <SyncStatusIndicator />,
+}: ScreenHeaderProps) {
   const { color, typography, space, size } = useTheme();
   const insets = useSafeAreaInsets();
   return (

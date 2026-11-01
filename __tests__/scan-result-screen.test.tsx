@@ -198,8 +198,18 @@ describe('an unknown tag', () => {
 
 it('tells that a manual entry is not verified', async () => {
   const location = null;
-  const shot = { id: newId(), sha256: 'b'.repeat(64), mime: 'image/jpeg', size_bytes: 240_000, local_uri: 'file:///documents/media/c.jpg', taken_at: nowTimestamp() };
-  const outcome = manualScan({ state: state(), now: nowTimestamp(), location, newId }, { round_id: roundId, checkpoint_id: C1, note: 'Letörött.', media: [shot] });
+  const shot = {
+    id: newId(),
+    sha256: 'b'.repeat(64),
+    mime: 'image/jpeg',
+    size_bytes: 240_000,
+    local_uri: 'file:///documents/media/c.jpg',
+    taken_at: nowTimestamp(),
+  };
+  const outcome = manualScan(
+    { state: state(), now: nowTimestamp(), location, newId },
+    { round_id: roundId, checkpoint_id: C1, note: 'Letörött.', media: [shot] },
+  );
   await appendChainEntries(db, outcome.drafts, { photos: [shot] });
   jest.mocked(useLocalSearchParams).mockReturnValue(pointResultParams(outcome));
   await render(tree());

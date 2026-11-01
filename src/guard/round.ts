@@ -21,7 +21,14 @@ export interface RoundPoint {
   position: number;
   /** Where the point was trained; null if it was not. */
   location: Coordinate | null;
-  scan: { scanned_at: Timestamp; method: 'nfc' | 'qr' | 'manual'; manual: boolean; out_of_order: boolean; location: Coordinate | null; accuracy_m: number | null } | null;
+  scan: {
+    scanned_at: Timestamp;
+    method: 'nfc' | 'qr' | 'manual';
+    manual: boolean;
+    out_of_order: boolean;
+    location: Coordinate | null;
+    accuracy_m: number | null;
+  } | null;
 }
 
 export interface RoundScreenInfo {
@@ -49,9 +56,24 @@ export function roundDetailsOf(db: Database, state: GuardState, roundId: string)
   const round = state.rounds.find((r) => r.id === roundId);
   if (round === undefined) return null;
 
-  const details = new Map(db.select({ id: checkpoints.id, name: checkpoints.name, lat_e7: checkpoints.lat_e7, lng_e7: checkpoints.lng_e7 }).from(checkpoints).where(eq(checkpoints.site_id, state.site_id)).all().map((point) => [point.id, point]));
+  const details = new Map(
+    db
+      .select({ id: checkpoints.id, name: checkpoints.name, lat_e7: checkpoints.lat_e7, lng_e7: checkpoints.lng_e7 })
+      .from(checkpoints)
+      .where(eq(checkpoints.site_id, state.site_id))
+      .all()
+      .map((point) => [point.id, point]),
+  );
   const scanRows = db
-    .select({ checkpoint_id: scans.checkpoint_id, scanned_at: scans.scanned_at, method: scans.method, flags: scans.flags, lat_e7: scans.lat_e7, lng_e7: scans.lng_e7, accuracy_dm: scans.accuracy_dm })
+    .select({
+      checkpoint_id: scans.checkpoint_id,
+      scanned_at: scans.scanned_at,
+      method: scans.method,
+      flags: scans.flags,
+      lat_e7: scans.lat_e7,
+      lng_e7: scans.lng_e7,
+      accuracy_dm: scans.accuracy_dm,
+    })
     .from(scans)
     .where(and(eq(scans.round_id, roundId), isNotNull(scans.checkpoint_id)))
     .all();
@@ -119,7 +141,9 @@ export function roundMapOf(points: readonly RoundPoint[]): RoundMap {
     const accuracy_m = state === 'manual' ? (point.scan?.accuracy_m ?? null) : null;
     return [{ checkpoint_id: point.checkpoint_id, name: point.name, position: point.position, state, coordinate, accuracy_m }];
   });
-  const located = points.flatMap((point) => (point.scan?.location == null ? [] : [{ at: point.scan.scanned_at, location: point.scan.location }]));
+  const located = points.flatMap((point) =>
+    point.scan?.location == null ? [] : [{ at: point.scan.scanned_at, location: point.scan.location }],
+  );
   const [first] = located;
   const last = located.at(-1);
   return {

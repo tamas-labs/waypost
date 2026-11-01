@@ -24,7 +24,10 @@ import { localTimeOf } from '@/time/zone';
 /** The round of the alarm, reloaded after a chain entry (the round opened, started or closed) and a pull. */
 function useAlarmInfo(slot: AlarmSlot): AlarmScreenInfo | null {
   const { route_id, schedule_id, scheduled_at } = slot;
-  const load = useCallback(() => loadAlarmScreenInfo(getDatabase(), { route_id, schedule_id, scheduled_at }), [route_id, schedule_id, scheduled_at]);
+  const load = useCallback(
+    () => loadAlarmScreenInfo(getDatabase(), { route_id, schedule_id, scheduled_at }),
+    [route_id, schedule_id, scheduled_at],
+  );
   const [info, setInfo] = useState(load);
   useEffect(() => {
     const reload = () => setInfo(load());
@@ -40,7 +43,11 @@ function useAlarmInfo(slot: AlarmSlot): AlarmScreenInfo | null {
 export default function AlarmScreen() {
   const { color, typography, space, size, radius, border } = useTheme();
   const insets = useSafeAreaInsets();
-  const { route_id = '', schedule_id = '', scheduled_at = '' } = useLocalSearchParams<{ route_id: string; schedule_id: string; scheduled_at: string }>();
+  const {
+    route_id = '',
+    schedule_id = '',
+    scheduled_at = '',
+  } = useLocalSearchParams<{ route_id: string; schedule_id: string; scheduled_at: string }>();
   const info = useAlarmInfo({ route_id, schedule_id, scheduled_at });
   const muted = useActiveAlarms((state) => state.muted);
   const [going, setGoing] = useState(false);
@@ -86,12 +93,21 @@ export default function AlarmScreen() {
   const time = (at: string) => localTimeOf(parseTimestamp(at), info.timezone);
   const [outer, middle, inner] = size.alarmRing;
   const circle = (diameter: number) => ({ width: diameter, height: diameter, borderRadius: diameter / 2 });
-  const details = [info.route_name, t('alarm.points', { count: info.checkpoints }), info.time_limit_min === null ? null : t('alarm.limit', { minutes: info.time_limit_min })].filter((part) => part !== null).join(' · ');
+  const details = [
+    info.route_name,
+    t('alarm.points', { count: info.checkpoints }),
+    info.time_limit_min === null ? null : t('alarm.limit', { minutes: info.time_limit_min }),
+  ]
+    .filter((part) => part !== null)
+    .join(' · ');
 
   return (
     <ScrollView
       style={{ backgroundColor: color.bg }}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + space.l, paddingBottom: insets.bottom + space.xxl, paddingHorizontal: space.xxl, gap: space.xl }]}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: insets.top + space.l, paddingBottom: insets.bottom + space.xxl, paddingHorizontal: space.xxl, gap: space.xl },
+      ]}
     >
       <View style={styles.centre}>
         <SyncStatusIndicator />
@@ -99,10 +115,19 @@ export default function AlarmScreen() {
 
       <View style={[styles.main, { gap: space.xxl }]}>
         {/* The title says the time. */}
-        <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[styles.ring, circle(outer), { backgroundColor: color.ring1 }]}>
+        <View
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+          style={[styles.ring, circle(outer), { backgroundColor: color.ring1 }]}
+        >
           <View style={[styles.ring, circle(middle), { backgroundColor: color.ring2 }]}>
             <View style={[styles.ring, circle(inner), { backgroundColor: color.accent }]}>
-              <Text style={[typography.alarmTime, styles.tabular, { color: color.onAccent }]} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.2}>
+              <Text
+                style={[typography.alarmTime, styles.tabular, { color: color.onAccent }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                maxFontSizeMultiplier={1.2}
+              >
                 {time(scheduled_at)}
               </Text>
             </View>
@@ -117,10 +142,27 @@ export default function AlarmScreen() {
         </View>
 
         {info.previous !== null && (
-          <View accessible style={[styles.previous, { gap: space.s, paddingHorizontal: space.l, paddingVertical: space.m, borderRadius: radius.item, backgroundColor: color.surface, borderWidth: border.thin, borderColor: color.cardBorder }]}>
+          <View
+            accessible
+            style={[
+              styles.previous,
+              {
+                gap: space.s,
+                paddingHorizontal: space.l,
+                paddingVertical: space.m,
+                borderRadius: radius.item,
+                backgroundColor: color.surface,
+                borderWidth: border.thin,
+                borderColor: color.cardBorder,
+              },
+            ]}
+          >
             <StatusDot status={info.previous.status} />
             <Text style={[typography.siteName, styles.tabular, styles.previousText, { color: color.text }]}>
-              {t('alarm.previous', { time: time(info.previous.scheduled_at), status: t(statusStyle[info.previous.status].label).toLowerCase() })}
+              {t('alarm.previous', {
+                time: time(info.previous.scheduled_at),
+                status: t(statusStyle[info.previous.status].label).toLowerCase(),
+              })}
             </Text>
           </View>
         )}

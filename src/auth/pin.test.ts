@@ -27,9 +27,25 @@ let db: Database;
 let clock: ClockReading;
 const readClock = () => clock;
 
-function addUser(id: string, role: 'guard' | 'supervisor', pin: { pin_hash: string; pin_salt: string; pin_iterations: number } | null, site: string, active = true) {
+function addUser(
+  id: string,
+  role: 'guard' | 'supervisor',
+  pin: { pin_hash: string; pin_salt: string; pin_iterations: number } | null,
+  site: string,
+  active = true,
+) {
   db.insert(users)
-    .values({ id, name: `User ${id.slice(-2)}`, role, pin_hash: pin?.pin_hash ?? null, pin_salt: pin?.pin_salt ?? null, pin_iterations: pin?.pin_iterations ?? null, active, created_at: AT, updated_at: AT })
+    .values({
+      id,
+      name: `User ${id.slice(-2)}`,
+      role,
+      pin_hash: pin?.pin_hash ?? null,
+      pin_salt: pin?.pin_salt ?? null,
+      pin_iterations: pin?.pin_iterations ?? null,
+      active,
+      created_at: AT,
+      updated_at: AT,
+    })
     .run();
   db.insert(siteUser).values({ site_id: site, user_id: id }).run();
 }
@@ -38,7 +54,17 @@ beforeEach(async () => {
   ({ db } = await createTestDatabase());
   clock = { device_time: AT, uptime_ms: 1_000_000, boot_id: 'android-boot:12' };
   setKv(db, 'device.id', DEVICE);
-  db.insert(devices).values({ id: DEVICE, site_id: SITE, name: 'Porta', platform: 'android', app_version: '0.1.0', enrolled_by: SUPERVISOR, enrolled_at: AT }).run();
+  db.insert(devices)
+    .values({
+      id: DEVICE,
+      site_id: SITE,
+      name: 'Porta',
+      platform: 'android',
+      app_version: '0.1.0',
+      enrolled_by: SUPERVISOR,
+      enrolled_at: AT,
+    })
+    .run();
   addUser(GUARD, 'guard', vector('basic'), SITE);
   addUser(SUPERVISOR, 'supervisor', vector('leading-zeros'), SITE);
   addUser(INACTIVE, 'guard', vector('all-zeros'), SITE, false);
@@ -56,7 +82,8 @@ describe('PIN hash', () => {
   });
 
   it('refuses what is not a PIN', async () => {
-    for (const pin of pinVectors.malformed_pins) await expect(pinHash(pin, vector('basic').pin_salt, 1)).rejects.toThrow('A PIN is 6 digits');
+    for (const pin of pinVectors.malformed_pins)
+      await expect(pinHash(pin, vector('basic').pin_salt, 1)).rejects.toThrow('A PIN is 6 digits');
     await expect(pinLogin(db, '12345', readClock)).rejects.toThrow('A PIN is 6 digits');
   });
 });
@@ -64,7 +91,10 @@ describe('PIN hash', () => {
 describe('PIN login', () => {
   it('finds the guard or the supervisor of the site by the PIN', async () => {
     await expect(pinLogin(db, '123456', readClock)).resolves.toEqual({ status: 'ok', user: { id: GUARD, name: 'User 03', role: 'guard' } });
-    await expect(pinLogin(db, '001234', readClock)).resolves.toEqual({ status: 'ok', user: { id: SUPERVISOR, name: 'User 02', role: 'supervisor' } });
+    await expect(pinLogin(db, '001234', readClock)).resolves.toEqual({
+      status: 'ok',
+      user: { id: SUPERVISOR, name: 'User 02', role: 'supervisor' },
+    });
   });
 
   it('does not let in an inactive user or a user of another site', async () => {
@@ -73,7 +103,8 @@ describe('PIN login', () => {
   });
 
   it('locks after 5 wrong PINs, refuses even the right PIN while locked, and doubles the next lock', async () => {
-    for (let i = 1; i <= 4; i++) await expect(pinLogin(db, '654321', readClock)).resolves.toEqual({ status: 'wrong', failures: i, remaining_ms: 0 });
+    for (let i = 1; i <= 4; i++)
+      await expect(pinLogin(db, '654321', readClock)).resolves.toEqual({ status: 'wrong', failures: i, remaining_ms: 0 });
     await expect(pinLogin(db, '654321', readClock)).resolves.toEqual({ status: 'wrong', failures: 5, remaining_ms: FIRST_LOCK_MS });
 
     clock = { ...clock, uptime_ms: clock.uptime_ms + 60_000 };

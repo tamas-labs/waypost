@@ -48,7 +48,13 @@ export function ResultScreen({ tone, icon, statusLine, title, body, header, chil
       entering={entering}
       style={[
         styles.screen,
-        { backgroundColor: color.bg, paddingTop: insets.top + space.l, paddingBottom: insets.bottom + space.l, paddingHorizontal: space.xl, gap: space.l },
+        {
+          backgroundColor: color.bg,
+          paddingTop: insets.top + space.l,
+          paddingBottom: insets.bottom + space.l,
+          paddingHorizontal: space.xl,
+          gap: space.l,
+        },
       ]}
     >
       {header}
@@ -57,9 +63,27 @@ export function ResultScreen({ tone, icon, statusLine, title, body, header, chil
         <View
           importantForAccessibility="no-hide-descendants"
           accessibilityElementsHidden
-          style={[styles.ring, { width: size.resultRingOuter, height: size.resultRingOuter, borderRadius: size.resultRingOuter / 2, backgroundColor: color[bg] }]}
+          style={[
+            styles.ring,
+            {
+              width: size.resultRingOuter,
+              height: size.resultRingOuter,
+              borderRadius: size.resultRingOuter / 2,
+              backgroundColor: color[bg],
+            },
+          ]}
         >
-          <View style={[styles.ring, { width: size.resultRingInner, height: size.resultRingInner, borderRadius: size.resultRingInner / 2, backgroundColor: color[fg] }]}>
+          <View
+            style={[
+              styles.ring,
+              {
+                width: size.resultRingInner,
+                height: size.resultRingInner,
+                borderRadius: size.resultRingInner / 2,
+                backgroundColor: color[fg],
+              },
+            ]}
+          >
             <Icon name={icon} size={iconSize.result} color={color.bg} strokeWidth={iconStroke.bold} />
           </View>
         </View>

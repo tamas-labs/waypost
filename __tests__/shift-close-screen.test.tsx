@@ -42,18 +42,31 @@ const SALT = Buffer.alloc(16, 7).toString('base64');
 const ITERATIONS = 10;
 const PIN = '246810';
 const OTHER_PIN = '135790';
-const PHOTO = { id: '019a2b3c-4d5e-7f00-8a00-000000009200', sha256: 'c'.repeat(64), mime: 'image/jpeg', size_bytes: 240_000, local_uri: 'file:///documents/media/9200.jpg', taken_at: AT };
+const PHOTO = {
+  id: '019a2b3c-4d5e-7f00-8a00-000000009200',
+  sha256: 'c'.repeat(64),
+  mime: 'image/jpeg',
+  size_bytes: 240_000,
+  local_uri: 'file:///documents/media/9200.jpg',
+  taken_at: AT,
+};
 
 let db: Database;
 const newId = idSequence();
 
 const state = () => loadGuardState(db, nowTimestamp())!;
-const write = (drafts: Parameters<typeof appendChainEntries>[1], photos?: Parameters<typeof appendChainEntries>[2]) => appendChainEntries(db, drafts, photos);
+const write = (drafts: Parameters<typeof appendChainEntries>[1], photos?: Parameters<typeof appendChainEntries>[2]) =>
+  appendChainEntries(db, drafts, photos);
 const step = () => write(schedulerStep(state(), nowTimestamp(), newId));
 const context = () => ({ state: state(), now: nowTimestamp(), location: null, newId });
 const tag = (id: string) => ({ method: 'nfc' as const, tag_uid: state().checkpoints.find((c) => c.id === id)!.tag_uid!, ndef_raw: null });
 const scanTag = (id: string) => write(resolveScan(context(), tag(id)).drafts);
-const openShift = () => db.select().from(shifts).all().find((shift) => shift.ended_at === null);
+const openShift = () =>
+  db
+    .select()
+    .from(shifts)
+    .all()
+    .find((shift) => shift.ended_at === null);
 
 const tree = () => (
   <SafeAreaProvider initialMetrics={METRICS}>
@@ -78,7 +91,9 @@ const confirm = async (pin: string) => {
 
 async function addUser(id: string, name: string, pin: string) {
   const pin_hash = await pinHash(pin, SALT, ITERATIONS);
-  db.insert(users).values({ id, name, role: 'guard', pin_hash, pin_salt: SALT, pin_iterations: ITERATIONS, active: true, created_at: AT, updated_at: AT }).run();
+  db.insert(users)
+    .values({ id, name, role: 'guard', pin_hash, pin_salt: SALT, pin_iterations: ITERATIONS, active: true, created_at: AT, updated_at: AT })
+    .run();
   db.insert(siteUser).values({ site_id: SITE, user_id: id }).run();
 }
 
@@ -113,7 +128,9 @@ describe('the summary', () => {
     jest.setSystemTime(Date.parse(local('20:00')));
     await step();
     await scanTag(C1);
-    await write(manualScan(context(), { round_id: state().rounds[0]!.id, checkpoint_id: C2, note: 'Letörött.', media: [PHOTO] }).drafts, { photos: [PHOTO] });
+    await write(manualScan(context(), { round_id: state().rounds[0]!.id, checkpoint_id: C2, note: 'Letörött.', media: [PHOTO] }).drafts, {
+      photos: [PHOTO],
+    });
     await scanTag(C3);
     await write([reportIncident(context(), { category: 'water' })]);
     jest.setSystemTime(Date.parse(local('21:00')));

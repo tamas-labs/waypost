@@ -58,7 +58,14 @@ const state = () => loadGuardState(db, nowTimestamp())!;
 const write = (drafts: Parameters<typeof appendChainEntries>[1]) => appendChainEntries(db, drafts);
 const photo = (): PhotoFile => {
   photoCount += 1;
-  return { id: `019a2b3c-4d5e-7f00-8a00-0000000091${String(photoCount).padStart(2, '0')}`, sha256: 'c'.repeat(64), mime: 'image/jpeg', size_bytes: 240_000, local_uri: `file:///documents/media/${photoCount}.jpg`, taken_at: nowTimestamp() };
+  return {
+    id: `019a2b3c-4d5e-7f00-8a00-0000000091${String(photoCount).padStart(2, '0')}`,
+    sha256: 'c'.repeat(64),
+    mime: 'image/jpeg',
+    size_bytes: 240_000,
+    local_uri: `file:///documents/media/${photoCount}.jpg`,
+    taken_at: nowTimestamp(),
+  };
 };
 
 const renderScreen = () =>
@@ -83,7 +90,9 @@ beforeEach(async () => {
   jest.clearAllMocks();
   jest.mocked(currentLocation).mockResolvedValue(null);
   jest.mocked(takePhoto).mockImplementation(() => Promise.resolve(photo()));
-  jest.mocked(useCameraPermissions).mockReturnValue([{ granted: true, canAskAgain: true }, jest.fn(), jest.fn()] as unknown as ReturnType<typeof useCameraPermissions>);
+  jest
+    .mocked(useCameraPermissions)
+    .mockReturnValue([{ granted: true, canAskAgain: true }, jest.fn(), jest.fn()] as unknown as ReturnType<typeof useCameraPermissions>);
   jest.mocked(useLocalSearchParams).mockReturnValue({});
   useSyncStatus.setState({ online: true });
   ({ db } = await createTestDatabase());
@@ -104,14 +113,17 @@ it('needs a category, and nothing else', async () => {
   expect(screen.getByRole('radio', { name: 'Csőtörés / víz' })).toBeChecked();
   expect(submit()).toBeEnabled();
   await press('Esemény mentése');
-  expect(db.select().from(incidents).all()).toEqual([expect.objectContaining({ category: 'water', note: null, lat_e7: null, nearest_checkpoint_id: null, scan_id: null })]);
+  expect(db.select().from(incidents).all()).toEqual([
+    expect.objectContaining({ category: 'water', note: null, lat_e7: null, nearest_checkpoint_id: null, scan_id: null }),
+  ]);
   expect(db.select().from(media).all()).toEqual([]);
 });
 
 it('offers the categories of the design, and not the one of a manual entry', async () => {
   await renderScreen();
   expect(screen.getAllByRole('radio').map((tile) => tile.props.accessibilityState.checked)).toEqual([false, false, false, false, false]);
-  for (const name of ['Rongálás', 'Nyitott ajtó / ablak', 'Csőtörés / víz', 'Idegen személy', 'Egyéb']) expect(screen.getByRole('radio', { name })).toBeOnTheScreen();
+  for (const name of ['Rongálás', 'Nyitott ajtó / ablak', 'Csőtörés / víz', 'Idegen személy', 'Egyéb'])
+    expect(screen.getByRole('radio', { name })).toBeOnTheScreen();
   expect(screen.queryByRole('radio', { name: 'Sérült címke' })).not.toBeOnTheScreen();
 });
 
@@ -154,8 +166,20 @@ it('records the note, the photos and the location, and goes back with a toast', 
   await press('Esemény mentése');
 
   const incident = db.select().from(incidents).get()!;
-  expect(incident).toMatchObject({ category: 'open_door', note: 'A hátsó ablak nyitva.', lat_e7: 474981000, nearest_checkpoint_id: C2, scan_id: null });
-  expect(db.select().from(media).all().map((row) => row.owner_id)).toEqual([incident.id, incident.id]);
+  expect(incident).toMatchObject({
+    category: 'open_door',
+    note: 'A hátsó ablak nyitva.',
+    lat_e7: 474981000,
+    nearest_checkpoint_id: C2,
+    scan_id: null,
+  });
+  expect(
+    db
+      .select()
+      .from(media)
+      .all()
+      .map((row) => row.owner_id),
+  ).toEqual([incident.id, incident.id]);
   expect(playFeedback).toHaveBeenCalledWith('success');
   expect(router.back).toHaveBeenCalledTimes(1);
   expect(screen.getByText('Esemény mentve')).toBeOnTheScreen();

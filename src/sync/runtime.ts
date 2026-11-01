@@ -80,7 +80,12 @@ function finished(db: Database, outcome: SyncOutcome): void {
   } else if (outcome.status === 'failed') {
     const { step, error } = outcome;
     if (__DEV__) console.warn(`Sync failed at ${step ?? 'context'}`, error);
-    const lastError = { kind: syncErrorKind(error), step, message: error instanceof Error ? error.message : String(error), at: nowTimestamp() };
+    const lastError = {
+      kind: syncErrorKind(error),
+      step,
+      message: error instanceof Error ? error.message : String(error),
+      at: nowTimestamp(),
+    };
     useSyncStatus.setState({ running: false, pendingCount, lastError });
   } else {
     useSyncStatus.setState({ running: false, pendingCount });
@@ -103,7 +108,12 @@ export function startSync(db: Database): () => void {
   });
   controller = sync;
   setSyncNowHandler(() => sync.sync('manual'));
-  useSyncStatus.setState({ running: false, pendingCount: countPending(db).total, lastSuccessAt: getKv(db, 'sync.last_success_at'), lastError: null });
+  useSyncStatus.setState({
+    running: false,
+    pendingCount: countPending(db).total,
+    lastSuccessAt: getKv(db, 'sync.last_success_at'),
+    lastError: null,
+  });
 
   let interval: ReturnType<typeof setInterval> | null = null;
   const startInterval = () => {

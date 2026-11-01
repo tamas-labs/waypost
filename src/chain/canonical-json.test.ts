@@ -3,16 +3,21 @@ import { chainVectors } from '@waypost/schema/vectors';
 import { canonicalJson, CanonicalJsonError } from './canonical-json';
 
 describe('canonicalJson', () => {
-  it.each(chainVectors.cases.map((vector) => [vector.name, vector] as const))('matches the shared vector %s byte for byte', (_name, vector) => {
-    expect(canonicalJson(vector.input)).toBe(vector.canonical_json);
-  });
+  it.each(chainVectors.cases.map((vector) => [vector.name, vector] as const))(
+    'matches the shared vector %s byte for byte',
+    (_name, vector) => {
+      expect(canonicalJson(vector.input)).toBe(vector.canonical_json);
+    },
+  );
 
   it('matches the linked chain of the shared vectors', () => {
     for (const vector of chainVectors.chain.entries) expect(canonicalJson(vector.input)).toBe(vector.canonical_json);
   });
 
   it('sorts keys by UTF-16 code units at every level and writes no whitespace', () => {
-    expect(canonicalJson({ b: [{ z: 1, a: null }], a: true, '\u{1f600}': 1, '￿': 2, B: 'x' })).toBe('{"B":"x","a":true,"b":[{"a":null,"z":1}],"😀":1,"￿":2}');
+    expect(canonicalJson({ b: [{ z: 1, a: null }], a: true, '\u{1f600}': 1, '￿': 2, B: 'x' })).toBe(
+      '{"B":"x","a":true,"b":[{"a":null,"z":1}],"😀":1,"￿":2}',
+    );
     expect(canonicalJson([])).toBe('[]');
     expect(canonicalJson({})).toBe('{}');
   });
@@ -24,7 +29,9 @@ describe('canonicalJson', () => {
   });
 
   it('writes integers as plain digits, -0 as 0', () => {
-    expect(canonicalJson([0, -0, -1, Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER, 1e21 / 1e6])).toBe('[0,0,-1,9007199254740991,-9007199254740991,1000000000000000]');
+    expect(canonicalJson([0, -0, -1, Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER, 1e21 / 1e6])).toBe(
+      '[0,0,-1,9007199254740991,-9007199254740991,1000000000000000]',
+    );
   });
 
   it.each([

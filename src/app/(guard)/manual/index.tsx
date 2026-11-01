@@ -31,7 +31,19 @@ function ManualHeader() {
 }
 
 /** The row that shows the chosen point (B-Kezi), and the sheet with the points left. */
-function PointPicker({ points, value, onChange, disabled, fixedOrder }: { points: readonly RoundPoint[]; value: string; onChange: (id: string) => void; disabled: boolean; fixedOrder: boolean }) {
+function PointPicker({
+  points,
+  value,
+  onChange,
+  disabled,
+  fixedOrder,
+}: {
+  points: readonly RoundPoint[];
+  value: string;
+  onChange: (id: string) => void;
+  disabled: boolean;
+  fixedOrder: boolean;
+}) {
   const { color, typography, size, space, radius, border, iconSize } = useTheme();
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
@@ -46,7 +58,19 @@ function PointPicker({ points, value, onChange, disabled, fixedOrder }: { points
         accessibilityState={{ disabled }}
         disabled={disabled}
         onPress={() => setOpen(true)}
-        style={[styles.row, { minHeight: size.listItem, paddingHorizontal: space.l, paddingVertical: space.s, gap: space.m, borderRadius: radius.item, borderWidth: border.thin, borderColor: color.cardBorder, backgroundColor: color.surface }]}
+        style={[
+          styles.row,
+          {
+            minHeight: size.listItem,
+            paddingHorizontal: space.l,
+            paddingVertical: space.s,
+            gap: space.m,
+            borderRadius: radius.item,
+            borderWidth: border.thin,
+            borderColor: color.cardBorder,
+            backgroundColor: color.surface,
+          },
+        ]}
       >
         <View style={styles.grow}>
           <Text style={[typography.small, { color: color.text2 }]}>{t('manual.point')}</Text>
@@ -55,10 +79,34 @@ function PointPicker({ points, value, onChange, disabled, fixedOrder }: { points
         <Icon name="chevronDown" size={iconSize.field} color={color.text2} />
       </Pressable>
       {/* It gives way to a screen pushed over the form (an alarm), which it would cover. */}
-      <Modal visible={open && focused} transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={() => setOpen(false)}>
+      <Modal
+        visible={open && focused}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={() => setOpen(false)}
+      >
         {/* A tap outside the sheet closes it; for a screen reader it is the close button. */}
-        <Pressable style={[styles.grow, { backgroundColor: color.scrim }]} onPress={() => setOpen(false)} accessibilityRole="button" accessibilityLabel={t('common.cancel')} />
-        <View style={[styles.sheet, { backgroundColor: color.bg, borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card, padding: space.l, paddingBottom: insets.bottom + space.l, gap: space.m }]}>
+        <Pressable
+          style={[styles.grow, { backgroundColor: color.scrim }]}
+          onPress={() => setOpen(false)}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.cancel')}
+        />
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: color.bg,
+              borderTopLeftRadius: radius.card,
+              borderTopRightRadius: radius.card,
+              padding: space.l,
+              paddingBottom: insets.bottom + space.l,
+              gap: space.m,
+            },
+          ]}
+        >
           <Text accessibilityRole="header" style={[typography.title2, { color: color.text }]}>
             {t('manual.pointChoose')}
           </Text>
@@ -82,7 +130,17 @@ function PointPicker({ points, value, onChange, disabled, fixedOrder }: { points
   );
 }
 
-function ManualForm({ roundId, points, timezone, fixedOrder }: { roundId: string; points: readonly [RoundPoint, ...RoundPoint[]]; timezone: string; fixedOrder: boolean }) {
+function ManualForm({
+  roundId,
+  points,
+  timezone,
+  fixedOrder,
+}: {
+  roundId: string;
+  points: readonly [RoundPoint, ...RoundPoint[]];
+  timezone: string;
+  fixedOrder: boolean;
+}) {
   const { color, space } = useTheme();
   const insets = useSafeAreaInsets();
   const draft = usePhotoDraft();
@@ -122,7 +180,9 @@ function ManualForm({ roundId, points, timezone, fixedOrder }: { roundId: string
     setSaving(true);
     setProblem(null);
     try {
-      const outcome = await draft.recording((photos) => recordManualEntry(getDatabase(), { round_id: roundId, checkpoint_id: pointId, note }, photos, fix?.location ?? null));
+      const outcome = await draft.recording((photos) =>
+        recordManualEntry(getDatabase(), { round_id: roundId, checkpoint_id: pointId, note }, photos, fix?.location ?? null),
+      );
       playFeedback(scanFeedback(outcome));
       if (mounted.current) router.replace({ pathname: '/scan-result', params: pointResultParams(outcome) });
     } catch (error) {
@@ -137,14 +197,25 @@ function ManualForm({ roundId, points, timezone, fixedOrder }: { roundId: string
 
   const accuracy = fix?.location.accuracy_m ?? null;
   const time = fix === null ? '' : localTimeOf(fix.at, timezone);
-  const gps = fix === null ? (located ? t('manual.noLocation') : undefined) : accuracy === null ? t('common.gpsRecordedAt', { time }) : t('common.gpsRecorded', { accuracy: Math.round(accuracy), time });
+  const gps =
+    fix === null
+      ? located
+        ? t('manual.noLocation')
+        : undefined
+      : accuracy === null
+        ? t('common.gpsRecordedAt', { time })
+        : t('common.gpsRecorded', { accuracy: Math.round(accuracy), time });
   const ready = draft.photos.length > 0 && note.trim() !== '' && problem !== 'closed';
 
   return (
     // As the Expo guide says: padding on iOS; on Android the view alone keeps the field above the keyboard.
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.grow, { backgroundColor: color.bg }]}>
       <ManualHeader />
-      <ScrollView style={styles.grow} contentContainerStyle={{ paddingHorizontal: space.l, paddingBottom: space.m, gap: space.l }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.grow}
+        contentContainerStyle={{ paddingHorizontal: space.l, paddingBottom: space.m, gap: space.l }}
+        keyboardShouldPersistTaps="handled"
+      >
         <PointPicker
           points={points}
           value={pointId}
@@ -156,7 +227,14 @@ function ManualForm({ roundId, points, timezone, fixedOrder }: { roundId: string
           }}
         />
         <PhotoField required photos={draft.photos} onAdd={draft.add} onRemove={draft.remove} disabled={saving} />
-        <TextArea label={t('common.note')} requirement="required" value={note} onChangeText={setNote} maxLength={MAX_NOTE_LENGTH} editable={!saving} />
+        <TextArea
+          label={t('common.note')}
+          requirement="required"
+          value={note}
+          onChangeText={setNote}
+          maxLength={MAX_NOTE_LENGTH}
+          editable={!saving}
+        />
         <InfoBanner variant="manual" icon="mapPin" title={gps} text={t('manual.info')} />
         {problem !== null && <InfoBanner variant="error" text={t(problem === 'closed' ? 'manual.roundClosed' : 'manual.failed')} />}
       </ScrollView>

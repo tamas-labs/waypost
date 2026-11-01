@@ -53,14 +53,18 @@ describe('location of a scan', () => {
   });
 
   it('asks for a new fix without a recent one, and takes it if it comes within 5 s', async () => {
-    native.getCurrentPositionAsync.mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve(fix(47.5)), LOCATION_TIMEOUT_MS - 100)));
+    native.getCurrentPositionAsync.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve(fix(47.5)), LOCATION_TIMEOUT_MS - 100)),
+    );
     const { location } = await locate();
     expect(native.getCurrentPositionAsync).toHaveBeenCalledWith({ accuracy: Location.Accuracy.High });
     expect(location?.latitude).toBe(47.5);
   });
 
   it('records without a location after 5 s, and ignores a fix coming later', async () => {
-    native.getCurrentPositionAsync.mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve(fix(47.5)), LOCATION_TIMEOUT_MS + 100)));
+    native.getCurrentPositionAsync.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve(fix(47.5)), LOCATION_TIMEOUT_MS + 100)),
+    );
     const { location, waitedMs } = await locate();
     expect(location).toBeNull();
     expect(waitedMs).toBeLessThanOrEqual(LOCATION_TIMEOUT_MS + 1000);

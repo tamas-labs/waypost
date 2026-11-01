@@ -18,7 +18,9 @@ beforeEach(async () => {
 });
 
 function addShift(id: string, started_at: string, fields: Partial<typeof shifts.$inferInsert> = {}) {
-  db.insert(shifts).values({ id, site_id: SITE, device_id: DEVICE, guard_id: GUARD, started_at, chain_entry_id: `entry-${id}`, ...fields }).run();
+  db.insert(shifts)
+    .values({ id, site_id: SITE, device_id: DEVICE, guard_id: GUARD, started_at, chain_entry_id: `entry-${id}`, ...fields })
+    .run();
 }
 
 /** The projection rows of a round of the fixture, with its scans. */
@@ -27,7 +29,20 @@ function addRound(info: RoundInfo) {
   db.insert(rounds).values(row).run();
   for (const [n, scan] of roundScans.entries()) {
     db.insert(scans)
-      .values({ id: `${info.id}-${n}`, round_id: info.id, checkpoint_id: scan.checkpoint_id, method: 'nfc', scanned_at: scan.scanned_at, lat_e7: null, lng_e7: null, accuracy_dm: null, is_mock: false, flags: [], note: null, chain_entry_id: `entry-${info.id}-${n}` })
+      .values({
+        id: `${info.id}-${n}`,
+        round_id: info.id,
+        checkpoint_id: scan.checkpoint_id,
+        method: 'nfc',
+        scanned_at: scan.scanned_at,
+        lat_e7: null,
+        lng_e7: null,
+        accuracy_dm: null,
+        is_mock: false,
+        flags: [],
+        note: null,
+        chain_entry_id: `entry-${info.id}-${n}`,
+      })
       .run();
   }
 }
@@ -50,11 +65,29 @@ describe('guard state from the database', () => {
   it('has the open shift of this phone and the rounds with their scans and versions', () => {
     addShift(SHIFT, OPEN_SHIFT.started_at);
     const missed = round('A', '20:00', { status: 'missed' });
-    const started = round('A', '21:00', { route_version_id: VERSION_A2, status: 'in_progress', scans: [{ checkpoint_id: C2, scanned_at: local('21:04') }, { checkpoint_id: C4, scanned_at: local('21:06') }] });
+    const started = round('A', '21:00', {
+      route_version_id: VERSION_A2,
+      status: 'in_progress',
+      scans: [
+        { checkpoint_id: C2, scanned_at: local('21:04') },
+        { checkpoint_id: C4, scanned_at: local('21:06') },
+      ],
+    });
     const open = round('B', '20:30');
     [missed, started, open].forEach(addRound);
     // An unknown tag of the round is not one of its scans.
-    db.insert(scans).values({ id: 'unknown', round_id: started.id, checkpoint_id: null, method: 'nfc', scanned_at: local('21:05'), is_mock: false, flags: ['unknown_tag'], chain_entry_id: 'entry-unknown' }).run();
+    db.insert(scans)
+      .values({
+        id: 'unknown',
+        round_id: started.id,
+        checkpoint_id: null,
+        method: 'nfc',
+        scanned_at: local('21:05'),
+        is_mock: false,
+        flags: ['unknown_tag'],
+        chain_entry_id: 'entry-unknown',
+      })
+      .run();
 
     const state = loadGuardState(db, NOW)!;
     expect(state.shift).toEqual(OPEN_SHIFT);

@@ -15,13 +15,16 @@ import { seedSite } from './testing';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn(), requestSync: jest.fn() }));
-jest.mock('@/location/location', () => ({ currentLocation: jest.fn(() => Promise.resolve({ latitude: 47.5, longitude: 19, accuracy_m: 8, mocked: false, gnss_time: null })) }));
+jest.mock('@/location/location', () => ({
+  currentLocation: jest.fn(() => Promise.resolve({ latitude: 47.5, longitude: 19, accuracy_m: 8, mocked: false, gnss_time: null })),
+}));
 
 let db: Database;
 let now: string;
 const readClock = (): ClockReading => ({ device_time: now, uptime_ms: 1000, boot_id: 'android-boot:12' });
 const newId = idSequence();
-const write = (drafts: Parameters<typeof appendChainEntries>[1], photos?: Parameters<typeof appendChainEntries>[2]) => appendChainEntries(db, drafts, { readClock, ...photos });
+const write = (drafts: Parameters<typeof appendChainEntries>[1], photos?: Parameters<typeof appendChainEntries>[2]) =>
+  appendChainEntries(db, drafts, { readClock, ...photos });
 const state = () => loadGuardState(db, now)!;
 const nfc = (id: string): TagRead => ({ method: 'nfc', tag_uid: state().checkpoints.find((c) => c.id === id)!.tag_uid!, ndef_raw: null });
 const scanAt = async (time: string, id: string) => {
@@ -54,7 +57,7 @@ describe('the round on its screen', () => {
       fixed_order: true,
       scanned: 0,
       points: [
-        { checkpoint_id: C1, name: 'Pont 1', position: 1, location: { latitude: 47.4980, longitude: 19.0402 }, scan: null },
+        { checkpoint_id: C1, name: 'Pont 1', position: 1, location: { latitude: 47.498, longitude: 19.0402 }, scan: null },
         { checkpoint_id: C2, name: 'Pont 2', position: 2, location: { latitude: 47.4981, longitude: 19.0402 }, scan: null },
         { checkpoint_id: C3, name: 'Pont 3', position: 3, location: { latitude: 47.4982, longitude: 19.0402 }, scan: null },
       ],
@@ -64,9 +67,20 @@ describe('the round on its screen', () => {
   it('puts the scanned points first, in time order, with how they were scanned', async () => {
     const id = await openRound();
     await scanAt('20:03', C2);
-    const photo = { id: newId(), sha256: 'b'.repeat(64), mime: 'image/jpeg', size_bytes: 240_000, local_uri: 'file:///documents/media/c.jpg', taken_at: local('20:04') };
+    const photo = {
+      id: newId(),
+      sha256: 'b'.repeat(64),
+      mime: 'image/jpeg',
+      size_bytes: 240_000,
+      local_uri: 'file:///documents/media/c.jpg',
+      taken_at: local('20:04'),
+    };
     now = local('20:04');
-    await write(manualScan({ state: state(), now, location: null, newId }, { round_id: id, checkpoint_id: C1, note: 'Letörött.', media: [photo] }).drafts, { photos: [photo] });
+    await write(
+      manualScan({ state: state(), now, location: null, newId }, { round_id: id, checkpoint_id: C1, note: 'Letörött.', media: [photo] })
+        .drafts,
+      { photos: [photo] },
+    );
 
     const info = loadRoundScreenInfo(db, id, readClock)!;
     expect(info.scanned).toBe(2);
@@ -88,7 +102,12 @@ describe('the round on its screen', () => {
   it('does not name the only route', async () => {
     ({ db } = await createTestDatabase());
     const site = guardState();
-    await seedSite(db, { ...site, routes: site.routes.slice(0, 1), schedules: site.schedules.slice(0, 1), versions: site.versions.slice(0, 1) });
+    await seedSite(db, {
+      ...site,
+      routes: site.routes.slice(0, 1),
+      schedules: site.schedules.slice(0, 1),
+      versions: site.versions.slice(0, 1),
+    });
     const id = await openRound();
     expect(loadRoundScreenInfo(db, id, readClock)?.route_name).toBeNull();
   });
@@ -137,12 +156,19 @@ describe('recording a read', () => {
 describe('the round on its map', () => {
   const trained = { latitude: 47.1, longitude: 19.1 };
   const gps = { latitude: 47.2, longitude: 19.2 };
-  const point = (position: number, location: RoundPoint['location'], scan: Partial<NonNullable<RoundPoint['scan']>> | null = null): RoundPoint => ({
+  const point = (
+    position: number,
+    location: RoundPoint['location'],
+    scan: Partial<NonNullable<RoundPoint['scan']>> | null = null,
+  ): RoundPoint => ({
     checkpoint_id: `c${position}`,
     name: `Pont ${position}`,
     position,
     location,
-    scan: scan === null ? null : { scanned_at: local('20:03'), method: 'nfc', manual: false, out_of_order: false, location: null, accuracy_m: null, ...scan },
+    scan:
+      scan === null
+        ? null
+        : { scanned_at: local('20:03'), method: 'nfc', manual: false, out_of_order: false, location: null, accuracy_m: null, ...scan },
   });
 
   it('puts a scanned point where it was scanned, and a point left where it was trained', () => {
@@ -159,7 +185,10 @@ describe('the round on its map', () => {
   });
 
   it('keeps the accuracy of a manual point only', () => {
-    const { points } = roundMapOf([point(1, null, { manual: true, method: 'manual', location: gps, accuracy_m: 12.5 }), point(2, null, { manual: true, method: 'manual', location: gps })]);
+    const { points } = roundMapOf([
+      point(1, null, { manual: true, method: 'manual', location: gps, accuracy_m: 12.5 }),
+      point(2, null, { manual: true, method: 'manual', location: gps }),
+    ]);
     expect(points.map((p) => [p.state, p.accuracy_m])).toEqual([
       ['manual', 12.5],
       ['manual', null],
@@ -168,7 +197,12 @@ describe('the round on its map', () => {
 
   it('connects the located scans in time order, with their times', () => {
     const second = { latitude: 47.3, longitude: 19.3 };
-    const map = roundMapOf([point(2, trained, { scanned_at: local('20:03'), location: gps }), point(3, trained, { scanned_at: local('20:05') }), point(1, trained, { scanned_at: local('20:09'), location: second }), point(4, trained)]);
+    const map = roundMapOf([
+      point(2, trained, { scanned_at: local('20:03'), location: gps }),
+      point(3, trained, { scanned_at: local('20:05') }),
+      point(1, trained, { scanned_at: local('20:09'), location: second }),
+      point(4, trained),
+    ]);
     expect(map.walked).toEqual([gps, second]);
     expect(map.walked_between).toEqual({ from: local('20:03'), to: local('20:09') });
   });
@@ -180,7 +214,12 @@ describe('the round on its map', () => {
   it('reads the locations from the database', async () => {
     const id = await openRound();
     now = local('20:03');
-    await write(resolveScan({ state: state(), now, location: { latitude: 47.5, longitude: 19, accuracy_m: 8, mocked: false, gnss_time: null }, newId }, nfc(C1)).drafts);
+    await write(
+      resolveScan(
+        { state: state(), now, location: { latitude: 47.5, longitude: 19, accuracy_m: 8, mocked: false, gnss_time: null }, newId },
+        nfc(C1),
+      ).drafts,
+    );
     const info = loadRoundScreenInfo(db, id, readClock)!;
     expect(info.points[0]!.scan).toMatchObject({ location: { latitude: 47.5, longitude: 19 }, accuracy_m: 8 });
   });

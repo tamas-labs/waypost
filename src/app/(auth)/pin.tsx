@@ -136,7 +136,10 @@ export default function PinScreen() {
   return (
     <ScrollView
       style={{ backgroundColor: color.bg }}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + space.l, paddingBottom: insets.bottom + space.xxl, paddingHorizontal: space.xxl, gap: space.xxl }]}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: insets.top + space.l, paddingBottom: insets.bottom + space.xxl, paddingHorizontal: space.xxl, gap: space.xxl },
+      ]}
     >
       {/* The chip sizes itself; this row centres it. */}
       <View style={styles.centre}>
@@ -144,11 +147,18 @@ export default function PinScreen() {
       </View>
 
       {permissions !== null && !allAlarmPermissionsGranted(permissions) && (
-        <InfoBanner variant="warn" title={t('pin.alarmsTitle')} text={t('pin.alarmsMissing', { missing: missingAlarmSettings(permissions) })} style={styles.wide} />
+        <InfoBanner
+          variant="warn"
+          title={t('pin.alarmsTitle')}
+          text={t('pin.alarmsMissing', { missing: missingAlarmSettings(permissions) })}
+          style={styles.wide}
+        />
       )}
 
       <View style={[styles.centre, { gap: space.s }]}>
-        {info !== null && info.site_name !== '' && <Text style={[typography.siteName, styles.text, { color: color.text2 }]}>{info.site_name}</Text>}
+        {info !== null && info.site_name !== '' && (
+          <Text style={[typography.siteName, styles.text, { color: color.text2 }]}>{info.site_name}</Text>
+        )}
         <Text style={[typography.title1, styles.text, { color: color.text }]} accessibilityRole="header">
           {/* Before the first pull the site's clock is not known. */}
           {info === null ? t('pin.title') : t(greeting(info))}
@@ -161,7 +171,11 @@ export default function PinScreen() {
       <View style={[styles.centre, { gap: space.m }]}>
         <PinDots entered={pin.length} shakeKey={shakeKey} />
         {messageText !== null && (
-          <Text style={[typography.body, styles.text, styles.tabular, { color: color.miss }]} accessibilityLiveRegion="polite" accessibilityRole="alert">
+          <Text
+            style={[typography.body, styles.text, styles.tabular, { color: color.miss }]}
+            accessibilityLiveRegion="polite"
+            accessibilityRole="alert"
+          >
             {messageText}
           </Text>
         )}

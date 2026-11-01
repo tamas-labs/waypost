@@ -3,7 +3,13 @@
 // warns and offers the fix (the system dialog or settings screen).
 import { Linking, Platform } from 'react-native';
 
-import { getAlarmPermissions, requestBatteryExemption, requestExactAlarms, requestNotifications, type AlarmPermissions } from '@/alarms/permissions';
+import {
+  getAlarmPermissions,
+  requestBatteryExemption,
+  requestExactAlarms,
+  requestNotifications,
+  type AlarmPermissions,
+} from '@/alarms/permissions';
 import { getLocationPermission, requestLocationPermission } from '@/location/location';
 import { getNfcStatus, openNfcSettings, type NfcStatus } from '@/nfc/reader';
 

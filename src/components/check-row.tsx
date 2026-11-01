@@ -24,11 +24,21 @@ export function CheckRow({ label, ok, detail, actionLabel, onAction }: CheckRowP
   const showDetail = !ok && detail !== undefined;
   const showAction = !ok && actionLabel !== undefined && onAction !== undefined;
   return (
-    <View style={[styles.row, { minHeight: size.listItem, paddingLeft: space.l, paddingRight: showAction ? space.m : space.l, gap: space.m }]}>
+    <View
+      style={[styles.row, { minHeight: size.listItem, paddingLeft: space.l, paddingRight: showAction ? space.m : space.l, gap: space.m }]}
+    >
       <View
         importantForAccessibility="no-hide-descendants"
         accessibilityElementsHidden
-        style={[styles.circle, { width: size.checkCircle, height: size.checkCircle, borderRadius: size.checkCircle / 2, backgroundColor: color[ok ? 'okBg' : 'warnBg'] }]}
+        style={[
+          styles.circle,
+          {
+            width: size.checkCircle,
+            height: size.checkCircle,
+            borderRadius: size.checkCircle / 2,
+            backgroundColor: color[ok ? 'okBg' : 'warnBg'],
+          },
+        ]}
       >
         <Icon name={ok ? 'check' : 'exclam'} size={iconSize.dot} color={color[ok ? 'ok' : 'warn']} strokeWidth={iconStroke.bold} />
       </View>

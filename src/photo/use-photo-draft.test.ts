@@ -7,7 +7,14 @@ import { usePhotoDraft } from './use-photo-draft';
 
 jest.mock('./photo', () => ({ discardPhoto: jest.fn() }));
 
-const photo = (id: string): PhotoFile => ({ id, sha256: 'c'.repeat(64), mime: 'image/jpeg', size_bytes: 1, local_uri: `file:///media/${id}.jpg`, taken_at: '2026-10-30T12:00:00.000Z' });
+const photo = (id: string): PhotoFile => ({
+  id,
+  sha256: 'c'.repeat(64),
+  mime: 'image/jpeg',
+  size_bytes: 1,
+  local_uri: `file:///media/${id}.jpg`,
+  taken_at: '2026-10-30T12:00:00.000Z',
+});
 
 beforeEach(() => jest.clearAllMocks());
 

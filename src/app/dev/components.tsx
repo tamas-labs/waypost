@@ -65,7 +65,11 @@ export default function ComponentsScreen() {
   const press = (label: string) => () => setPressed(label);
 
   return (
-    <ScrollView style={{ backgroundColor: color.bg }} contentContainerStyle={{ padding: space.l, gap: space.m }} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={{ backgroundColor: color.bg }}
+      contentContainerStyle={{ padding: space.l, gap: space.m }}
+      keyboardShouldPersistTaps="handled"
+    >
       <Stack.Screen options={{ title: t('dev.screens.components') }} />
       <SegmentedControl
         accessibilityLabel={t('theme.title')}
@@ -73,7 +77,9 @@ export default function ComponentsScreen() {
         value={preference}
         onChange={setPreference}
       />
-      {pressed !== null && <Text style={[typography.small, { color: color.text2 }]}>{t('dev.components.pressed', { label: pressed })}</Text>}
+      {pressed !== null && (
+        <Text style={[typography.small, { color: color.text2 }]}>{t('dev.components.pressed', { label: pressed })}</Text>
+      )}
 
       {section('dev.components.buttons')}
       <Button hero icon="nfc" label={t('round.scan')} onPress={press(t('round.scan'))} />
@@ -83,7 +89,13 @@ export default function ComponentsScreen() {
         <Button variant="dashed" label={t('dev.components.add')} onPress={press(t('dev.components.add'))} style={styles.flex} />
       </View>
       <View style={[styles.row, styles.center, { gap: space.m }]}>
-        <IconButton size="large" icon="flag" iconColor="warn" accessibilityLabel={t('round.recordIncident')} onPress={press(t('round.recordIncident'))} />
+        <IconButton
+          size="large"
+          icon="flag"
+          iconColor="warn"
+          accessibilityLabel={t('round.recordIncident')}
+          onPress={press(t('round.recordIncident'))}
+        />
         <IconButton icon="back" accessibilityLabel={t('common.back')} onPress={press(t('common.back'))} />
         <IconButton size="map" icon="navigation" accessibilityLabel={t('round.centerMe')} onPress={press(t('round.centerMe'))} />
         <Button variant="warnTonal" label={t('shiftStart.fix')} onPress={press(t('shiftStart.fix'))} />
@@ -124,8 +136,20 @@ export default function ComponentsScreen() {
       <InfoBanner variant="success" text={t('incident.saved')} />
 
       {section('dev.components.fields')}
-      <TextField label={t('supervisor.email')} requirement="required" value={name} onChangeText={setName} placeholder={t('dev.components.fieldPlaceholder')} />
-      <TextField label={t('supervisor.password')} secret value={password} onChangeText={setPassword} error={password === '' ? t('dev.components.fieldError') : undefined} />
+      <TextField
+        label={t('supervisor.email')}
+        requirement="required"
+        value={name}
+        onChangeText={setName}
+        placeholder={t('dev.components.fieldPlaceholder')}
+      />
+      <TextField
+        label={t('supervisor.password')}
+        secret
+        value={password}
+        onChangeText={setPassword}
+        error={password === '' ? t('dev.components.fieldError') : undefined}
+      />
       <TextArea label={t('common.note')} requirement="optional" value={note} onChangeText={setNote} />
 
       {section('dev.components.controls')}
@@ -194,7 +218,14 @@ export default function ComponentsScreen() {
             style={styles.half}
           />
         ))}
-        <CategoryTile icon="more" label={t('incident.other')} wide selected={category === 'other'} onPress={() => setCategory('other')} style={styles.full} />
+        <CategoryTile
+          icon="more"
+          label={t('incident.other')}
+          wide
+          selected={category === 'other'}
+          onPress={() => setCategory('other')}
+          style={styles.full}
+        />
       </View>
 
       {section('dev.components.pin')}
@@ -234,7 +265,14 @@ function SampleResult({ kind, onClose }: { kind: ResultKind; onClose: () => void
       <SyncIndicator state="offline" count={3} />
     </View>
   );
-  const box = { padding: space.l, borderRadius: radius.card, backgroundColor: color.surface, borderWidth: border.thin, borderColor: color.cardBorder, gap: space.s };
+  const box = {
+    padding: space.l,
+    borderRadius: radius.card,
+    backgroundColor: color.surface,
+    borderWidth: border.thin,
+    borderColor: color.cardBorder,
+    gap: space.s,
+  };
   switch (kind) {
     case 'success':
       return (
@@ -253,12 +291,28 @@ function SampleResult({ kind, onClose }: { kind: ResultKind; onClose: () => void
         >
           <View style={box}>
             <View style={[styles.row, styles.between]}>
-              <Text style={[typography.title2, styles.tabular, { color: color.text }]}>{t('scanResult.progress', { done: 6, total: 9 })}</Text>
-              <Text style={[typography.small, styles.tabular, { color: color.text2 }]}>{t('scanResult.progressRest', { left: 3, time: '12:10' })}</Text>
+              <Text style={[typography.title2, styles.tabular, { color: color.text }]}>
+                {t('scanResult.progress', { done: 6, total: 9 })}
+              </Text>
+              <Text style={[typography.small, styles.tabular, { color: color.text2 }]}>
+                {t('scanResult.progressRest', { left: 3, time: '12:10' })}
+              </Text>
             </View>
             <ProgressSegments segments={['ok', 'ok', 'ok', 'manual', 'ok', 'ok', null, null, null]} />
           </View>
-          <View style={[styles.row, { padding: space.l, gap: space.m, borderRadius: radius.item, borderWidth: border.thick, borderStyle: 'dashed', borderColor: color.dash }]}>
+          <View
+            style={[
+              styles.row,
+              {
+                padding: space.l,
+                gap: space.m,
+                borderRadius: radius.item,
+                borderWidth: border.thick,
+                borderStyle: 'dashed',
+                borderColor: color.dash,
+              },
+            ]}
+          >
             <Text style={[typography.bodyRegular, styles.flex, { color: color.text }]}>
               <Text style={{ fontFamily: fontFamily.extrabold }}>{`${t('scanResult.instruction')} `}</Text>
               {t('dev.components.instruction')}

@@ -13,7 +13,9 @@ const PHOTO = { id: '019a2b3c-4d5e-7f00-8a00-000000000030', sha256: 'b'.repeat(6
 
 const BUDAPEST: LocationFix = { latitude: 47.4979, longitude: 19.0402, accuracy_m: 12.5, mocked: false, gnss_time: null };
 
-const entries = [...chainVectors.cases, ...chainVectors.chain.entries].map((vector) => ({ ...vector.input, hash: vector.hash }) as ChainEntry);
+const entries = [...chainVectors.cases, ...chainVectors.chain.entries].map(
+  (vector) => ({ ...vector.input, hash: vector.hash }) as ChainEntry,
+);
 const countOf = (type: ChainEntry['type']) => entries.filter((entry) => entry.type === type).length;
 
 /** The location a payload was built from. */
@@ -21,7 +23,13 @@ function locationOf(entry: ChainEntryOf<'scan'> | ChainEntryOf<'incident'>): Loc
   const { lat_e7, lng_e7, accuracy_dm } = entry.payload;
   if (lat_e7 === null || lng_e7 === null) return null;
   const mocked = entry.type === 'scan' && entry.payload.is_mock;
-  return { latitude: lat_e7 / 1e7, longitude: lng_e7 / 1e7, accuracy_m: accuracy_dm === null ? null : accuracy_dm / 10, mocked, gnss_time: entry.gnss_time };
+  return {
+    latitude: lat_e7 / 1e7,
+    longitude: lng_e7 / 1e7,
+    accuracy_m: accuracy_dm === null ? null : accuracy_dm / 10,
+    mocked,
+    gnss_time: entry.gnss_time,
+  };
 }
 
 describe('chain entry builders', () => {
@@ -55,19 +63,70 @@ describe('chain entry builders', () => {
     const drafts = [
       shiftStarted({ shift_id: SHIFT, guard_id: SCAN, site_id: ROUND }),
       shiftClosed({ shift_id: SHIFT, closed_by: 'handover' }),
-      roundOpened({ round_id: ROUND, shift_id: SHIFT, route_version_id: SCAN, schedule_id: CHECKPOINT, scheduled_at: '2026-10-27T20:00:00.000Z', time_limit_min: null }),
+      roundOpened({
+        round_id: ROUND,
+        shift_id: SHIFT,
+        route_version_id: SCAN,
+        schedule_id: CHECKPOINT,
+        scheduled_at: '2026-10-27T20:00:00.000Z',
+        time_limit_min: null,
+      }),
       roundClosed({ round_id: ROUND, status: 'incomplete', finished_at: '2026-10-27T20:20:00.000Z' }),
-      scan({ scan_id: SCAN, round_id: ROUND, checkpoint_id: CHECKPOINT, method: 'nfc', tag_uid: '04:a1:b2:c3:d4:e5:80', ndef_raw: null, location: BUDAPEST }),
-      scan({ scan_id: SCAN, round_id: null, checkpoint_id: null, method: 'qr', qr_payload: 'waypost:cp:x', location: null, flags: ['unknown_tag', 'out_of_round'] }),
-      scan({ scan_id: SCAN, round_id: ROUND, checkpoint_id: CHECKPOINT, method: 'manual', location: BUDAPEST, flags: ['manual'], note: ' A címke letörött. ', media: [PHOTO] }),
-      incident({ incident_id: SHIFT, shift_id: SHIFT, category: 'damaged_tag', note: 'Letörött.', location: null, scan_id: SCAN, nearest_checkpoint_id: CHECKPOINT, media: [PHOTO] }),
+      scan({
+        scan_id: SCAN,
+        round_id: ROUND,
+        checkpoint_id: CHECKPOINT,
+        method: 'nfc',
+        tag_uid: '04:a1:b2:c3:d4:e5:80',
+        ndef_raw: null,
+        location: BUDAPEST,
+      }),
+      scan({
+        scan_id: SCAN,
+        round_id: null,
+        checkpoint_id: null,
+        method: 'qr',
+        qr_payload: 'waypost:cp:x',
+        location: null,
+        flags: ['unknown_tag', 'out_of_round'],
+      }),
+      scan({
+        scan_id: SCAN,
+        round_id: ROUND,
+        checkpoint_id: CHECKPOINT,
+        method: 'manual',
+        location: BUDAPEST,
+        flags: ['manual'],
+        note: ' A címke letörött. ',
+        media: [PHOTO],
+      }),
+      incident({
+        incident_id: SHIFT,
+        shift_id: SHIFT,
+        category: 'damaged_tag',
+        note: 'Letörött.',
+        location: null,
+        scan_id: SCAN,
+        nearest_checkpoint_id: CHECKPOINT,
+        media: [PHOTO],
+      }),
       incident({ incident_id: SHIFT, shift_id: SHIFT, category: 'water', location: { ...BUDAPEST, accuracy_m: null } }),
     ];
     for (const draft of drafts) expect([draft.type, schemaErrors(`chain/payload-${draft.type}`, draft.payload)]).toEqual([draft.type, []]);
   });
 
   it('fill every absent scan field with null, and normalize the tag UID and the note', () => {
-    expect(scan({ scan_id: SCAN, round_id: ROUND, checkpoint_id: CHECKPOINT, method: 'nfc', tag_uid: '04:a1:b2:c3', location: null, note: '  ' })).toEqual({
+    expect(
+      scan({
+        scan_id: SCAN,
+        round_id: ROUND,
+        checkpoint_id: CHECKPOINT,
+        method: 'nfc',
+        tag_uid: '04:a1:b2:c3',
+        location: null,
+        note: '  ',
+      }),
+    ).toEqual({
       type: 'scan',
       payload: {
         scan_id: SCAN,
@@ -99,7 +158,13 @@ describe('chain entry builders', () => {
       location: { ...BUDAPEST, mocked: true, gnss_time: '2026-10-27T20:03:43.000Z' },
       flags: ['out_of_round', 'out_of_order', 'out_of_round'],
     });
-    expect(draft.payload).toMatchObject({ is_mock: true, flags: ['out_of_order', 'out_of_round', 'mock_location'], lat_e7: 474979000, lng_e7: 190402000, accuracy_dm: 125 });
+    expect(draft.payload).toMatchObject({
+      is_mock: true,
+      flags: ['out_of_order', 'out_of_round', 'mock_location'],
+      lat_e7: 474979000,
+      lng_e7: 190402000,
+      accuracy_dm: 125,
+    });
     expect(draft.gnss_time).toBe('2026-10-27T20:03:43.000Z');
     expect(schemaErrors('chain/payload-scan', draft.payload)).toEqual([]);
   });

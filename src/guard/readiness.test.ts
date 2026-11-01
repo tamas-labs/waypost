@@ -6,7 +6,12 @@ import { openNfcSettings } from '@/nfc/reader';
 
 import { fixReadiness, readinessRows, type Readiness } from './readiness';
 
-jest.mock('@/alarms/permissions', () => ({ getAlarmPermissions: jest.fn(), requestNotifications: jest.fn(), requestExactAlarms: jest.fn(), requestBatteryExemption: jest.fn() }));
+jest.mock('@/alarms/permissions', () => ({
+  getAlarmPermissions: jest.fn(),
+  requestNotifications: jest.fn(),
+  requestExactAlarms: jest.fn(),
+  requestBatteryExemption: jest.fn(),
+}));
 jest.mock('@/location/location', () => ({ getLocationPermission: jest.fn(), requestLocationPermission: jest.fn() }));
 jest.mock('@/nfc/reader', () => ({ getNfcStatus: jest.fn(), openNfcSettings: jest.fn() }));
 
@@ -47,7 +52,11 @@ describe('the readiness rows', () => {
 
   it('have no battery row on iOS, and nothing to switch on without NFC hardware', () => {
     jest.replaceProperty(Platform, 'OS', 'ios');
-    const rows = readinessRows({ ...READY, nfc: { supported: false, enabled: false }, alarms: { ...READY.alarms, exactAlarms: null, batteryExempt: null } });
+    const rows = readinessRows({
+      ...READY,
+      nfc: { supported: false, enabled: false },
+      alarms: { ...READY.alarms, exactAlarms: null, batteryExempt: null },
+    });
     expect(rows).toEqual([
       { item: 'nfc', ok: false, fixable: false },
       { item: 'alarms', ok: true, fixable: true },
@@ -65,7 +74,10 @@ describe('fixing', () => {
   });
 
   it('asks for notifications first, then for exact alarms', async () => {
-    await fixReadiness('alarms', { ...READY, alarms: { ...READY.alarms, notifications: { granted: false, canAskAgain: false }, exactAlarms: false } });
+    await fixReadiness('alarms', {
+      ...READY,
+      alarms: { ...READY.alarms, notifications: { granted: false, canAskAgain: false }, exactAlarms: false },
+    });
     expect(requestNotifications).toHaveBeenCalledWith(false);
     expect(requestExactAlarms).not.toHaveBeenCalled();
     await fixReadiness('alarms', { ...READY, alarms: { ...READY.alarms, exactAlarms: false } });

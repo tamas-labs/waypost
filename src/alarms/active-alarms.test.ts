@@ -32,7 +32,8 @@ const newId = idSequence();
 const SLOT = { route_id: ROUTE_A, schedule_id: SCHEDULE_A, scheduled_at: local('20:00') };
 const DATA: RoundAlarmData = { ...SLOT, kind: ROUND_ALARM_KIND, alarm: 'round', fingerprint: 'f' };
 
-const notificationOf = (data: Record<string, unknown>) => ({ request: { identifier: 'n', content: { data } } }) as unknown as Notifications.Notification;
+const notificationOf = (data: Record<string, unknown>) =>
+  ({ request: { identifier: 'n', content: { data } } }) as unknown as Notifications.Notification;
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 const alarms = () => useActiveAlarms.getState().alarms;
 
@@ -100,7 +101,7 @@ describe('raising', () => {
     expect(alarms()).toEqual([]);
   });
 
-  it('rings again with the round\'s reminder after muting; clearing ends it and its notifications', () => {
+  it("rings again with the round's reminder after muting; clearing ends it and its notifications", () => {
     raiseAlarm(db, DATA);
     muteAlarm();
     expect(useActiveAlarms.getState().muted).toBe(true);
@@ -109,7 +110,10 @@ describe('raising', () => {
 
     clearAlarm(SLOT);
     expect(alarms()).toEqual([]);
-    expect(native.dismissNotificationAsync.mock.calls.map(([id]) => id)).toEqual([`round:${SCHEDULE_A}:${local('20:00')}`, `reminder:${SCHEDULE_A}:${local('20:00')}`]);
+    expect(native.dismissNotificationAsync.mock.calls.map(([id]) => id)).toEqual([
+      `round:${SCHEDULE_A}:${local('20:00')}`,
+      `reminder:${SCHEDULE_A}:${local('20:00')}`,
+    ]);
   });
 });
 
@@ -131,7 +135,10 @@ describe('triggers', () => {
     appState('active');
     await flush();
     expect(alarms()).toEqual([SLOT]);
-    expect(native.dismissNotificationAsync.mock.calls.map(([id]) => id)).toEqual([`round:${SCHEDULE_A}:${local('19:00')}`, `reminder:${SCHEDULE_A}:${local('19:00')}`]);
+    expect(native.dismissNotificationAsync.mock.calls.map(([id]) => id)).toEqual([
+      `round:${SCHEDULE_A}:${local('19:00')}`,
+      `reminder:${SCHEDULE_A}:${local('19:00')}`,
+    ]);
   });
 
   it('leaves the list alone without a logged-in guard: the alarm still asks for a login', async () => {

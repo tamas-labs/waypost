@@ -16,7 +16,10 @@ export interface TimelineRound {
   state: TimelineState;
 }
 
-const STATES: Record<TimelineState, { fill: keyof ColorTokens | null; border: keyof ColorTokens; icon: IconName | null; label: TranslationKey }> = {
+const STATES: Record<
+  TimelineState,
+  { fill: keyof ColorTokens | null; border: keyof ColorTokens; icon: IconName | null; label: TranslationKey }
+> = {
   completed: { fill: 'ok', border: 'ok', icon: 'check', label: 'status.completed' },
   incomplete: { fill: 'warn', border: 'warn', icon: 'exclam', label: 'status.incomplete' },
   missed: { fill: 'miss', border: 'miss', icon: 'x', label: 'status.missed' },
@@ -64,11 +67,18 @@ export function RoundTimeline({ rounds, variant = 'full', legend = true }: Round
                 style={[
                   styles.cell,
                   { height, borderRadius: cellRadius },
-                  s.fill === null ? { borderWidth: full ? border.thick : border.thin, borderColor: color[s.border] } : { backgroundColor: color[s.fill] },
+                  s.fill === null
+                    ? { borderWidth: full ? border.thick : border.thin, borderColor: color[s.border] }
+                    : { backgroundColor: color[s.fill] },
                 ]}
               >
                 {withIcons && s.icon !== null && (
-                  <Icon name={s.icon} size={iconSize.badge} color={s.fill === null ? color[s.border] : color.bg} strokeWidth={iconStroke.bold} />
+                  <Icon
+                    name={s.icon}
+                    size={iconSize.badge}
+                    color={s.fill === null ? color[s.border] : color.bg}
+                    strokeWidth={iconStroke.bold}
+                  />
                 )}
               </View>
               {variant !== 'mini' && (
@@ -81,7 +91,11 @@ export function RoundTimeline({ rounds, variant = 'full', legend = true }: Round
         })}
       </View>
       {full && legend && (
-        <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[styles.legend, { columnGap: space.m, rowGap: space.xs }]}>
+        <View
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+          style={[styles.legend, { columnGap: space.m, rowGap: space.xs }]}
+        >
           {LEGEND.map((state) => {
             const s = STATES[state];
             return (

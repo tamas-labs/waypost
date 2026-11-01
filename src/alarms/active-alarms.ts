@@ -45,7 +45,10 @@ function ringsOnScreen(db: Database, slot: AlarmSlot): boolean {
 export function raiseAlarm(db: Database, data: RoundAlarmData): void {
   if (!ringsOnScreen(db, data)) return;
   const { route_id, schedule_id, scheduled_at } = data;
-  useActiveAlarms.setState(({ alarms }) => ({ muted: false, alarms: alarms.some((alarm) => sameSlot(alarm, data)) ? alarms : [...alarms, { route_id, schedule_id, scheduled_at }] }));
+  useActiveAlarms.setState(({ alarms }) => ({
+    muted: false,
+    alarms: alarms.some((alarm) => sameSlot(alarm, data)) ? alarms : [...alarms, { route_id, schedule_id, scheduled_at }],
+  }));
 }
 
 export function muteAlarm(): void {

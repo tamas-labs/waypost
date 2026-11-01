@@ -19,12 +19,22 @@ describe('route access', () => {
     expect(homeHref({ mode: 'site_phone', activeUser: null })).toBe('/pin');
     expect(routeAccess({ mode: 'site_phone', activeUser: GUARD })).toEqual({ login: false, pin: false, guard: true, supervisor: false });
     expect(homeHref({ mode: 'site_phone', activeUser: GUARD })).toBe('/home');
-    expect(routeAccess({ mode: 'site_phone', activeUser: SUPERVISOR })).toEqual({ login: false, pin: false, guard: false, supervisor: true });
+    expect(routeAccess({ mode: 'site_phone', activeUser: SUPERVISOR })).toEqual({
+      login: false,
+      pin: false,
+      guard: false,
+      supervisor: true,
+    });
     expect(homeHref({ mode: 'site_phone', activeUser: SUPERVISOR })).toBe('/sites');
   });
 
   it("opens the site list on a supervisor's own phone, without guard mode", () => {
-    expect(routeAccess({ mode: 'supervisor_phone', activeUser: null })).toEqual({ login: false, pin: false, guard: false, supervisor: true });
+    expect(routeAccess({ mode: 'supervisor_phone', activeUser: null })).toEqual({
+      login: false,
+      pin: false,
+      guard: false,
+      supervisor: true,
+    });
     expect(homeHref({ mode: 'supervisor_phone', activeUser: null })).toBe('/sites');
   });
 });

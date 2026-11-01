@@ -55,7 +55,15 @@ interface Anchor {
  * what is wrong, and "Szinkronizálás most".
  */
 export function SyncStatusIndicator() {
-  const status = useSyncStatus(useShallow(({ online, running, pendingCount, lastSuccessAt, lastError }) => ({ online, running, pendingCount, lastSuccessAt, lastError })));
+  const status = useSyncStatus(
+    useShallow(({ online, running, pendingCount, lastSuccessAt, lastError }) => ({
+      online,
+      running,
+      pendingCount,
+      lastSuccessAt,
+      lastError,
+    })),
+  );
   const chip = useRef<HostInstance>(null);
   // When the details were opened (device clock): the last sync is shown with its date if it was not on that day.
   const [openedAt, setOpenedAt] = useState<number | null>(null);
@@ -100,7 +108,8 @@ function SyncDetails({ status, anchor, now, onClose }: SyncDetailsProps) {
   const top = anchor === null ? insets.top + size.touchMin : anchor.y + anchor.height + space.s;
   const left = anchor === null ? maxLeft : Math.min(Math.max(anchor.x + anchor.width / 2 - width / 2, space.l), maxLeft);
 
-  const lastSync = lastSuccessAt === null ? t('sync.lastSyncNever') : t('sync.lastSync', { time: formatSyncTime(lastSuccessAt, now, deviceTimeZone()) });
+  const lastSync =
+    lastSuccessAt === null ? t('sync.lastSyncNever') : t('sync.lastSync', { time: formatSyncTime(lastSuccessAt, now, deviceTimeZone()) });
   const pending = pendingCount > 0 ? t('sync.pending', { count: pendingCount }) : t('sync.pendingNone');
 
   return (

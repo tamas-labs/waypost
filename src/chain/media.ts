@@ -22,7 +22,9 @@ export function recordPhotos(tx: Database, entry: ChainEntry, photos: ReadonlyMa
     if (photo === undefined) throw new ProjectionError(`Photo ${ref.id} of ${entry.type} ${ownerId} was not given`);
     if (photo.sha256 !== ref.sha256) throw new ProjectionError(`Photo ${ref.id} does not match its SHA-256 in ${entry.type} ${ownerId}`);
     const { id, sha256, mime, size_bytes, local_uri, taken_at } = photo;
-    tx.insert(media).values({ id, owner_type: entry.type, owner_id: ownerId, sha256, mime, size_bytes, local_uri, taken_at, uploaded_at: null }).run();
+    tx.insert(media)
+      .values({ id, owner_type: entry.type, owner_id: ownerId, sha256, mime, size_bytes, local_uri, taken_at, uploaded_at: null })
+      .run();
     recorded.add(ref.id);
   }
 }

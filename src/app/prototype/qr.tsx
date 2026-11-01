@@ -68,7 +68,9 @@ export default function QrScreen() {
         <View style={[styles.card, card]}>
           <Text style={[typography.title2, { color: color.text }]}>{t('prototype.qr.title')}</Text>
           <Text style={[typography.bodyRegular, { color: color.text2 }]}>
-            {permission === null ? t('prototype.qr.checking') : t(canAsk ? 'prototype.qr.permissionNeeded' : 'prototype.qr.permissionDenied')}
+            {permission === null
+              ? t('prototype.qr.checking')
+              : t(canAsk ? 'prototype.qr.permissionNeeded' : 'prototype.qr.permissionDenied')}
           </Text>
         </View>
         {permission !== null && (
@@ -77,7 +79,9 @@ export default function QrScreen() {
             onPress={() => (canAsk ? requestPermission() : Linking.openSettings()).catch((e: unknown) => setError(String(e)))}
             style={[styles.button, { backgroundColor: color.accent, borderRadius: radius.pill, minHeight: size.buttonHero }]}
           >
-            <Text style={[typography.button, { color: color.onAccent }]}>{t(canAsk ? 'prototype.qr.allow' : 'prototype.qr.openSettings')}</Text>
+            <Text style={[typography.button, { color: color.onAccent }]}>
+              {t(canAsk ? 'prototype.qr.allow' : 'prototype.qr.openSettings')}
+            </Text>
           </Pressable>
         )}
         {error !== null && <Text style={[typography.bodyRegular, { color: color.miss }]}>{t('prototype.qr.error', { error })}</Text>}
@@ -89,7 +93,13 @@ export default function QrScreen() {
   return (
     <View style={[styles.fill, { backgroundColor: color.bg }]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <QrScanner style={StyleSheet.absoluteFill} torch={torch} onScan={addReading} onIgnored={(data) => setIgnored({ at: new Date(), data })} onError={setError} />
+      <QrScanner
+        style={StyleSheet.absoluteFill}
+        torch={torch}
+        onScan={addReading}
+        onIgnored={(data) => setIgnored({ at: new Date(), data })}
+        onError={setError}
+      />
 
       <View style={[styles.row, { paddingTop: insets.top + space.s, paddingHorizontal: space.l }]}>
         {backButton}
@@ -99,19 +109,25 @@ export default function QrScreen() {
           onPress={() => setTorch((on) => !on)}
           style={[styles.button, pill, { backgroundColor: torch ? color.accent : color.surface }]}
         >
-          <Text style={[typography.buttonSm, { color: torch ? color.onAccent : color.text }]}>{t(torch ? 'prototype.qr.torchOn' : 'prototype.qr.torchOff')}</Text>
+          <Text style={[typography.buttonSm, { color: torch ? color.onAccent : color.text }]}>
+            {t(torch ? 'prototype.qr.torchOn' : 'prototype.qr.torchOff')}
+          </Text>
         </Pressable>
       </View>
 
       <View pointerEvents="none" style={[styles.fill, styles.center]}>
-        <View style={[styles.viewfinder, { width: viewfinder, height: viewfinder, borderColor: color.accent, borderRadius: radius.card }]} />
+        <View
+          style={[styles.viewfinder, { width: viewfinder, height: viewfinder, borderColor: color.accent, borderRadius: radius.card }]}
+        />
       </View>
 
       <View style={[styles.card, card, { margin: space.l, marginBottom: insets.bottom + space.l }]}>
         {readings.length === 0 ? (
           <Text style={[typography.bodyRegular, { color: color.text2 }]}>{t('prototype.qr.hint')}</Text>
         ) : (
-          <Text style={[typography.label, styles.tabular, { color: color.text2 }]}>{t('prototype.qr.count', { count: readings.length })}</Text>
+          <Text style={[typography.label, styles.tabular, { color: color.text2 }]}>
+            {t('prototype.qr.count', { count: readings.length })}
+          </Text>
         )}
         {readings.slice(0, SHOWN_READINGS).map(({ key, at, payload }) => {
           const checkpoint = parseCheckpointQr(payload);

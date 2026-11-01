@@ -97,7 +97,11 @@ export function shiftClosed(payload: ShiftClosedPayload): ChainEntryDraft<'shift
 
 export function roundOpened(payload: RoundOpenedPayload): ChainEntryDraft<'round_opened'> {
   const { round_id, shift_id, route_version_id, schedule_id, scheduled_at, time_limit_min } = payload;
-  return { type: 'round_opened', payload: { round_id, shift_id, route_version_id, schedule_id, scheduled_at, time_limit_min }, gnss_time: null };
+  return {
+    type: 'round_opened',
+    payload: { round_id, shift_id, route_version_id, schedule_id, scheduled_at, time_limit_min },
+    gnss_time: null,
+  };
 }
 
 export function roundClosed(payload: RoundClosedPayload): ChainEntryDraft<'round_closed'> {

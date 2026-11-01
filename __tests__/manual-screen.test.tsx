@@ -63,7 +63,14 @@ const write = (drafts: Parameters<typeof appendChainEntries>[1]) => appendChainE
 const step = () => write(schedulerStep(state(), nowTimestamp(), newId));
 const photo = (): PhotoFile => {
   photoCount += 1;
-  return { id: `019a2b3c-4d5e-7f00-8a00-0000000090${String(photoCount).padStart(2, '0')}`, sha256: 'c'.repeat(64), mime: 'image/jpeg', size_bytes: 240_000, local_uri: `file:///documents/media/${photoCount}.jpg`, taken_at: nowTimestamp() };
+  return {
+    id: `019a2b3c-4d5e-7f00-8a00-0000000090${String(photoCount).padStart(2, '0')}`,
+    sha256: 'c'.repeat(64),
+    mime: 'image/jpeg',
+    size_bytes: 240_000,
+    local_uri: `file:///documents/media/${photoCount}.jpg`,
+    taken_at: nowTimestamp(),
+  };
 };
 
 const renderScreen = () =>
@@ -88,7 +95,11 @@ beforeEach(async () => {
   jest.mocked(useIsFocused).mockReturnValue(true);
   jest.mocked(currentLocation).mockResolvedValue(null);
   jest.mocked(takePhoto).mockImplementation(() => Promise.resolve(photo()));
-  jest.mocked(useCameraPermissions).mockReturnValue([{ granted: true, canAskAgain: true }, requestPermission, jest.fn()] as unknown as ReturnType<typeof useCameraPermissions>);
+  jest
+    .mocked(useCameraPermissions)
+    .mockReturnValue([{ granted: true, canAskAgain: true }, requestPermission, jest.fn()] as unknown as ReturnType<
+      typeof useCameraPermissions
+    >);
   ({ db } = await createTestDatabase());
   jest.mocked(getDatabase).mockReturnValue(db);
   await seedSite(db);
@@ -139,7 +150,12 @@ it('keeps the point the guard chose when the location comes later', async () => 
 });
 
 it('offers only the points left', async () => {
-  await write(resolveScan({ state: state(), now: nowTimestamp(), location: null, newId }, { method: 'nfc', tag_uid: state().checkpoints.find((c) => c.id === C1)!.tag_uid!, ndef_raw: null }).drafts);
+  await write(
+    resolveScan(
+      { state: state(), now: nowTimestamp(), location: null, newId },
+      { method: 'nfc', tag_uid: state().checkpoints.find((c) => c.id === C1)!.tag_uid!, ndef_raw: null },
+    ).drafts,
+  );
   await renderScreen();
   await press('Pont: Pont 2');
   expect(screen.getByRole('button', { name: 'Pont 2, Hátravan' })).toBeOnTheScreen();
@@ -166,10 +182,15 @@ it('records a scan and a damaged-tag incident with the photo, and gives way to t
   const scan = db.select().from(scans).where(eq(scans.checkpoint_id, C2)).get()!;
   expect(scan).toMatchObject({ round_id: roundId, method: 'manual', note: 'Letörött a címke.', lat_e7: 474981000 });
   expect(scan.flags).toEqual(expect.arrayContaining(['manual', 'out_of_order']));
-  expect(db.select().from(incidents).all()).toEqual([expect.objectContaining({ category: 'damaged_tag', scan_id: scan.id, nearest_checkpoint_id: C2 })]);
+  expect(db.select().from(incidents).all()).toEqual([
+    expect.objectContaining({ category: 'damaged_tag', scan_id: scan.id, nearest_checkpoint_id: C2 }),
+  ]);
   expect(db.select().from(media).all()).toHaveLength(1);
   expect(playFeedback).toHaveBeenCalledWith('warning');
-  expect(router.replace).toHaveBeenCalledWith({ pathname: '/scan-result', params: { kind: 'recorded', scan_id: scan.id, checkpoint_id: C2, round_id: roundId, out_of_order: 'true', completed: 'false' } });
+  expect(router.replace).toHaveBeenCalledWith({
+    pathname: '/scan-result',
+    params: { kind: 'recorded', scan_id: scan.id, checkpoint_id: C2, round_id: roundId, out_of_order: 'true', completed: 'false' },
+  });
 
   await screen.unmount();
   expect(discardPhoto).not.toHaveBeenCalled();
@@ -194,7 +215,10 @@ it('completes the round with the last point', async () => {
   await typeNote('Letörött.');
   await press('Rögzítés');
   expect(state().rounds[0]!.status).toBe('completed');
-  expect(router.replace).toHaveBeenCalledWith({ pathname: '/scan-result', params: expect.objectContaining({ checkpoint_id: C3, completed: 'true' }) });
+  expect(router.replace).toHaveBeenCalledWith({
+    pathname: '/scan-result',
+    params: expect.objectContaining({ checkpoint_id: C3, completed: 'true' }),
+  });
 });
 
 it('keeps the form when the saving fails', async () => {
@@ -271,7 +295,11 @@ describe('the photos', () => {
   });
 
   it('asks for the camera', async () => {
-    jest.mocked(useCameraPermissions).mockReturnValue([{ granted: false, canAskAgain: true }, requestPermission, jest.fn()] as unknown as ReturnType<typeof useCameraPermissions>);
+    jest
+      .mocked(useCameraPermissions)
+      .mockReturnValue([{ granted: false, canAskAgain: true }, requestPermission, jest.fn()] as unknown as ReturnType<
+        typeof useCameraPermissions
+      >);
     await renderScreen();
     await press('Fotó készítése');
     expect(screen.getByText(/A fotózáshoz engedélyezni kell/)).toBeOnTheScreen();
@@ -284,7 +312,15 @@ describe('the photos', () => {
     await press('Fotó készítése');
     expect(screen.getByRole('button', { name: 'Mégse' })).toBeOnTheScreen();
     jest.mocked(useIsFocused).mockReturnValue(false);
-    await act(async () => screen.rerender(<SafeAreaProvider initialMetrics={METRICS}><ThemeProvider><ManualEntryScreen /></ThemeProvider></SafeAreaProvider>));
+    await act(async () =>
+      screen.rerender(
+        <SafeAreaProvider initialMetrics={METRICS}>
+          <ThemeProvider>
+            <ManualEntryScreen />
+          </ThemeProvider>
+        </SafeAreaProvider>,
+      ),
+    );
     expect(screen.queryByRole('button', { name: 'Mégse' })).not.toBeOnTheScreen();
   });
 });

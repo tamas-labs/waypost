@@ -24,6 +24,11 @@ describe('regionAround', () => {
   });
 
   it('does not zoom in further than a site on one point', () => {
-    expect(regionAround([{ latitude: 47.5, longitude: 19 }])).toEqual({ latitude: 47.5, longitude: 19, latitudeDelta: 0.002, longitudeDelta: 0.002 });
+    expect(regionAround([{ latitude: 47.5, longitude: 19 }])).toEqual({
+      latitude: 47.5,
+      longitude: 19,
+      latitudeDelta: 0.002,
+      longitudeDelta: 0.002,
+    });
   });
 });

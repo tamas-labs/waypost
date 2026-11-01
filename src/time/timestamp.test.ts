@@ -19,7 +19,13 @@ describe('timestamps', () => {
 
   it('parses only canonical UTC timestamps', () => {
     expect(parseTimestamp('2026-10-27T21:03:44.120Z')).toBe(Date.UTC(2026, 9, 27, 21, 3, 44, 120));
-    for (const bad of ['2026-10-27T21:03:44Z', '2026-10-27T23:03:44.120+02:00', '2026-10-27 21:03:44.120Z', '2026-02-30T00:00:00.000Z', '']) {
+    for (const bad of [
+      '2026-10-27T21:03:44Z',
+      '2026-10-27T23:03:44.120+02:00',
+      '2026-10-27 21:03:44.120Z',
+      '2026-02-30T00:00:00.000Z',
+      '',
+    ]) {
       expect(isTimestamp(bad)).toBe(false);
       expect(() => parseTimestamp(bad)).toThrow('Invalid timestamp');
     }

@@ -30,7 +30,11 @@ export function ShiftTimeline({ rounds, time, variant }: ShiftTimelineProps) {
       <RoundTimeline
         variant={variant}
         legend={index === routes.length - 1}
-        rounds={routeRounds.map((round) => ({ id: `${round.schedule_id}|${round.scheduled_at}`, time: time(round.scheduled_at), state: round.state }))}
+        rounds={routeRounds.map((round) => ({
+          id: `${round.schedule_id}|${round.scheduled_at}`,
+          time: time(round.scheduled_at),
+          state: round.state,
+        }))}
       />
     </View>
   ));

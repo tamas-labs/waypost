@@ -76,22 +76,38 @@ export default function FieldScreen() {
       <View style={[styles.card, card]}>
         <Text style={label}>{t('prototype.field.location')}</Text>
         {locationAllowed === false ? (
-          <Pressable accessibilityRole="button" onPress={() => requestLocationPermission().then(setLocationAllowed, (e: unknown) => setError(errorText(e)))} style={button}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => requestLocationPermission().then(setLocationAllowed, (e: unknown) => setError(errorText(e)))}
+            style={button}
+          >
             <Text style={buttonText}>{t('prototype.field.allowLocation')}</Text>
           </Pressable>
         ) : (
-          <Pressable accessibilityRole="button" accessibilityState={{ disabled: locating }} disabled={locating} onPress={locate} style={[button, { opacity: locating ? 0.5 : 1 }]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: locating }}
+            disabled={locating}
+            onPress={locate}
+            style={[button, { opacity: locating ? 0.5 : 1 }]}
+          >
             <Text style={buttonText}>{t(locating ? 'prototype.field.locating' : 'prototype.field.locate')}</Text>
           </Pressable>
         )}
-        {located !== null && fix === null && <Text style={[typography.body, { color: color.warn }]}>{t('prototype.field.noLocation', { ms: located.ms })}</Text>}
+        {located !== null && fix === null && (
+          <Text style={[typography.body, { color: color.warn }]}>{t('prototype.field.noLocation', { ms: located.ms })}</Text>
+        )}
         {located !== null && fix !== null && (
           <>
             <Text style={body} selectable>
               {t('prototype.field.coords', { lat: fix.latitude.toFixed(7), lng: fix.longitude.toFixed(7) })}
             </Text>
-            <Text style={body}>{t('prototype.field.accuracy', { m: fix.accuracy_m === null ? '–' : fix.accuracy_m.toFixed(1), ms: located.ms })}</Text>
-            <Text style={[body, fix.mocked && { color: color.miss }]}>{t(fix.mocked ? 'prototype.field.mocked' : 'prototype.field.notMocked')}</Text>
+            <Text style={body}>
+              {t('prototype.field.accuracy', { m: fix.accuracy_m === null ? '–' : fix.accuracy_m.toFixed(1), ms: located.ms })}
+            </Text>
+            <Text style={[body, fix.mocked && { color: color.miss }]}>
+              {t(fix.mocked ? 'prototype.field.mocked' : 'prototype.field.notMocked')}
+            </Text>
             <Text style={body}>{t('prototype.field.gnss', { time: fix.gnss_time ?? '–' })}</Text>
           </>
         )}
@@ -102,7 +118,13 @@ export default function FieldScreen() {
         {cameraPermission?.granted ? (
           <>
             <CameraView ref={camera} style={[styles.camera, { borderRadius: radius.card }]} facing="back" />
-            <Pressable accessibilityRole="button" accessibilityState={{ disabled: taking }} disabled={taking} onPress={shoot} style={[button, { opacity: taking ? 0.5 : 1 }]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: taking }}
+              disabled={taking}
+              onPress={shoot}
+              style={[button, { opacity: taking ? 0.5 : 1 }]}
+            >
               <Text style={buttonText}>{t(taking ? 'prototype.field.taking' : 'prototype.field.takePhoto')}</Text>
             </Pressable>
           </>
@@ -110,7 +132,9 @@ export default function FieldScreen() {
           cameraPermission !== null && (
             <Pressable
               accessibilityRole="button"
-              onPress={() => (cameraCanAsk ? requestCameraPermission() : Linking.openSettings()).catch((e: unknown) => setError(errorText(e)))}
+              onPress={() =>
+                (cameraCanAsk ? requestCameraPermission() : Linking.openSettings()).catch((e: unknown) => setError(errorText(e)))
+              }
               style={button}
             >
               <Text style={buttonText}>{t(cameraCanAsk ? 'prototype.field.allowCamera' : 'prototype.qr.openSettings')}</Text>

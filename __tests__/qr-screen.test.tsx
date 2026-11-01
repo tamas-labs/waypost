@@ -10,7 +10,11 @@ import { ThemeProvider } from '@/theme/theme-provider';
 const mockCameraView = jest.fn();
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 jest.mock('expo-camera', () => ({ useCameraPermissions: jest.fn(), CameraView: (props: unknown) => mockCameraView(props) }));
-jest.mock('expo-router', () => ({ router: { replace: jest.fn(), back: jest.fn() }, useIsFocused: () => true, useLocalSearchParams: () => ({ round_id: 'round-1' }) }));
+jest.mock('expo-router', () => ({
+  router: { replace: jest.fn(), back: jest.fn() },
+  useIsFocused: () => true,
+  useLocalSearchParams: () => ({ round_id: 'round-1' }),
+}));
 jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
 jest.mock('@/feedback/feedback', () => ({ playFeedback: jest.fn() }));
 jest.mock('@/guard/scan', () => ({ ...jest.requireActual<object>('@/guard/scan'), recordTagRead: jest.fn() }));
@@ -21,7 +25,10 @@ const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top:
 const PAYLOAD = 'waypost:cp:019a2b3c-4d5e-7f00-8a00-000000000051:aB3dE5gH7jK9mN01';
 const requestPermission = jest.fn(() => Promise.resolve());
 
-const permission = (fields: { granted: boolean; canAskAgain: boolean } | null) => jest.mocked(useCameraPermissions).mockReturnValue([fields, requestPermission, jest.fn()] as unknown as ReturnType<typeof useCameraPermissions>);
+const permission = (fields: { granted: boolean; canAskAgain: boolean } | null) =>
+  jest
+    .mocked(useCameraPermissions)
+    .mockReturnValue([fields, requestPermission, jest.fn()] as unknown as ReturnType<typeof useCameraPermissions>);
 
 const renderScreen = () =>
   render(
@@ -59,7 +66,10 @@ it('records a Waypost code and gives way to its result', async () => {
   await renderScreen();
   await scanned(PAYLOAD);
   expect(recordTagRead).toHaveBeenCalledWith(undefined, { method: 'qr', qr_payload: PAYLOAD });
-  expect(router.replace).toHaveBeenCalledWith({ pathname: '/scan-result', params: { kind: 'unknown_tag', method: 'qr', read_id: PAYLOAD, round_id: 'round-1' } });
+  expect(router.replace).toHaveBeenCalledWith({
+    pathname: '/scan-result',
+    params: { kind: 'unknown_tag', method: 'qr', read_id: PAYLOAD, round_id: 'round-1' },
+  });
 });
 
 it('ignores other codes', async () => {

@@ -43,7 +43,12 @@ export async function saveEnrollment(db: Database, { device, token, secret }: De
  * device token and secret, then logs the supervisor out on the server and deletes their token from this phone, and
  * switches the session to the site phone. The full pull follows from the sync (M3-07).
  */
-export async function enrollThisPhone(db: Database, api: ApiClient, supervisorToken: string, siteId: string): Promise<DevicesEnrollResponse> {
+export async function enrollThisPhone(
+  db: Database,
+  api: ApiClient,
+  supervisorToken: string,
+  siteId: string,
+): Promise<DevicesEnrollResponse> {
   const response = await enrollDevice(api, supervisorToken, enrollmentRequest(siteId));
   await saveEnrollment(db, response);
   try {

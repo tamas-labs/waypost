@@ -61,7 +61,9 @@ export function loadGuardState(db: Database, now: Timestamp): GuardState | null 
     .orderBy(asc(schedules.id))
     .all();
 
-  const since = toTimestamp(Math.min(parseTimestamp(now), shift === null ? Infinity : parseTimestamp(shift.started_at)) - CLOSED_ROUNDS_DAYS * DAY_MS);
+  const since = toTimestamp(
+    Math.min(parseTimestamp(now), shift === null ? Infinity : parseTimestamp(shift.started_at)) - CLOSED_ROUNDS_DAYS * DAY_MS,
+  );
   const roundRows = db
     .select({
       id: rounds.id,
@@ -78,8 +80,18 @@ export function loadGuardState(db: Database, now: Timestamp): GuardState | null 
     .orderBy(asc(rounds.scheduled_at), asc(rounds.id))
     .all();
 
-  const versionIds = [...new Set([...routeRows.flatMap((route) => (route.current_version_id === null ? [] : [route.current_version_id])), ...roundRows.map((round) => round.route_version_id)])];
-  const versionRoutes = db.select({ id: routeVersions.id, route_id: routeVersions.route_id }).from(routeVersions).where(inArray(routeVersions.id, versionIds)).orderBy(asc(routeVersions.id)).all();
+  const versionIds = [
+    ...new Set([
+      ...routeRows.flatMap((route) => (route.current_version_id === null ? [] : [route.current_version_id])),
+      ...roundRows.map((round) => round.route_version_id),
+    ]),
+  ];
+  const versionRoutes = db
+    .select({ id: routeVersions.id, route_id: routeVersions.route_id })
+    .from(routeVersions)
+    .where(inArray(routeVersions.id, versionIds))
+    .orderBy(asc(routeVersions.id))
+    .all();
   const versionCheckpoints = db
     .select({ route_version_id: routeVersionCheckpoints.route_version_id, checkpoint_id: routeVersionCheckpoints.checkpoint_id })
     .from(routeVersionCheckpoints)
@@ -112,16 +124,34 @@ export function loadGuardState(db: Database, now: Timestamp): GuardState | null 
   const roundInfos: RoundInfo[] = roundRows.flatMap((round) => {
     const routeId = routeOfVersion.get(round.route_version_id) ?? routeOfSchedule.get(round.schedule_id);
     if (routeId === undefined) return [];
-    const roundScans = scanRows.flatMap((scan) => (scan.round_id === round.id && scan.checkpoint_id !== null ? [{ checkpoint_id: scan.checkpoint_id, scanned_at: scan.scanned_at }] : []));
+    const roundScans = scanRows.flatMap((scan) =>
+      scan.round_id === round.id && scan.checkpoint_id !== null ? [{ checkpoint_id: scan.checkpoint_id, scanned_at: scan.scanned_at }] : [],
+    );
     return [{ ...round, route_id: routeId, scans: roundScans }];
   });
 
   const checkpointRows = db
-    .select({ id: checkpoints.id, tag_uid: checkpoints.tag_uid, qr_payload: checkpoints.qr_payload, lat_e7: checkpoints.lat_e7, lng_e7: checkpoints.lng_e7, active: checkpoints.active })
+    .select({
+      id: checkpoints.id,
+      tag_uid: checkpoints.tag_uid,
+      qr_payload: checkpoints.qr_payload,
+      lat_e7: checkpoints.lat_e7,
+      lng_e7: checkpoints.lng_e7,
+      active: checkpoints.active,
+    })
     .from(checkpoints)
     .where(eq(checkpoints.site_id, siteId))
     .orderBy(asc(checkpoints.id))
     .all();
 
-  return { site_id: siteId, timezone: site.timezone, shift, routes: routeRows, schedules: scheduleRows, versions, checkpoints: checkpointRows, rounds: roundInfos };
+  return {
+    site_id: siteId,
+    timezone: site.timezone,
+    shift,
+    routes: routeRows,
+    schedules: scheduleRows,
+    versions,
+    checkpoints: checkpointRows,
+    rounds: roundInfos,
+  };
 }

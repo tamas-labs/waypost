@@ -21,7 +21,16 @@ export interface IconButtonProps {
 }
 
 /** Round icon-only button (DESIGN_HANDOFF 5.2): surface with the card border. */
-export function IconButton({ icon, accessibilityLabel, onPress, size = 'regular', iconColor = 'text', disabled = false, style, testID }: IconButtonProps) {
+export function IconButton({
+  icon,
+  accessibilityLabel,
+  onPress,
+  size = 'regular',
+  iconColor = 'text',
+  disabled = false,
+  style,
+  testID,
+}: IconButtonProps) {
   const { color, size: sizes, iconSize, border, press } = useTheme();
   const diameter = size === 'large' ? sizes.iconButtonLg : size === 'map' ? sizes.iconButtonMap : sizes.iconButton;
   return (
@@ -34,7 +43,14 @@ export function IconButton({ icon, accessibilityLabel, onPress, size = 'regular'
       testID={testID}
       style={({ pressed }) => [
         styles.button,
-        { width: diameter, height: diameter, borderRadius: diameter / 2, backgroundColor: color.surface, borderColor: color.cardBorder, borderWidth: border.thin },
+        {
+          width: diameter,
+          height: diameter,
+          borderRadius: diameter / 2,
+          backgroundColor: color.surface,
+          borderColor: color.cardBorder,
+          borderWidth: border.thin,
+        },
         pressed && { opacity: press.opacity, transform: [{ scale: press.scale }] },
         disabled && { opacity: press.disabledOpacity },
         style,

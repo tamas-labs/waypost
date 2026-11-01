@@ -78,7 +78,14 @@ function RoundMapView({ info, focused }: { info: RoundScreenInfo; focused: boole
   const time = (at: Timestamp) => localTimeOf(parseTimestamp(at), info.timezone);
   return (
     <SiteMap
-      points={points.map((point) => ({ id: point.checkpoint_id, number: point.position, name: point.name, state: point.state, coordinate: point.coordinate, accuracy_m: point.accuracy_m }))}
+      points={points.map((point) => ({
+        id: point.checkpoint_id,
+        number: point.position,
+        name: point.name,
+        state: point.state,
+        coordinate: point.coordinate,
+        accuracy_m: point.accuracy_m,
+      }))}
       walked={walked}
       walkedLabel={walked_between === null ? null : t('round.walked', { from: time(walked_between.from), to: time(walked_between.to) })}
       position={position}
@@ -132,7 +139,8 @@ export default function RoundScreen() {
     setHint(false);
     if (status?.supported === false) openQr();
     else if (Platform.OS === 'ios') void reader.read();
-    else if (status?.enabled === false) openNfcSettings().catch((error: unknown) => __DEV__ && console.warn('Opening the NFC settings failed', error));
+    else if (status?.enabled === false)
+      openNfcSettings().catch((error: unknown) => __DEV__ && console.warn('Opening the NFC settings failed', error));
     else setHint(true);
   };
 
@@ -154,7 +162,11 @@ export default function RoundScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: color.bg }]}>
-      <ScreenHeader title={t('round.title', { time: localTimeOf(parseTimestamp(info.scheduled_at), info.timezone) })} subtitle={info.route_name ?? undefined} onBack={() => router.back()} />
+      <ScreenHeader
+        title={t('round.title', { time: localTimeOf(parseTimestamp(info.scheduled_at), info.timezone) })}
+        subtitle={info.route_name ?? undefined}
+        onBack={() => router.back()}
+      />
       <View style={{ paddingHorizontal: space.l, paddingBottom: space.m, gap: space.m }}>
         <Card style={[styles.summary, { gap: space.l }]}>
           {view === 'list' && <ProgressRing done={info.scanned} total={info.points.length} />}
@@ -169,7 +181,13 @@ export default function RoundScreen() {
       {view === 'list' ? (
         <ScrollView style={styles.screen} contentContainerStyle={{ paddingHorizontal: space.l, gap: space.s }}>
           {info.points.map((point) => (
-            <PointListItem key={point.checkpoint_id} name={point.name} state={pointState(point)} meta={pointMeta(point, info.timezone)} position={info.fixed_order && point.scan === null ? point.position : undefined} />
+            <PointListItem
+              key={point.checkpoint_id}
+              name={point.name}
+              state={pointState(point)}
+              meta={pointMeta(point, info.timezone)}
+              position={info.fixed_order && point.scan === null ? point.position : undefined}
+            />
           ))}
         </ScrollView>
       ) : (
@@ -180,12 +198,30 @@ export default function RoundScreen() {
         {view === 'list' && (
           <View style={[styles.row, { gap: space.s }]}>
             <Button variant="secondary" icon="qr" label={t('round.qr')} onPress={openQr} />
-            <Button variant="secondary" label={t('round.tagUnreadable')} onPress={() => router.push({ pathname: '/manual', params: { round_id: id } })} style={[styles.grow, { paddingHorizontal: space.s }]} />
+            <Button
+              variant="secondary"
+              label={t('round.tagUnreadable')}
+              onPress={() => router.push({ pathname: '/manual', params: { round_id: id } })}
+              style={[styles.grow, { paddingHorizontal: space.s }]}
+            />
           </View>
         )}
         <View style={[styles.row, { gap: space.m }]}>
-          <IconButton size="large" icon="flag" iconColor="warn" accessibilityLabel={t('round.recordIncident')} onPress={() => router.push('/incident/new')} />
-          <Button hero icon="nfc" label={scanner.recording ? t('round.recording') : t('round.scan')} disabled={scanner.recording || reader.reading} onPress={scan} style={styles.grow} />
+          <IconButton
+            size="large"
+            icon="flag"
+            iconColor="warn"
+            accessibilityLabel={t('round.recordIncident')}
+            onPress={() => router.push('/incident/new')}
+          />
+          <Button
+            hero
+            icon="nfc"
+            label={scanner.recording ? t('round.recording') : t('round.scan')}
+            disabled={scanner.recording || reader.reading}
+            onPress={scan}
+            style={styles.grow}
+          />
         </View>
       </View>
     </View>
@@ -205,10 +241,19 @@ function TimeLeft({ deadline, timezone, compact }: { deadline: Timestamp; timezo
   return (
     <View accessible style={[styles.grow, { gap: space.xs }]}>
       <Text style={[typography.rowLabel, { color: color.text2 }]}>{t('round.remaining')}</Text>
-      <Text style={[compact ? typography.counterSm : typography.counter, styles.tabular, { color: timeColor }]} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.2}>
+      <Text
+        style={[compact ? typography.counterSm : typography.counter, styles.tabular, { color: timeColor }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        maxFontSizeMultiplier={1.2}
+      >
         {countdownText(seconds)}
       </Text>
-      {!compact && <Text style={[typography.rowLabel, styles.tabular, { color: color.text2 }]}>{t('round.deadline', { time: localTimeOf(parseTimestamp(deadline), timezone) })}</Text>}
+      {!compact && (
+        <Text style={[typography.rowLabel, styles.tabular, { color: color.text2 }]}>
+          {t('round.deadline', { time: localTimeOf(parseTimestamp(deadline), timezone) })}
+        </Text>
+      )}
     </View>
   );
 }

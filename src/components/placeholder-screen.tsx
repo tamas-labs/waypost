@@ -23,7 +23,13 @@ export function PlaceholderScreen({ title, onBack }: { title: string; onBack?: (
               // Link asChild needs a flat style object.
               style={StyleSheet.flatten([
                 styles.button,
-                { backgroundColor: color.surface, borderColor: color.cardBorder, borderRadius: radius.item, minHeight: size.listItem, paddingHorizontal: space.l },
+                {
+                  backgroundColor: color.surface,
+                  borderColor: color.cardBorder,
+                  borderRadius: radius.item,
+                  minHeight: size.listItem,
+                  paddingHorizontal: space.l,
+                },
               ])}
             >
               <Text style={[typography.body, { color: color.text }]}>{t('dev.title')}</Text>

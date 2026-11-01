@@ -53,7 +53,14 @@ export async function savePhoto(picture: CameraPicture, takenAtMs: number = Date
   directory.create({ idempotent: true, intermediates: true });
   const file = new File(saved.uri);
   file.moveSync(new File(directory, `${id}.jpg`));
-  return { id, sha256: await file.digest('SHA-256'), mime: PHOTO_MIME, size_bytes: file.size, local_uri: file.uri, taken_at: toTimestamp(takenAtMs) };
+  return {
+    id,
+    sha256: await file.digest('SHA-256'),
+    mime: PHOTO_MIME,
+    size_bytes: file.size,
+    local_uri: file.uri,
+    taken_at: toTimestamp(takenAtMs),
+  };
 }
 
 /** Takes a picture with the camera view on screen and saves it as a photo. */

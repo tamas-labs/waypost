@@ -13,7 +13,15 @@ export class CanonicalJsonError extends Error {
   override name = 'CanonicalJsonError';
 }
 
-const SHORT_ESCAPES: Partial<Record<number, string>> = { 0x08: '\\b', 0x09: '\\t', 0x0a: '\\n', 0x0c: '\\f', 0x0d: '\\r', 0x22: '\\"', 0x5c: '\\\\' };
+const SHORT_ESCAPES: Partial<Record<number, string>> = {
+  0x08: '\\b',
+  0x09: '\\t',
+  0x0a: '\\n',
+  0x0c: '\\f',
+  0x0d: '\\r',
+  0x22: '\\"',
+  0x5c: '\\\\',
+};
 
 function fail(path: string, message: string): never {
   throw new CanonicalJsonError(`${path === '' ? '/' : path}: ${message}`);

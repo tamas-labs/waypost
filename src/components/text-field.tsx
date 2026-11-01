@@ -29,7 +29,18 @@ export function TextArea(props: Omit<TextFieldProps, 'secret'>) {
   return <Field {...props} multiline />;
 }
 
-function Field({ label, requirement, secret = false, onCard = false, error, style, multiline, onFocus, onBlur, ...input }: TextFieldProps & { multiline: boolean }) {
+function Field({
+  label,
+  requirement,
+  secret = false,
+  onCard = false,
+  error,
+  style,
+  multiline,
+  onFocus,
+  onBlur,
+  ...input
+}: TextFieldProps & { multiline: boolean }) {
   const { color, typography, radius, space, size, border, iconSize, fontFamily } = useTheme();
   const [focused, setFocused] = useState(false);
   const [revealed, setRevealed] = useState(false);
@@ -42,7 +53,9 @@ function Field({ label, requirement, secret = false, onCard = false, error, styl
       <Text style={[typography.label, { color: color.text, paddingLeft: space.xs }]}>
         {label}
         {requirementText !== null && (
-          <Text style={requirement === 'required' ? { color: color.miss } : { color: color.text2, fontFamily: fontFamily.semibold }}>{` · ${requirementText}`}</Text>
+          <Text
+            style={requirement === 'required' ? { color: color.miss } : { color: color.text2, fontFamily: fontFamily.semibold }}
+          >{` · ${requirementText}`}</Text>
         )}
       </Text>
       <View

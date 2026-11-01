@@ -47,11 +47,17 @@ export function SiteMap({ points, walked, walkedLabel, position, accessibilityLa
   const coordinates = points.map((point) => point.coordinate);
   const [first, ...rest] = coordinates;
 
-  const frame = [styles.frame, { borderRadius: radius.card, borderWidth: border.thin, borderColor: color.cardBorder, backgroundColor: color.mapBg }, style];
+  const frame = [
+    styles.frame,
+    { borderRadius: radius.card, borderWidth: border.thin, borderColor: color.cardBorder, backgroundColor: color.mapBg },
+    style,
+  ];
   if (!mapsConfigured() || first === undefined) {
     return (
       <View style={[frame, styles.empty, { padding: space.xl }]}>
-        <Text style={[typography.bodyRegular, styles.emptyText, { color: color.text2 }]}>{t(first === undefined ? 'round.mapNoLocations' : 'round.mapUnavailable')}</Text>
+        <Text style={[typography.bodyRegular, styles.emptyText, { color: color.text2 }]}>
+          {t(first === undefined ? 'round.mapNoLocations' : 'round.mapUnavailable')}
+        </Text>
       </View>
     );
   }
@@ -74,11 +80,29 @@ export function SiteMap({ points, walked, walkedLabel, position, accessibilityLa
         rotateEnabled={false}
         pitchEnabled={false}
       >
-        {walked.length > 1 && <Polyline coordinates={walked} strokeColor={color.accent} strokeWidth={size.mapRoute} lineCap="round" lineJoin="round" />}
-        {last !== undefined && position !== null && <Polyline coordinates={[last, position]} strokeColor={color.accent} strokeWidth={size.mapRouteAhead} lineDashPattern={[...size.mapRouteAheadDash]} lineCap="round" />}
+        {walked.length > 1 && (
+          <Polyline coordinates={walked} strokeColor={color.accent} strokeWidth={size.mapRoute} lineCap="round" lineJoin="round" />
+        )}
+        {last !== undefined && position !== null && (
+          <Polyline
+            coordinates={[last, position]}
+            strokeColor={color.accent}
+            strokeWidth={size.mapRouteAhead}
+            lineDashPattern={[...size.mapRouteAheadDash]}
+            lineCap="round"
+          />
+        )}
         {points.map((point) =>
           point.state === 'manual' && point.accuracy_m !== null ? (
-            <Circle key={`${point.id}:accuracy`} center={point.coordinate} radius={point.accuracy_m} strokeColor={color.manual} strokeWidth={border.thick} lineDashPattern={[...size.mapAccuracyDash]} fillColor="transparent" />
+            <Circle
+              key={`${point.id}:accuracy`}
+              center={point.coordinate}
+              radius={point.accuracy_m}
+              strokeColor={color.manual}
+              strokeWidth={border.thick}
+              lineDashPattern={[...size.mapAccuracyDash]}
+              fillColor="transparent"
+            />
           ) : null,
         )}
         {points.map((point) => (
@@ -89,15 +113,44 @@ export function SiteMap({ points, walked, walkedLabel, position, accessibilityLa
       </MapView>
 
       {walkedLabel !== null && (
-        <View style={[styles.walked, overlay, { top: space.m, left: space.m, gap: space.s, height: size.mapCapsule, paddingHorizontal: space.l - 2, borderRadius: radius.pill }]}>
-          <View style={{ width: size.mapRouteSwatch, height: size.mapRoute - 1, borderRadius: radius.swatch, backgroundColor: color.accent }} />
+        <View
+          style={[
+            styles.walked,
+            overlay,
+            {
+              top: space.m,
+              left: space.m,
+              gap: space.s,
+              height: size.mapCapsule,
+              paddingHorizontal: space.l - 2,
+              borderRadius: radius.pill,
+            },
+          ]}
+        >
+          <View
+            style={{ width: size.mapRouteSwatch, height: size.mapRoute - 1, borderRadius: radius.swatch, backgroundColor: color.accent }}
+          />
           <Text style={[typography.mapCapsule, styles.tabular, { color: color.text }]} numberOfLines={1}>
             {walkedLabel}
           </Text>
         </View>
       )}
 
-      <View onLayout={(event) => setLegendHeight(event.nativeEvent.layout.height)} style={[styles.legend, overlay, { left: space.m, bottom: space.m, gap: space.s - 2, paddingVertical: space.m - 2, paddingHorizontal: space.l - 2, borderRadius: radius.item }]}>
+      <View
+        onLayout={(event) => setLegendHeight(event.nativeEvent.layout.height)}
+        style={[
+          styles.legend,
+          overlay,
+          {
+            left: space.m,
+            bottom: space.m,
+            gap: space.s - 2,
+            paddingVertical: space.m - 2,
+            paddingHorizontal: space.l - 2,
+            borderRadius: radius.item,
+          },
+        ]}
+      >
         <LegendRow state="scanned" label={t('components.scanned')} />
         <LegendRow state="manual" label={t('round.manualNotVerified')} />
         <LegendRow state="pending" label={t('status.pending')} />
@@ -134,15 +187,27 @@ function PointMarker({ point }: { point: SiteMapPoint }) {
   const fill = point.state === 'manual' ? color.manual : color.ok;
   const stateLabel = pending ? t('status.pending') : point.state === 'manual' ? t('round.manualNotVerified') : t('components.scanned');
   return (
-    <Marker coordinate={point.coordinate} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={settling} title={point.name} description={stateLabel} accessibilityLabel={`${point.name}, ${stateLabel}`}>
+    <Marker
+      coordinate={point.coordinate}
+      anchor={{ x: 0.5, y: 0.5 }}
+      tracksViewChanges={settling}
+      title={point.name}
+      description={stateLabel}
+      accessibilityLabel={`${point.name}, ${stateLabel}`}
+    >
       <View
         style={[
           styles.marker,
           { width: size.mapMarker, height: size.mapMarker, borderRadius: radius.round },
-          pending ? { backgroundColor: color.surface, borderColor: color.pending, borderWidth: border.ring, borderStyle: 'dashed' } : { backgroundColor: fill, borderColor: color.mapBg, borderWidth: size.mapMarkerRing },
+          pending
+            ? { backgroundColor: color.surface, borderColor: color.pending, borderWidth: border.ring, borderStyle: 'dashed' }
+            : { backgroundColor: fill, borderColor: color.mapBg, borderWidth: size.mapMarkerRing },
         ]}
       >
-        <Text style={[typography.mapMarker, styles.tabular, { color: pending ? color.text2 : color.mapMarkerText }]} maxFontSizeMultiplier={1}>
+        <Text
+          style={[typography.mapMarker, styles.tabular, { color: pending ? color.text2 : color.mapMarkerText }]}
+          maxFontSizeMultiplier={1}
+        >
           {point.number}
         </Text>
       </View>
@@ -154,9 +219,26 @@ function PositionMarker({ coordinate }: { coordinate: Coordinate }) {
   const { color, size, radius } = useTheme();
   const settling = useMarkerSettling();
   return (
-    <Marker coordinate={coordinate} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={settling} tappable={false} accessibilityLabel={t('round.youAreHere')}>
-      <View style={[styles.marker, { width: size.mapHalo, height: size.mapHalo, borderRadius: radius.round, backgroundColor: color.mapMeHalo }]}>
-        <View style={{ width: size.mapMe, height: size.mapMe, borderRadius: radius.round, backgroundColor: color.mapMe, borderColor: color.mapBg, borderWidth: size.mapMarkerRing }} />
+    <Marker
+      coordinate={coordinate}
+      anchor={{ x: 0.5, y: 0.5 }}
+      tracksViewChanges={settling}
+      tappable={false}
+      accessibilityLabel={t('round.youAreHere')}
+    >
+      <View
+        style={[styles.marker, { width: size.mapHalo, height: size.mapHalo, borderRadius: radius.round, backgroundColor: color.mapMeHalo }]}
+      >
+        <View
+          style={{
+            width: size.mapMe,
+            height: size.mapMe,
+            borderRadius: radius.round,
+            backgroundColor: color.mapMe,
+            borderColor: color.mapBg,
+            borderWidth: size.mapMarkerRing,
+          }}
+        />
       </View>
     </Marker>
   );

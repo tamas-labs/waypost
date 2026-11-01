@@ -51,7 +51,9 @@ beforeEach(() => {
   mockFiles.clear();
   jest.clearAllMocks();
   renderAsync.mockResolvedValue({ saveAsync, release: jest.fn() });
-  jest.mocked(ImageManipulator.manipulate).mockReturnValue({ resize, renderAsync, release: jest.fn() } as unknown as ReturnType<typeof ImageManipulator.manipulate>);
+  jest
+    .mocked(ImageManipulator.manipulate)
+    .mockReturnValue({ resize, renderAsync, release: jest.fn() } as unknown as ReturnType<typeof ImageManipulator.manipulate>);
 });
 
 describe('photo size', () => {
@@ -66,7 +68,10 @@ describe('photo size', () => {
 describe('saving a photo', () => {
   it('compresses to JPEG 0.7 into the documents, hashes it, and deletes the camera file', async () => {
     mockFiles.set('file:///cache/Camera/shot.jpg', 3_900_000);
-    const photo = await savePhoto({ uri: 'file:///cache/Camera/shot.jpg', width: 3024, height: 4032 }, Date.parse('2026-10-27T21:04:05.123Z'));
+    const photo = await savePhoto(
+      { uri: 'file:///cache/Camera/shot.jpg', width: 3024, height: 4032 },
+      Date.parse('2026-10-27T21:04:05.123Z'),
+    );
 
     expect(ImageManipulator.manipulate).toHaveBeenCalledWith('file:///cache/Camera/shot.jpg');
     expect(resize).toHaveBeenCalledWith({ width: null, height: 1600 });

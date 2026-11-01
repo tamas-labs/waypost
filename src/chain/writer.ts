@@ -65,7 +65,13 @@ async function writeDrafts(db: Database, drafts: readonly ChainEntryDraft[], opt
   const written = db.transaction((tx) => {
     const deviceId = getKv(tx, 'device.id');
     if (deviceId === null) throw new ChainWriteError('No device ID: the phone is not enrolled');
-    const last = tx.select({ seq: chainEntries.seq, hash: chainEntries.hash }).from(chainEntries).where(eq(chainEntries.device_id, deviceId)).orderBy(desc(chainEntries.seq)).limit(1).get();
+    const last = tx
+      .select({ seq: chainEntries.seq, hash: chainEntries.hash })
+      .from(chainEntries)
+      .where(eq(chainEntries.device_id, deviceId))
+      .orderBy(desc(chainEntries.seq))
+      .limit(1)
+      .get();
     const reference = chainTimeReference(getTimeReference(tx));
     let seq = last?.seq ?? 0;
     let prevHash = last?.hash ?? GENESIS_HASH;
@@ -76,7 +82,17 @@ async function writeDrafts(db: Database, drafts: readonly ChainEntryDraft[], opt
       const clock = readClock();
       seq += 1;
       const entry = signChainEntry(
-        { id: uuidv7(), device_id: deviceId, seq, type: draft.type, payload: draft.payload, ...clock, gnss_time: draft.gnss_time, ...reference, prev_hash: prevHash } as Omit<ChainEntry, 'hash'>,
+        {
+          id: uuidv7(),
+          device_id: deviceId,
+          seq,
+          type: draft.type,
+          payload: draft.payload,
+          ...clock,
+          gnss_time: draft.gnss_time,
+          ...reference,
+          prev_hash: prevHash,
+        } as Omit<ChainEntry, 'hash'>,
         secret,
       ) as ChainEntry;
       if (__DEV__) {
@@ -104,7 +120,11 @@ async function writeDrafts(db: Database, drafts: readonly ChainEntryDraft[], opt
  * Throws (and writes nothing) if the phone is not enrolled, an entry is invalid, a projection does not fit, or a
  * photo given is not cited (or a cited one not given).
  */
-export function appendChainEntries(db: Database, drafts: readonly ChainEntryDraft[], options: ChainWriterOptions = {}): Promise<ChainEntry[]> {
+export function appendChainEntries(
+  db: Database,
+  drafts: readonly ChainEntryDraft[],
+  options: ChainWriterOptions = {},
+): Promise<ChainEntry[]> {
   return withChainLock(() => writeDrafts(db, drafts, options));
 }
 
@@ -118,7 +138,11 @@ export interface ChainDecision {
  * between reading the state in decide and writing what was decided from it, so two rules cannot act on the same
  * round at once (e.g. a scan completing it while the scheduler closes it). decide reads synchronously.
  */
-export function appendDecidedEntries<D extends ChainDecision>(db: Database, decide: () => D, options: ChainWriterOptions = {}): Promise<{ decision: D; entries: ChainEntry[] }> {
+export function appendDecidedEntries<D extends ChainDecision>(
+  db: Database,
+  decide: () => D,
+  options: ChainWriterOptions = {},
+): Promise<{ decision: D; entries: ChainEntry[] }> {
   return withChainLock(async () => {
     const decision = decide();
     return { decision, entries: await writeDrafts(db, decision.drafts, options) };
@@ -126,7 +150,11 @@ export function appendDecidedEntries<D extends ChainDecision>(db: Database, deci
 }
 
 /** Appends one entry; see appendChainEntries. */
-export async function appendChainEntry<T extends ChainEntryType>(db: Database, draft: ChainEntryDraft<T>, options?: ChainWriterOptions): Promise<ChainEntryOf<T>> {
+export async function appendChainEntry<T extends ChainEntryType>(
+  db: Database,
+  draft: ChainEntryDraft<T>,
+  options?: ChainWriterOptions,
+): Promise<ChainEntryOf<T>> {
   const [entry] = await appendChainEntries(db, [draft as ChainEntryDraft], options);
   return entry as ChainEntryOf<T>;
 }

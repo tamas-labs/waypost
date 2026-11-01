@@ -30,9 +30,12 @@ describe('normalizeTagUid', () => {
     expect(normalizeTagUid(value)).toBe(uid);
   });
 
-  test.each([[''], ['04A1B2'], ['04A1B2C3D'], ['04A1B2C3D4E5G0'], ['0102030405060708090A0B'], ['04.A1.B2.C3']])('%j is not a UID', (value) => {
-    expect(normalizeTagUid(value)).toBeNull();
-  });
+  test.each([[''], ['04A1B2'], ['04A1B2C3D'], ['04A1B2C3D4E5G0'], ['0102030405060708090A0B'], ['04.A1.B2.C3']])(
+    '%j is not a UID',
+    (value) => {
+      expect(normalizeTagUid(value)).toBeNull();
+    },
+  );
 });
 
 describe('toBase64', () => {
@@ -64,9 +67,26 @@ describe('encodeNdefMessage', () => {
     const text: NdefRecord = { tnf: 1, type: [0x54], id: '0A0B', payload: [0x02, ...ascii('huSzia')] };
     const mime: NdefRecord = { tnf: 2, type: ascii('text/plain'), id: [], payload: ascii('x') };
     expect(Array.from(encodeNdefMessage([URI_RECORD, text, mime]))).toEqual([
-      0x91, 0x01, 0x11, 0x55, 0x04, ...ascii('waypost.dev/cp/1'),
-      0x19, 0x01, 0x07, 0x02, 0x54, 0x0a, 0x0b, 0x02, ...ascii('huSzia'),
-      0x52, 0x0a, 0x01, ...ascii('text/plain'), ...ascii('x'),
+      0x91,
+      0x01,
+      0x11,
+      0x55,
+      0x04,
+      ...ascii('waypost.dev/cp/1'),
+      0x19,
+      0x01,
+      0x07,
+      0x02,
+      0x54,
+      0x0a,
+      0x0b,
+      0x02,
+      ...ascii('huSzia'),
+      0x52,
+      0x0a,
+      0x01,
+      ...ascii('text/plain'),
+      ...ascii('x'),
     ]);
   });
 

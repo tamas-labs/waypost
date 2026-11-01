@@ -28,7 +28,10 @@ export function lockStatus(lockout: PinLockout, clock: Clock): LockStatus {
   const { lock } = lockout;
   if (lock === null) return { lockout, remaining_ms: 0 };
   if (lock.boot_id !== clock.boot_id || clock.uptime_ms < lock.started_uptime_ms) {
-    return { lockout: { ...lockout, lock: { ...lock, started_uptime_ms: clock.uptime_ms, boot_id: clock.boot_id } }, remaining_ms: lock.duration_ms };
+    return {
+      lockout: { ...lockout, lock: { ...lock, started_uptime_ms: clock.uptime_ms, boot_id: clock.boot_id } },
+      remaining_ms: lock.duration_ms,
+    };
   }
   const remaining = lock.started_uptime_ms + lock.duration_ms - clock.uptime_ms;
   return remaining > 0 ? { lockout, remaining_ms: remaining } : { lockout: { ...lockout, lock: null }, remaining_ms: 0 };

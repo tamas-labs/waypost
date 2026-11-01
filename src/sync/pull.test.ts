@@ -34,7 +34,12 @@ const CURSOR_1 = 'Y3Vyc29yLTE';
 const CURSOR_2 = 'Y3Vyc29yLTI';
 
 /** A page in which nothing changed, with the given fields. */
-function page(fields: Partial<Omit<SyncPullResponse, 'changes' | 'deleted'>> & { changes?: Partial<SyncPullResponse['changes']>; deleted?: Partial<SyncPullResponse['deleted']> } = {}): SyncPullResponse {
+function page(
+  fields: Partial<Omit<SyncPullResponse, 'changes' | 'deleted'>> & {
+    changes?: Partial<SyncPullResponse['changes']>;
+    deleted?: Partial<SyncPullResponse['deleted']>;
+  } = {},
+): SyncPullResponse {
   const empty = example('nothing-changed');
   return {
     ...empty,
@@ -126,13 +131,26 @@ describe('pull', () => {
     ]);
     expect(names(sqlite, 'checkpoints')).toEqual(['Kazánház', 'Raktár hátsó ajtó']);
     expect(sqlite.prepare('SELECT checkpoint_id, position FROM route_version_checkpoints ORDER BY position').all()).toHaveLength(2);
-    expect(sqlite.prepare('SELECT active, mode, interval_from FROM schedules').get()).toEqual({ active: 1, mode: 'interval', interval_from: '20:00' });
+    expect(sqlite.prepare('SELECT active, mode, interval_from FROM schedules').get()).toEqual({
+      active: 1,
+      mode: 'interval',
+      interval_from: '20:00',
+    });
     expect(names(sqlite, 'devices')).toEqual(['Portásfülke telefon']);
     expect(sqlite.prepare('SELECT frequency FROM report_subscriptions').all()).toEqual([{ frequency: 'weekly' }]);
 
     expect(getKv(db, 'sync.cursor')).toBe(example('full-state').cursor);
-    expect(getKv(db, 'sync.time_ref')).toEqual({ server_time: example('full-state').server_time, uptime_ms: 1_001_000, boot_id: 'android-boot:12' });
-    expect(summary).toMatchObject({ pages: 1, reset: true, changed: { users: 2, checkpoints: 2, route_version_checkpoints: 2 }, deleted: { users: 0 } });
+    expect(getKv(db, 'sync.time_ref')).toEqual({
+      server_time: example('full-state').server_time,
+      uptime_ms: 1_001_000,
+      boot_id: 'android-boot:12',
+    });
+    expect(summary).toMatchObject({
+      pages: 1,
+      reset: true,
+      changed: { users: 2, checkpoints: 2, route_version_checkpoints: 2 },
+      deleted: { users: 0 },
+    });
     expect(pulled).toEqual([summary]);
   });
 
@@ -159,7 +177,9 @@ describe('pull', () => {
     const full = example('full-state');
     const renamed = { ...full.changes.checkpoints[0]!, name: 'Raktár, hátsó ajtó', updated_at: '2026-10-27T11:00:00.000Z' };
     const moved = { ...full.changes.users[1]!, site_ids: [SITE], updated_at: '2026-10-27T11:00:00.000Z' };
-    const { api, urls } = fakeApi(page({ server_time: '2026-10-27T11:00:05.000Z', cursor: CURSOR_1, changes: { checkpoints: [renamed], users: [moved] } }));
+    const { api, urls } = fakeApi(
+      page({ server_time: '2026-10-27T11:00:05.000Z', cursor: CURSOR_1, changes: { checkpoints: [renamed], users: [moved] } }),
+    );
 
     const summary = await pullConfiguration(db, api, 'device-token', { readClock: fakeClock() });
 
@@ -176,7 +196,13 @@ describe('pull', () => {
   it('requests the next page while has_more is true, and applies all of them', async () => {
     const { db, sqlite } = await createTestDatabase();
     const full = example('full-state');
-    const first = page({ server_time: '2026-10-27T10:05:12.345Z', cursor: CURSOR_1, has_more: true, reset: true, changes: { sites: full.changes.sites, users: full.changes.users } });
+    const first = page({
+      server_time: '2026-10-27T10:05:12.345Z',
+      cursor: CURSOR_1,
+      has_more: true,
+      reset: true,
+      changes: { sites: full.changes.sites, users: full.changes.users },
+    });
     const second = page({ server_time: '2026-10-27T10:05:12.900Z', cursor: CURSOR_2, changes: { checkpoints: full.changes.checkpoints } });
     const { api, urls } = fakeApi(first, second);
 
@@ -187,14 +213,20 @@ describe('pull', () => {
     expect(names(sqlite, 'checkpoints')).toEqual(['Kazánház', 'Raktár hátsó ajtó']);
     expect(getKv(db, 'sync.cursor')).toBe(CURSOR_2);
     // The server time of the last page, with the clock read when it arrived.
-    expect(getKv(db, 'sync.time_ref')).toEqual({ server_time: '2026-10-27T10:05:12.900Z', uptime_ms: 1_002_000, boot_id: 'android-boot:12' });
+    expect(getKv(db, 'sync.time_ref')).toEqual({
+      server_time: '2026-10-27T10:05:12.900Z',
+      uptime_ms: 1_002_000,
+      boot_id: 'android-boot:12',
+    });
     expect(summary).toMatchObject({ pages: 2, reset: true, changed: { sites: 1, users: 2, checkpoints: 2 } });
   });
 
   it('deletes the records of the deleted lists, and the site assignments of deleted users', async () => {
     const { db, sqlite } = await fullyPulled();
     setKv(db, 'sync.cursor', SAVED_CURSOR);
-    const { api } = fakeApi(page({ cursor: CURSOR_1, deleted: { users: [GUARD], checkpoints: [CHECKPOINT], schedules: [SCHEDULE], routes: [ROUTE] } }));
+    const { api } = fakeApi(
+      page({ cursor: CURSOR_1, deleted: { users: [GUARD], checkpoints: [CHECKPOINT], schedules: [SCHEDULE], routes: [ROUTE] } }),
+    );
 
     const summary = await pullConfiguration(db, api, 'device-token', { readClock: fakeClock() });
 
@@ -225,7 +257,10 @@ describe('pull', () => {
     const { db, sqlite } = await fullyPulled();
     setKv(db, 'sync.cursor', SAVED_CURSOR);
     const timeRef = getKv(db, 'sync.time_ref');
-    const { api } = fakeApi(page({ cursor: CURSOR_1, has_more: true, deleted: { users: [GUARD] } }), new TypeError('Network request failed'));
+    const { api } = fakeApi(
+      page({ cursor: CURSOR_1, has_more: true, deleted: { users: [GUARD] } }),
+      new TypeError('Network request failed'),
+    );
 
     await expect(pullConfiguration(db, api, 'device-token', { readClock: fakeClock() })).rejects.toBeInstanceOf(NetworkError);
 

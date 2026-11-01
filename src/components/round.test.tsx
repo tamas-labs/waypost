@@ -88,7 +88,11 @@ test('a running round is told on the timeline, and the legend can be left out', 
 });
 
 test('a long night labels only every n-th hour; the compact timelines have no legend', async () => {
-  const rounds: TimelineRound[] = Array.from({ length: 26 }, (_, i) => ({ id: String(i), time: `${String(i).padStart(2, '0')}:00`, state: 'future' }));
+  const rounds: TimelineRound[] = Array.from({ length: 26 }, (_, i) => ({
+    id: String(i),
+    time: `${String(i).padStart(2, '0')}:00`,
+    state: 'future',
+  }));
   await render(
     <ThemeProvider>
       <RoundTimeline rounds={rounds} />

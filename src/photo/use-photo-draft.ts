@@ -51,7 +51,7 @@ export function usePhotoDraft(): PhotoDraft {
     [update],
   );
 
-  const recording = useCallback(async <T,>(write: (photos: readonly PhotoFile[]) => Promise<T>) => {
+  const recording = useCallback(async <T>(write: (photos: readonly PhotoFile[]) => Promise<T>) => {
     const state = draft.current;
     state.writing = true;
     try {

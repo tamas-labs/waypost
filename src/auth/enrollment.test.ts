@@ -26,7 +26,10 @@ function fakeApi({ logoutFails = false, enrollStatus = 200 } = {}) {
     if (path === '/devices/enroll') {
       return enrollStatus === 200
         ? Response.json(ENROLLED)
-        : Response.json({ server_time: ENROLLED.server_time, error: { code: 'forbidden', message: 'Nincs jogosultságod.' } }, { status: enrollStatus });
+        : Response.json(
+            { server_time: ENROLLED.server_time, error: { code: 'forbidden', message: 'Nincs jogosultságod.' } },
+            { status: enrollStatus },
+          );
     }
     if (path === '/auth/logout') {
       if (logoutFails) throw new TypeError('Network request failed');

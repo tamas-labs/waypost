@@ -48,7 +48,8 @@ export function alarmPlan(state: GuardState, now: Timestamp): PlannedAlarm[] {
     const alarm = { route_id: slot.route_id, schedule_id: slot.schedule_id, scheduled_at: slot.scheduled_at, login };
     if (at > nowMs) alarms.push({ ...alarm, kind: 'round', fire_at: slot.scheduled_at });
     const reminderMs = at + REMINDER_AFTER_MS;
-    if (reminderMs > nowMs && (status === undefined || status === 'open')) alarms.push({ ...alarm, kind: 'reminder', fire_at: toTimestamp(reminderMs) });
+    if (reminderMs > nowMs && (status === undefined || status === 'open'))
+      alarms.push({ ...alarm, kind: 'reminder', fire_at: toTimestamp(reminderMs) });
   }
   return alarms.sort((a, b) => parseTimestamp(a.fire_at) - parseTimestamp(b.fire_at)).slice(0, MAX_ALARMS);
 }
@@ -90,6 +91,9 @@ export function roundAlarmInfo(state: GuardState, slot: AlarmSlot, now: Timestam
     round_id: round?.id ?? null,
     checkpoints: state.versions.find((version) => version.id === versionId)?.checkpoint_ids.length ?? 0,
     time_limit_min: timing.time_limit_min,
-    previous: previous !== undefined && (previous.state === 'completed' || previous.state === 'incomplete' || previous.state === 'missed') ? { scheduled_at: previous.scheduled_at, status: previous.state } : null,
+    previous:
+      previous !== undefined && (previous.state === 'completed' || previous.state === 'incomplete' || previous.state === 'missed')
+        ? { scheduled_at: previous.scheduled_at, status: previous.state }
+        : null,
   };
 }

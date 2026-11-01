@@ -30,7 +30,8 @@ function addUser(id: string, name: string, role: 'guard' | 'supervisor', pinCase
   db.insert(siteUser).values({ site_id: SITE, user_id: id }).run();
 }
 
-const openShifts = () => db.select({ guard_id: shifts.guard_id, closed_by: shifts.closed_by }).from(shifts).orderBy(asc(shifts.started_at)).all();
+const openShifts = () =>
+  db.select({ guard_id: shifts.guard_id, closed_by: shifts.closed_by }).from(shifts).orderBy(asc(shifts.started_at)).all();
 
 beforeEach(async () => {
   ({ db } = await createTestDatabase());
@@ -47,11 +48,20 @@ describe('the PIN screen information', () => {
   it('has the site, the guard on shift and the next round', async () => {
     await seedSite(db);
     addUser(GUARD, 'Kovács Péter', 'guard', 'basic');
-    expect(loadPinScreenInfo(db, readClock)).toEqual({ site_name: 'Raktár', timezone: 'Europe/Budapest', now, on_shift: null, next_round: { scheduled_at: local('20:00'), starts_shift: true } });
+    expect(loadPinScreenInfo(db, readClock)).toEqual({
+      site_name: 'Raktár',
+      timezone: 'Europe/Budapest',
+      now,
+      on_shift: null,
+      next_round: { scheduled_at: local('20:00'), starts_shift: true },
+    });
 
     await signInWithPin(db, vector('basic').pin, readClock);
     now = local('20:10');
-    expect(loadPinScreenInfo(db, readClock)).toMatchObject({ on_shift: 'Kovács Péter', next_round: { scheduled_at: local('20:30'), starts_shift: false } });
+    expect(loadPinScreenInfo(db, readClock)).toMatchObject({
+      on_shift: 'Kovács Péter',
+      next_round: { scheduled_at: local('20:30'), starts_shift: false },
+    });
   });
 });
 
@@ -87,11 +97,18 @@ describe('signing in with a PIN', () => {
       { guard_id: GUARD, closed_by: 'handover' },
       { guard_id: OTHER_GUARD, closed_by: null },
     ]);
-    expect(useSession.getState()).toMatchObject({ activeUser: { id: OTHER_GUARD, role: 'guard' }, shiftStart: { handover: { guard_name: 'Kovács Péter', at: now } } });
+    expect(useSession.getState()).toMatchObject({
+      activeUser: { id: OTHER_GUARD, role: 'guard' },
+      shiftStart: { handover: { guard_name: 'Kovács Péter', at: now } },
+    });
   });
 
   it('opens the supervisor mode for a supervisor’s PIN, without touching the shift', async () => {
-    await expect(signInWithPin(db, vector('leading-zeros').pin, readClock)).resolves.toEqual({ status: 'ok', role: 'supervisor', user: { id: SUPERVISOR, name: 'Nagy Éva' } });
+    await expect(signInWithPin(db, vector('leading-zeros').pin, readClock)).resolves.toEqual({
+      status: 'ok',
+      role: 'supervisor',
+      user: { id: SUPERVISOR, name: 'Nagy Éva' },
+    });
     expect(openShifts()).toEqual([]);
     expect(useSession.getState().activeUser).toEqual({ id: SUPERVISOR, role: 'supervisor' });
   });

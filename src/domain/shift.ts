@@ -96,8 +96,13 @@ export function shiftDay(state: GuardState, now: Timestamp): ShiftDay | null {
   const slots = expectedSlots(state, nowMs - DAY_MS, nowMs + DAY_MS);
   const days = new Map<string, typeof slots>();
   for (const slot of slots) days.set(slot.start_day, [...(days.get(slot.start_day) ?? []), slot]);
-  const spans = [...days.values()].map((day) => ({ day, first: parseTimestamp(day[0]!.scheduled_at), last: parseTimestamp(day[day.length - 1]!.scheduled_at) }));
-  const span = spans.find(({ first, last }) => first <= nowMs && nowMs <= last) ?? spans.find(({ first }) => first > nowMs && first <= nowMs + DAY_MS);
+  const spans = [...days.values()].map((day) => ({
+    day,
+    first: parseTimestamp(day[0]!.scheduled_at),
+    last: parseTimestamp(day[day.length - 1]!.scheduled_at),
+  }));
+  const span =
+    spans.find(({ first, last }) => first <= nowMs && nowMs <= last) ?? spans.find(({ first }) => first > nowMs && first <= nowMs + DAY_MS);
   if (span === undefined) return null;
 
   const routes: ShiftDayRoute[] = [];
@@ -115,7 +120,12 @@ export function shiftDay(state: GuardState, now: Timestamp): ShiftDay | null {
       if (schedule !== undefined) route.schedules.push(schedule);
     }
   }
-  return { start_day: span.day[0]!.start_day, first_at: span.day[0]!.scheduled_at, last_at: span.day[span.day.length - 1]!.scheduled_at, routes };
+  return {
+    start_day: span.day[0]!.start_day,
+    first_at: span.day[0]!.scheduled_at,
+    last_at: span.day[span.day.length - 1]!.scheduled_at,
+    routes,
+  };
 }
 
 /** A round of the shift on the shift home: closed, running, the next one of its route, or a later one. */
@@ -161,7 +171,10 @@ function shiftRoundOf(state: GuardState, round: RoundInfo): ShiftRound {
     scanned: checkpointIds.length - missing.length,
     total: checkpointIds.length,
     missing_checkpoint_ids: missing,
-    duration_ms: round.status === 'completed' && first !== undefined && last !== undefined ? parseTimestamp(last.scanned_at) - parseTimestamp(first.scanned_at) : null,
+    duration_ms:
+      round.status === 'completed' && first !== undefined && last !== undefined
+        ? parseTimestamp(last.scanned_at) - parseTimestamp(first.scanned_at)
+        : null,
   };
 }
 
@@ -201,7 +214,16 @@ export function shiftHome(state: GuardState, now: Timestamp): ShiftHome | null {
     if (round !== undefined) return shiftRoundOf(state, round);
     const versionId = state.routes.find((route) => route.id === slot.route_id)?.current_version_id;
     const checkpointIds = state.versions.find((version) => version.id === versionId)?.checkpoint_ids ?? [];
-    const notOpened = { route_id: slot.route_id, schedule_id: slot.schedule_id, scheduled_at: slot.scheduled_at, opened: false, scanned: 0, total: checkpointIds.length, missing_checkpoint_ids: checkpointIds, duration_ms: null };
+    const notOpened = {
+      route_id: slot.route_id,
+      schedule_id: slot.schedule_id,
+      scheduled_at: slot.scheduled_at,
+      opened: false,
+      scanned: 0,
+      total: checkpointIds.length,
+      missing_checkpoint_ids: checkpointIds,
+      duration_ms: null,
+    };
     if (deadlineOf(state, slot, slots) <= startedMs) return { ...notOpened, state: 'missed' };
     nextAt ??= slot.scheduled_at;
     if (routesWithNext.has(slot.route_id)) return { ...notOpened, state: 'future' };
@@ -217,7 +239,10 @@ export function shiftHome(state: GuardState, now: Timestamp): ShiftHome | null {
   return {
     rounds,
     next_at: nextAt,
-    running: open === undefined ? null : { round_id: open.id, scheduled_at: open.scheduled_at, deadline: toTimestamp(deadlineOf(state, open, slots)) },
+    running:
+      open === undefined
+        ? null
+        : { round_id: open.id, scheduled_at: open.scheduled_at, deadline: toTimestamp(deadlineOf(state, open, slots)) },
     auto_close_at: autoCloseMs === null ? null : toTimestamp(autoCloseMs),
   };
 }
@@ -240,6 +265,9 @@ export function shiftSummary(state: GuardState, now: Timestamp): ShiftSummary | 
   return {
     rounds: home.rounds,
     counts: { completed: count('completed'), incomplete: count('incomplete'), missed: count('missed') },
-    open_rounds: state.rounds.filter(isOpen).map((round) => ({ ...shiftRoundOf(state, round), closes_as: closingStatus(round, versionOf(state, round.route_version_id).checkpoint_ids) })),
+    open_rounds: state.rounds.filter(isOpen).map((round) => ({
+      ...shiftRoundOf(state, round),
+      closes_as: closingStatus(round, versionOf(state, round.route_version_id).checkpoint_ids),
+    })),
   };
 }

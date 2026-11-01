@@ -25,7 +25,12 @@ export function coordinateOfE7(lat_e7: number | null, lng_e7: number | null): Co
 export function regionAround(coordinates: readonly [Coordinate, ...Coordinate[]]): Region {
   const latitudes = coordinates.map((c) => c.latitude);
   const longitudes = coordinates.map((c) => c.longitude);
-  const [minLat, maxLat, minLng, maxLng] = [Math.min(...latitudes), Math.max(...latitudes), Math.min(...longitudes), Math.max(...longitudes)];
+  const [minLat, maxLat, minLng, maxLng] = [
+    Math.min(...latitudes),
+    Math.max(...latitudes),
+    Math.min(...longitudes),
+    Math.max(...longitudes),
+  ];
   return {
     latitude: (minLat + maxLat) / 2,
     longitude: (minLng + maxLng) / 2,

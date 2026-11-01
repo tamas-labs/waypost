@@ -102,7 +102,11 @@ describe('API client', () => {
 
   it('derives the code from the status if the body is not in the error format', async () => {
     const api = createApiClient({ baseUrl: BASE_URL, fetch: respond(502, '<html>Bad Gateway</html>') });
-    expect(await pull(api, 'device-token', null).catch((e: unknown) => e)).toMatchObject({ status: 502, code: 'server_error', fromServer: false });
+    expect(await pull(api, 'device-token', null).catch((e: unknown) => e)).toMatchObject({
+      status: 502,
+      code: 'server_error',
+      fromServer: false,
+    });
     const notFound = createApiClient({ baseUrl: BASE_URL, fetch: respond(404, { message: 'Not Found' }) });
     expect(await pull(notFound, 'device-token', null).catch((e: unknown) => e)).toMatchObject({ code: 'not_found', fromServer: false });
   });
@@ -117,7 +121,9 @@ describe('API client', () => {
 
   it('validates by default in development mode, and not otherwise', async () => {
     const body = { server_time: '2026-10-27T10:05:12.345Z' };
-    expect(await pull(createApiClient({ baseUrl: BASE_URL, fetch: respond(200, body) }), 't', null).catch((e: unknown) => e)).toBeInstanceOf(InvalidResponseError);
+    expect(
+      await pull(createApiClient({ baseUrl: BASE_URL, fetch: respond(200, body) }), 't', null).catch((e: unknown) => e),
+    ).toBeInstanceOf(InvalidResponseError);
     expect(await pull(createApiClient({ baseUrl: BASE_URL, fetch: respond(200, body), validate: false }), 't', null)).toEqual(body);
   });
 

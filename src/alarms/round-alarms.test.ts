@@ -58,7 +58,12 @@ beforeEach(async () => {
   native.cancelScheduledNotificationAsync.mockImplementation(async (identifier) => {
     pending.delete(identifier);
   });
-  native.getAllScheduledNotificationsAsync.mockImplementation(async () => [...pending.entries()].map(([identifier, request]) => ({ identifier, content: request.content, trigger: request.trigger }) as unknown as Notifications.NotificationRequest));
+  native.getAllScheduledNotificationsAsync.mockImplementation(async () =>
+    [...pending.entries()].map(
+      ([identifier, request]) =>
+        ({ identifier, content: request.content, trigger: request.trigger }) as unknown as Notifications.NotificationRequest,
+    ),
+  );
   native.addNotificationReceivedListener.mockImplementation((listener) => {
     notificationReceived = () => listener({} as Parameters<typeof listener>[0]);
     return { remove: removed };
@@ -86,22 +91,44 @@ async function login() {
 
 describe('round alarm requests', () => {
   it('name the route, give the local time, ask for a login if needed, and fire by the device clock', () => {
-    const alarm = { kind: 'reminder', route_id: ROUTE_A, schedule_id: SCHEDULE_A, scheduled_at: local('20:00'), fire_at: local('20:05'), login: true } as const;
-    const [request] = alarmRequests([alarm], { timezone: 'Europe/Budapest', routeNames: new Map([[ROUTE_A, 'Kerítés']]), clockOffsetMs: -60_000 });
+    const alarm = {
+      kind: 'reminder',
+      route_id: ROUTE_A,
+      schedule_id: SCHEDULE_A,
+      scheduled_at: local('20:00'),
+      fire_at: local('20:05'),
+      login: true,
+    } as const;
+    const [request] = alarmRequests([alarm], {
+      timezone: 'Europe/Budapest',
+      routeNames: new Map([[ROUTE_A, 'Kerítés']]),
+      clockOffsetMs: -60_000,
+    });
     const date = new Date(Date.parse(local('20:04')));
     expect(request).toEqual({
       identifier: `reminder:${SCHEDULE_A}:${local('20:00')}`,
       content: {
         title: 'Kerítés',
         body: '20:00 – a kör még nem indult el. Lépj be a PIN-kódoddal.',
-        data: { kind: ROUND_ALARM_KIND, alarm: 'reminder', route_id: ROUTE_A, schedule_id: SCHEDULE_A, scheduled_at: local('20:00'), fingerprint: JSON.stringify(['Kerítés', '20:00 – a kör még nem indult el. Lépj be a PIN-kódoddal.', date.getTime()]) },
+        data: {
+          kind: ROUND_ALARM_KIND,
+          alarm: 'reminder',
+          route_id: ROUTE_A,
+          schedule_id: SCHEDULE_A,
+          scheduled_at: local('20:00'),
+          fingerprint: JSON.stringify(['Kerítés', '20:00 – a kör még nem indult el. Lépj be a PIN-kódoddal.', date.getTime()]),
+        },
         sound: 'round_alarm.wav',
         vibrate: expect.any(Array),
         interruptionLevel: 'timeSensitive',
       },
       trigger: { type: 'date', date, channelId: 'rounds', delivery: 'alarmClock' },
     });
-    const [round] = alarmRequests([{ ...alarm, kind: 'round', fire_at: alarm.scheduled_at, login: false }], { timezone: 'Europe/Budapest', routeNames: new Map(), clockOffsetMs: 0 });
+    const [round] = alarmRequests([{ ...alarm, kind: 'round', fire_at: alarm.scheduled_at, login: false }], {
+      timezone: 'Europe/Budapest',
+      routeNames: new Map(),
+      clockOffsetMs: 0,
+    });
     expect(round?.content).toMatchObject({ title: '', body: '20:00 – indul a kör.' });
   });
 });
@@ -110,7 +137,10 @@ describe('rescheduling the round alarms', () => {
   it('schedules the plan of the next 36 hours', async () => {
     await rescheduleRoundAlarms(db);
     expect(roundAlarms()).toHaveLength(24);
-    expect(pending.get(`round:${SCHEDULE_A}:${local('20:00')}`)?.content).toMatchObject({ title: 'Útvonal 61', body: '20:00 – indul a kör. Lépj be a PIN-kódoddal.' });
+    expect(pending.get(`round:${SCHEDULE_A}:${local('20:00')}`)?.content).toMatchObject({
+      title: 'Útvonal 61',
+      body: '20:00 – indul a kör. Lépj be a PIN-kódoddal.',
+    });
   });
 
   it('touches only what changed, e.g. the texts of the rounds a shift now covers', async () => {
@@ -196,7 +226,16 @@ describe('round alarm triggers', () => {
     expect(has(reminderA('20:00'))).toBe(true);
 
     const round = loadGuardState(db, local('20:01'))!.rounds[0]!;
-    await appendChainEntries(db, [scan({ scan_id: idSequence(2000)(), round_id: round.id, checkpoint_id: C1, method: 'nfc', tag_uid: '04A1B2C3D4E501', location: null })]);
+    await appendChainEntries(db, [
+      scan({
+        scan_id: idSequence(2000)(),
+        round_id: round.id,
+        checkpoint_id: C1,
+        method: 'nfc',
+        tag_uid: '04A1B2C3D4E501',
+        location: null,
+      }),
+    ]);
     await flush();
     expect(has(reminderA('20:00'))).toBe(false);
     expect(has(reminderA('21:00'))).toBe(true);

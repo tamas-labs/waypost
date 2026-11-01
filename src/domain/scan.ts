@@ -57,7 +57,10 @@ function remaining(state: GuardState, round: RoundInfo): string[] {
   return versionOf(state, round.route_version_id).checkpoint_ids.filter((id) => !scanned.has(id));
 }
 
-type Placement = { kind: 'round'; round: RoundInfo; out_of_order: boolean } | { kind: 'already'; round: RoundInfo; scanned_at: Timestamp } | { kind: 'out_of_round' };
+type Placement =
+  | { kind: 'round'; round: RoundInfo; out_of_order: boolean }
+  | { kind: 'already'; round: RoundInfo; scanned_at: Timestamp }
+  | { kind: 'out_of_round' };
 
 /**
  * Which open round a checkpoint scan counts for: among those whose route version has it and still miss it, one the
@@ -75,7 +78,8 @@ function place(state: GuardState, checkpointId: string, rounds: readonly RoundIn
     return { kind: 'round', round, out_of_order: fixed && remaining(state, round)[0] !== checkpointId };
   }
   const repeated = candidates[0];
-  if (repeated !== undefined) return { kind: 'already', round: repeated, scanned_at: repeated.scans.find((s) => s.checkpoint_id === checkpointId)!.scanned_at };
+  if (repeated !== undefined)
+    return { kind: 'already', round: repeated, scanned_at: repeated.scans.find((s) => s.checkpoint_id === checkpointId)!.scanned_at };
   return { kind: 'out_of_round' };
 }
 
@@ -87,9 +91,22 @@ interface ScanDetails {
 }
 
 /** A scan of a known checkpoint, placed into its round; a manual entry adds its incident after the scan. */
-function recordCheckpoint(context: ScanContext, checkpointId: string, rounds: readonly RoundInfo[], details: ScanDetails, after: (scanId: string) => ChainEntryDraft[] = () => []): PointOutcome {
+function recordCheckpoint(
+  context: ScanContext,
+  checkpointId: string,
+  rounds: readonly RoundInfo[],
+  details: ScanDetails,
+  after: (scanId: string) => ChainEntryDraft[] = () => [],
+): PointOutcome {
   const placement = place(context.state, checkpointId, rounds);
-  if (placement.kind === 'already') return { kind: 'already_scanned', checkpoint_id: checkpointId, round_id: placement.round.id, scanned_at: placement.scanned_at, drafts: [] };
+  if (placement.kind === 'already')
+    return {
+      kind: 'already_scanned',
+      checkpoint_id: checkpointId,
+      round_id: placement.round.id,
+      scanned_at: placement.scanned_at,
+      drafts: [],
+    };
 
   const round = placement.kind === 'round' ? placement.round : null;
   const outOfOrder = placement.kind === 'round' && placement.out_of_order;
@@ -98,7 +115,17 @@ function recordCheckpoint(context: ScanContext, checkpointId: string, rounds: re
   if (round === null) flags.push('out_of_round');
   const scanId = context.newId();
   const drafts: ChainEntryDraft[] = [
-    scan({ scan_id: scanId, round_id: round?.id ?? null, checkpoint_id: checkpointId, method: details.read?.method ?? 'manual', ...readFields(details.read), location: context.location, flags, note: details.note, media: details.media }),
+    scan({
+      scan_id: scanId,
+      round_id: round?.id ?? null,
+      checkpoint_id: checkpointId,
+      method: details.read?.method ?? 'manual',
+      ...readFields(details.read),
+      location: context.location,
+      flags,
+      note: details.note,
+      media: details.media,
+    }),
     ...after(scanId),
   ];
 
@@ -108,7 +135,15 @@ function recordCheckpoint(context: ScanContext, checkpointId: string, rounds: re
     completed = closingStatus({ scans }, versionOf(context.state, round.route_version_id).checkpoint_ids) === 'completed';
     if (completed) drafts.push(roundClosed({ round_id: round.id, status: 'completed', finished_at: context.now }));
   }
-  return { kind: 'recorded', scan_id: scanId, checkpoint_id: checkpointId, round_id: round?.id ?? null, out_of_order: outOfOrder, completed, drafts };
+  return {
+    kind: 'recorded',
+    scan_id: scanId,
+    checkpoint_id: checkpointId,
+    round_id: round?.id ?? null,
+    out_of_order: outOfOrder,
+    completed,
+    drafts,
+  };
 }
 
 function readFields(read: TagRead | null) {
@@ -120,7 +155,15 @@ function readFields(read: TagRead | null) {
 export function resolveScan(context: ScanContext, read: TagRead): ScanOutcome {
   const checkpoint = findCheckpoint(context.state.checkpoints, read);
   if (checkpoint === null) {
-    const draft = scan({ scan_id: context.newId(), round_id: null, checkpoint_id: null, method: read.method, ...readFields(read), location: context.location, flags: ['unknown_tag'] });
+    const draft = scan({
+      scan_id: context.newId(),
+      round_id: null,
+      checkpoint_id: null,
+      method: read.method,
+      ...readFields(read),
+      location: context.location,
+      flags: ['unknown_tag'],
+    });
     return { kind: 'unknown_tag', drafts: [draft] };
   }
   return recordCheckpoint(context, checkpoint.id, context.state.rounds, { read });
@@ -157,9 +200,24 @@ export function manualScan(context: ScanContext, entry: ManualEntry): PointOutco
   }
   const shift = context.state.shift;
   if (shift === null) throw new DomainError('no_shift', 'There is no open shift');
-  return recordCheckpoint(context, entry.checkpoint_id, [round], { read: null, note, media: entry.media, extraFlags: ['manual'] }, (scanId) => [
-    incident({ incident_id: context.newId(), shift_id: shift.id, category: 'damaged_tag', note, location: context.location, nearest_checkpoint_id: entry.checkpoint_id, scan_id: scanId, media: entry.media }),
-  ]);
+  return recordCheckpoint(
+    context,
+    entry.checkpoint_id,
+    [round],
+    { read: null, note, media: entry.media, extraFlags: ['manual'] },
+    (scanId) => [
+      incident({
+        incident_id: context.newId(),
+        shift_id: shift.id,
+        category: 'damaged_tag',
+        note,
+        location: context.location,
+        nearest_checkpoint_id: entry.checkpoint_id,
+        scan_id: scanId,
+        media: entry.media,
+      }),
+    ],
+  );
 }
 
 /** The active checkpoint nearest to a location (equirectangular distance, enough at site scale); null without one. */

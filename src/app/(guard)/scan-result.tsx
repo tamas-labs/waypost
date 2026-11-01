@@ -75,7 +75,12 @@ function segmentOf(point: RoundPoint): keyof ColorTokens | null {
 /** The round and the sync indicator; a scan out of round has only the latter. */
 function ResultHeader({ round }: { round: RoundScreenInfo | null }) {
   const { color, typography, space } = useTheme();
-  const title = round === null ? '' : [t('round.title', { time: localTimeOf(parseTimestamp(round.scheduled_at), round.timezone) }), round.route_name].filter((part) => part !== null).join(' · ');
+  const title =
+    round === null
+      ? ''
+      : [t('round.title', { time: localTimeOf(parseTimestamp(round.scheduled_at), round.timezone) }), round.route_name]
+          .filter((part) => part !== null)
+          .join(' · ');
   return (
     <View style={[styles.row, { gap: space.m }]}>
       <Text style={[typography.body, styles.grow, { color: color.text }]} numberOfLines={1}>
@@ -89,7 +94,11 @@ function ResultHeader({ round }: { round: RoundScreenInfo | null }) {
 function TimeLeftText({ deadline, left }: { deadline: Timestamp; left: number }) {
   const { color, typography } = useTheme();
   const seconds = useCountdown(deadline);
-  return <Text style={[typography.small, styles.tabular, { color: color.text2 }]}>{t('scanResult.progressRest', { left, time: countdownText(seconds) })}</Text>;
+  return (
+    <Text style={[typography.small, styles.tabular, { color: color.text2 }]}>
+      {t('scanResult.progressRest', { left, time: countdownText(seconds) })}
+    </Text>
+  );
 }
 
 /** How far the round is (B-Siker): "6 / 9 pont", what is left, a segment per point. */
@@ -99,15 +108,31 @@ function ProgressCard({ round, completed }: { round: RoundScreenInfo; completed:
   return (
     <Card style={{ gap: space.s }}>
       <View style={[styles.row, styles.wrap, { gap: space.s }]}>
-        <Text style={[typography.title2, styles.tabular, styles.grow, { color: color.text }]}>{t('scanResult.progress', { done: round.scanned, total })}</Text>
-        {completed ? <Text style={[typography.small, { color: color.ok }]}>{t('status.completed')}</Text> : <TimeLeftText key={round.deadline} deadline={round.deadline} left={total - round.scanned} />}
+        <Text style={[typography.title2, styles.tabular, styles.grow, { color: color.text }]}>
+          {t('scanResult.progress', { done: round.scanned, total })}
+        </Text>
+        {completed ? (
+          <Text style={[typography.small, { color: color.ok }]}>{t('status.completed')}</Text>
+        ) : (
+          <TimeLeftText key={round.deadline} deadline={round.deadline} left={total - round.scanned} />
+        )}
       </View>
       <ProgressSegments segments={round.points.map(segmentOf)} />
     </Card>
   );
 }
 
-function SuccessResult({ info, scan, params, leave }: { info: ScanResultInfo; scan: NonNullable<ScanResultInfo['scan']>; params: Partial<ResultParams>; leave: (next?: Href) => void }) {
+function SuccessResult({
+  info,
+  scan,
+  params,
+  leave,
+}: {
+  info: ScanResultInfo;
+  scan: NonNullable<ScanResultInfo['scan']>;
+  params: Partial<ResultParams>;
+  leave: (next?: Href) => void;
+}) {
   const { color, typography, space, radius, border, iconSize, fontFamily } = useTheme();
   const close = useCallback(() => leave(), [leave]);
   const seconds = useAutoClose(close);
@@ -117,19 +142,41 @@ function SuccessResult({ info, scan, params, leave }: { info: ScanResultInfo; sc
     <ResultScreen
       tone="ok"
       icon="check"
-      statusLine={scan.method === 'manual' ? t('scanResult.manualLine', { time, method: t('round.manualNotVerified') }) : t('scanResult.successLine', { time, method: t(`method.${scan.method}`) })}
+      statusLine={
+        scan.method === 'manual'
+          ? t('scanResult.manualLine', { time, method: t('round.manualNotVerified') })
+          : t('scanResult.successLine', { time, method: t(`method.${scan.method}`) })
+      }
       title={info.point?.name ?? ''}
       header={<ResultHeader round={info.round} />}
       actions={
         <>
           <Button hero label={t('scanResult.next', { seconds })} onPress={close} />
-          <Button variant="secondary" icon="flag" iconColor="warn" label={t('scanResult.incidentHere')} onPress={() => leave({ pathname: '/incident/new', params: { checkpoint_id: params.checkpoint_id } })} />
+          <Button
+            variant="secondary"
+            icon="flag"
+            iconColor="warn"
+            label={t('scanResult.incidentHere')}
+            onPress={() => leave({ pathname: '/incident/new', params: { checkpoint_id: params.checkpoint_id } })}
+          />
         </>
       }
     >
       {info.round !== null && <ProgressCard round={info.round} completed={params.completed === 'true'} />}
       {instruction !== null && (
-        <View style={[styles.instruction, { padding: space.l, gap: space.m, borderRadius: radius.item, borderWidth: border.thick, borderStyle: 'dashed', borderColor: color.dash }]}>
+        <View
+          style={[
+            styles.instruction,
+            {
+              padding: space.l,
+              gap: space.m,
+              borderRadius: radius.item,
+              borderWidth: border.thick,
+              borderStyle: 'dashed',
+              borderColor: color.dash,
+            },
+          ]}
+        >
           <Icon name="info" size={iconSize.field} color={color.accent} />
           <Text style={[typography.bodyRegular, styles.grow, { color: color.text }]}>
             <Text style={{ fontFamily: fontFamily.extrabold }}>{`${t('scanResult.instruction')} `}</Text>
@@ -156,14 +203,28 @@ function UnknownResult({ info, params, leave }: { info: ScanResultInfo; params: 
       header={<ResultHeader round={info.round} />}
       actions={
         <>
-          <Button hero label={t('scanResult.retry')} onPress={() => leave(qr ? { pathname: '/qr', params: { round_id: roundId } } : undefined)} />
-          {info.round_open && <Button variant="secondary" icon="pencil" iconColor="manual" label={t('scanResult.damaged')} onPress={() => leave({ pathname: '/manual', params: { round_id: roundId } })} />}
+          <Button
+            hero
+            label={t('scanResult.retry')}
+            onPress={() => leave(qr ? { pathname: '/qr', params: { round_id: roundId } } : undefined)}
+          />
+          {info.round_open && (
+            <Button
+              variant="secondary"
+              icon="pencil"
+              iconColor="manual"
+              label={t('scanResult.damaged')}
+              onPress={() => leave({ pathname: '/manual', params: { round_id: roundId } })}
+            />
+          )}
         </>
       }
     >
       <Card style={{ gap: space.xs }}>
         <Text style={[typography.small, { color: color.text2 }]}>{t('scanResult.readId')}</Text>
-        <Text style={[typography.body, styles.tabular, { color: color.text }]}>{`${t(qr ? 'method.qr' : 'method.nfc')} · ${qr ? readId : formatTagUid(readId)}`}</Text>
+        <Text
+          style={[typography.body, styles.tabular, { color: color.text }]}
+        >{`${t(qr ? 'method.qr' : 'method.nfc')} · ${qr ? readId : formatTagUid(readId)}`}</Text>
       </Card>
     </ResultScreen>
   );
@@ -187,14 +248,23 @@ function OrderResult({ info, params, leave }: { info: ScanResultInfo; params: Pa
   const scanned = info.round?.points.find((point) => point.checkpoint_id === params.checkpoint_id);
   const next = info.next_point;
   return (
-    <ResultScreen tone="warn" icon="swap" statusLine={t('scanResult.orderLine')} title={t('scanResult.orderTitle')} header={<ResultHeader round={info.round} />} actions={<Button hero label={t('scanResult.ok')} onPress={leave} />}>
+    <ResultScreen
+      tone="warn"
+      icon="swap"
+      statusLine={t('scanResult.orderLine')}
+      title={t('scanResult.orderTitle')}
+      header={<ResultHeader round={info.round} />}
+      actions={<Button hero label={t('scanResult.ok')} onPress={leave} />}
+    >
       {scanned !== undefined && next !== null && (
         <>
           <Card divided>
             <ComparedPoint number={scanned.position} tone="warn" label={t('scanResult.youScanned')} name={scanned.name} />
             <ComparedPoint number={next.position} tone="next" label={t('scanResult.expected')} name={next.name} />
           </Card>
-          <Text style={[typography.bodyRegular, styles.centered, { color: color.text2 }]}>{t('scanResult.orderBody', { expected: next.name })}</Text>
+          <Text style={[typography.bodyRegular, styles.centered, { color: color.text2 }]}>
+            {t('scanResult.orderBody', { expected: next.name })}
+          </Text>
         </>
       )}
     </ResultScreen>
@@ -202,8 +272,32 @@ function OrderResult({ info, params, leave }: { info: ScanResultInfo; params: Pa
 }
 
 /** The point in a warning without a screen of its own in the design: already scanned, or out of round. */
-function PointNotice({ statusLine, name, body, round, icon, leave }: { statusLine: string; name: string; body: string; round: RoundScreenInfo | null; icon: 'check' | 'mapPin'; leave: () => void }) {
-  return <ResultScreen tone="warn" icon={icon} statusLine={statusLine} title={name} body={body} header={<ResultHeader round={round} />} actions={<Button hero label={t('scanResult.ok')} onPress={leave} />} />;
+function PointNotice({
+  statusLine,
+  name,
+  body,
+  round,
+  icon,
+  leave,
+}: {
+  statusLine: string;
+  name: string;
+  body: string;
+  round: RoundScreenInfo | null;
+  icon: 'check' | 'mapPin';
+  leave: () => void;
+}) {
+  return (
+    <ResultScreen
+      tone="warn"
+      icon={icon}
+      statusLine={statusLine}
+      title={name}
+      body={body}
+      header={<ResultHeader round={round} />}
+      actions={<Button hero label={t('scanResult.ok')} onPress={leave} />}
+    />
+  );
 }
 
 // The result of a scan (G7–G9; specification: (guard)/scan-result), over the round's screen. The feedback has already
@@ -221,10 +315,29 @@ export default function ScanResultScreen() {
     const name = info.point?.name ?? '';
     if (kind === 'unknown_tag') return <UnknownResult info={info} params={params} leave={leave} />;
     if (kind === 'already_scanned' && scanned_at !== undefined) {
-      return <PointNotice icon="check" statusLine={t('scanResult.alreadyLine', { time: localTimeOf(parseTimestamp(scanned_at), info.timezone) })} name={name} body={t('scanResult.alreadyBody')} round={info.round} leave={back} />;
+      return (
+        <PointNotice
+          icon="check"
+          statusLine={t('scanResult.alreadyLine', { time: localTimeOf(parseTimestamp(scanned_at), info.timezone) })}
+          name={name}
+          body={t('scanResult.alreadyBody')}
+          round={info.round}
+          leave={back}
+        />
+      );
     }
     if (kind !== 'recorded' || info.scan === null) return null;
-    if (params.round_id === undefined) return <PointNotice icon="mapPin" statusLine={t('scanResult.orderLine')} name={name} body={t('scanResult.outOfRoundBody')} round={null} leave={back} />;
+    if (params.round_id === undefined)
+      return (
+        <PointNotice
+          icon="mapPin"
+          statusLine={t('scanResult.orderLine')}
+          name={name}
+          body={t('scanResult.outOfRoundBody')}
+          round={null}
+          leave={back}
+        />
+      );
     if (params.out_of_order === 'true') return <OrderResult info={info} params={params} leave={back} />;
     return <SuccessResult info={info} scan={info.scan} params={params} leave={leave} />;
   })();

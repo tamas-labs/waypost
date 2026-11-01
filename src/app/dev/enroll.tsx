@@ -17,7 +17,8 @@ type Step = { name: 'login' } | { name: 'site'; api: ApiClient; token: string; s
 
 function errorText(error: unknown, baseUrl: string): string {
   if (error instanceof NetworkError) return t('dev.enroll.networkError', { url: baseUrl });
-  if (error instanceof InvalidResponseError) return t('dev.enroll.invalidResponse', { details: [error.message, ...error.errors].join('\n') });
+  if (error instanceof InvalidResponseError)
+    return t('dev.enroll.invalidResponse', { details: [error.message, ...error.errors].join('\n') });
   if (isApiError(error)) return error.message;
   return t('dev.enroll.error', { message: error instanceof Error ? error.message : String(error) });
 }
@@ -65,13 +66,36 @@ export default function DevEnrollScreen() {
   const field = [
     typography.bodyRegular,
     styles.field,
-    { backgroundColor: color.field, color: color.text, borderColor: color.line, borderRadius: radius.item, minHeight: size.touchMin, paddingHorizontal: space.m },
+    {
+      backgroundColor: color.field,
+      color: color.text,
+      borderColor: color.line,
+      borderRadius: radius.item,
+      minHeight: size.touchMin,
+      paddingHorizontal: space.m,
+    },
   ];
-  const button = [styles.button, { backgroundColor: color.accent, borderRadius: radius.pill, minHeight: size.buttonSecondary, paddingHorizontal: space.l }];
-  const item = [styles.item, { backgroundColor: color.surface, borderColor: color.cardBorder, borderRadius: radius.item, minHeight: size.listItem, paddingHorizontal: space.l }];
+  const button = [
+    styles.button,
+    { backgroundColor: color.accent, borderRadius: radius.pill, minHeight: size.buttonSecondary, paddingHorizontal: space.l },
+  ];
+  const item = [
+    styles.item,
+    {
+      backgroundColor: color.surface,
+      borderColor: color.cardBorder,
+      borderRadius: radius.item,
+      minHeight: size.listItem,
+      paddingHorizontal: space.l,
+    },
+  ];
 
   return (
-    <ScrollView style={{ backgroundColor: color.bg }} contentContainerStyle={{ padding: space.l, gap: space.m }} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={{ backgroundColor: color.bg }}
+      contentContainerStyle={{ padding: space.l, gap: space.m }}
+      keyboardShouldPersistTaps="handled"
+    >
       <Stack.Screen options={{ title: t('dev.enroll.title') }} />
       <Text style={[typography.bodyRegular, { color: color.text2 }]}>{t('dev.enroll.intro')}</Text>
 
@@ -95,14 +119,21 @@ export default function DevEnrollScreen() {
             value={email}
             onChangeText={setEmail}
             accessibilityLabel={t('supervisor.email')}
-            autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" />
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            autoComplete="email"
+          />
           <Text style={[typography.label, { color: color.text2 }]}>{t('supervisor.password')}</Text>
           <TextInput
             style={field}
             value={password}
             onChangeText={setPassword}
             accessibilityLabel={t('supervisor.password')}
-            secureTextEntry autoComplete="password" onSubmitEditing={logIn} />
+            secureTextEntry
+            autoComplete="password"
+            onSubmitEditing={logIn}
+          />
           <Pressable style={button} onPress={logIn} disabled={busy || email === '' || password === ''} accessibilityRole="button">
             <Text style={[typography.buttonSm, { color: color.onAccent }]}>{t('supervisor.login')}</Text>
           </Pressable>
@@ -111,7 +142,9 @@ export default function DevEnrollScreen() {
 
       {step.name === 'site' && (
         <>
-          <Text style={[typography.title2, { color: color.text }]}>{step.sites.length > 0 ? t('dev.enroll.chooseSite') : t('dev.enroll.noSites')}</Text>
+          <Text style={[typography.title2, { color: color.text }]}>
+            {step.sites.length > 0 ? t('dev.enroll.chooseSite') : t('dev.enroll.noSites')}
+          </Text>
           {step.sites.map((site) => (
             <Pressable key={site.id} style={item} onPress={() => void enroll(site)} disabled={busy} accessibilityRole="button">
               <Text style={[typography.body, { color: color.text }]}>{site.name}</Text>

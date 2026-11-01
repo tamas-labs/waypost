@@ -23,7 +23,11 @@ export interface ScanResultInfo {
 }
 
 /** Null while the site is not pulled. */
-export function loadScanResultInfo(db: Database, ids: { round_id?: string; checkpoint_id?: string; scan_id?: string }, readClock: ReadClock = readDeviceClock): ScanResultInfo | null {
+export function loadScanResultInfo(
+  db: Database,
+  ids: { round_id?: string; checkpoint_id?: string; scan_id?: string },
+  readClock: ReadClock = readDeviceClock,
+): ScanResultInfo | null {
   const now = trustedTime(db, readClock()).time;
   const state = loadGuardState(db, now);
   if (state === null) return null;
@@ -31,8 +35,18 @@ export function loadScanResultInfo(db: Database, ids: { round_id?: string; check
   const round = round_id === undefined ? null : roundDetailsOf(db, state, round_id);
   return {
     timezone: state.timezone,
-    point: checkpoint_id === undefined ? null : (db.select({ name: checkpoints.name, instruction: checkpoints.instruction }).from(checkpoints).where(eq(checkpoints.id, checkpoint_id)).get() ?? null),
-    scan: scan_id === undefined ? null : (db.select({ scanned_at: scans.scanned_at, method: scans.method }).from(scans).where(eq(scans.id, scan_id)).get() ?? null),
+    point:
+      checkpoint_id === undefined
+        ? null
+        : (db
+            .select({ name: checkpoints.name, instruction: checkpoints.instruction })
+            .from(checkpoints)
+            .where(eq(checkpoints.id, checkpoint_id))
+            .get() ?? null),
+    scan:
+      scan_id === undefined
+        ? null
+        : (db.select({ scanned_at: scans.scanned_at, method: scans.method }).from(scans).where(eq(scans.id, scan_id)).get() ?? null),
     round,
     round_open: state.rounds.some((r) => r.id === round_id && isOpen(r)),
     next_point: round?.points.find((point) => point.scan === null) ?? null,

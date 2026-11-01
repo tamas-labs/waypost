@@ -31,7 +31,10 @@ jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
 jest.mock('@/sync/runtime', () => ({ notifyChainEntry: jest.fn(), requestSync: jest.fn() }));
 jest.mock('@/guard/scheduler', () => ({ requestSchedulerStep: jest.fn() }));
 jest.mock('@/feedback/feedback', () => ({ playFeedback: jest.fn(), playHaptic: jest.fn() }));
-jest.mock('@/location/location', () => ({ currentLocation: jest.fn(() => Promise.resolve(null)), watchPosition: jest.fn(() => jest.fn()) }));
+jest.mock('@/location/location', () => ({
+  currentLocation: jest.fn(() => Promise.resolve(null)),
+  watchPosition: jest.fn(() => jest.fn()),
+}));
 jest.mock('@/location/maps', () => ({ mapsConfigured: jest.fn(() => true) }));
 jest.mock('@/nfc/reader', () => ({ openNfcSettings: jest.fn(() => Promise.resolve()) }));
 jest.mock('@/nfc/use-tag-reader', () => ({ useTagReader: jest.fn() }));
@@ -132,7 +135,17 @@ it('records a touched tag, gives feedback, and goes to the result', async () => 
   await touch(tagOf(C1));
   expect(state().rounds[0]!.status).toBe('in_progress');
   expect(playFeedback).toHaveBeenCalledWith('success');
-  expect(router.push).toHaveBeenCalledWith({ pathname: '/scan-result', params: { kind: 'recorded', scan_id: expect.any(String), checkpoint_id: C1, round_id: roundId, out_of_order: 'false', completed: 'false' } });
+  expect(router.push).toHaveBeenCalledWith({
+    pathname: '/scan-result',
+    params: {
+      kind: 'recorded',
+      scan_id: expect.any(String),
+      checkpoint_id: C1,
+      round_id: roundId,
+      out_of_order: 'false',
+      completed: 'false',
+    },
+  });
   expect(screen.getByRole('progressbar', { name: '1 / 3 pont kész' })).toBeOnTheScreen();
   expect(screen.getByLabelText('Pont 1, Leolvasva, 20:00 · NFC')).toBeOnTheScreen();
 });
@@ -286,7 +299,11 @@ describe('the map', () => {
     await renderScreen();
     await showMap();
     expect(screen.getByTestId('map').props.accessibilityLabel).toBe('Telephely térképe a megtett úttal: 0 leolvasott pont, 3 hátralévő');
-    expect(screen.getAllByTestId('map-marker').map((marker) => marker.props.accessibilityLabel)).toEqual(['Pont 1, Hátravan', 'Pont 2, Hátravan', 'Pont 3, Hátravan']);
+    expect(screen.getAllByTestId('map-marker').map((marker) => marker.props.accessibilityLabel)).toEqual([
+      'Pont 1, Hátravan',
+      'Pont 2, Hátravan',
+      'Pont 3, Hátravan',
+    ]);
     expect(screen.queryByTestId('map-polyline')).not.toBeOnTheScreen();
     expect(screen.queryByText(/Megtett út/)).not.toBeOnTheScreen();
   });

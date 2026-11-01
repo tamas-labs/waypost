@@ -38,7 +38,13 @@ export function loadPinScreenInfo(db: Database, readClock: ReadClock = readDevic
   const state = loadGuardState(db, now);
   if (state === null) return null;
   const site = db.select({ name: sites.name }).from(sites).where(eq(sites.id, state.site_id)).get();
-  return { site_name: site?.name ?? '', timezone: state.timezone, now, on_shift: state.shift === null ? null : userName(db, state.shift.guard_id), next_round: nextRound(state, now) };
+  return {
+    site_name: site?.name ?? '',
+    timezone: state.timezone,
+    now,
+    on_shift: state.shift === null ? null : userName(db, state.shift.guard_id),
+    next_round: nextRound(state, now),
+  };
 }
 
 export type PinSignInResult =
@@ -94,7 +100,14 @@ export function loadShiftStartInfo(db: Database, guardId: string, readClock: Rea
   const state = loadGuardState(db, now);
   if (state === null) return null;
   const day = shiftDay(state, now);
-  const names = new Map(db.select({ id: routes.id, name: routes.name }).from(routes).where(eq(routes.site_id, state.site_id)).all().map((route) => [route.id, route.name]));
+  const names = new Map(
+    db
+      .select({ id: routes.id, name: routes.name })
+      .from(routes)
+      .where(eq(routes.site_id, state.site_id))
+      .all()
+      .map((route) => [route.id, route.name]),
+  );
   return {
     timezone: state.timezone,
     guard_name: userName(db, guardId) ?? '',

@@ -29,7 +29,12 @@ describe('checkpoint lookup', () => {
     expect(findCheckpoint(checkpoints, nfc('04:a1:b2:c3:d4:e5:02'))?.id).toBe(C2);
     expect(findCheckpoint(checkpoints, qr(checkpoints[2]!.qr_payload!))?.id).toBe(C3);
     expect(findCheckpoint(checkpoints, qr(`${checkpoints[2]!.qr_payload!}x`))).toBeNull();
-    expect(findCheckpoint(checkpoints.map((c) => ({ ...c, active: false })), nfc('04A1B2C3D4E502'))).toBeNull();
+    expect(
+      findCheckpoint(
+        checkpoints.map((c) => ({ ...c, active: false })),
+        nfc('04A1B2C3D4E502'),
+      ),
+    ).toBeNull();
   });
 });
 
@@ -73,14 +78,31 @@ describe('scan resolution', () => {
   it('records an unknown tag with unknown_tag, without a checkpoint or a round', () => {
     const outcome = resolveScan(context({ rounds: [round('A', '20:00')] }), qr('waypost:cp:unknown'));
     expect(outcome.kind).toBe('unknown_tag');
-    expect(outcome.drafts).toEqual([expect.objectContaining({ type: 'scan', payload: expect.objectContaining({ round_id: null, checkpoint_id: null, method: 'qr', qr_payload: 'waypost:cp:unknown', flags: ['unknown_tag'] }) })]);
+    expect(outcome.drafts).toEqual([
+      expect.objectContaining({
+        type: 'scan',
+        payload: expect.objectContaining({
+          round_id: null,
+          checkpoint_id: null,
+          method: 'qr',
+          qr_payload: 'waypost:cp:unknown',
+          flags: ['unknown_tag'],
+        }),
+      }),
+    ]);
     expectValid(outcome.drafts);
   });
 
   it('writes nothing for a checkpoint already scanned in its round', () => {
     const open = round('A', '20:00', { status: 'in_progress', scans: [scanned(C1, '20:03')] });
     const state = guardState({ rounds: [open] });
-    expect(resolveScan(context({ rounds: [open] }), qr(tagOf(state, C1).qr_payload!))).toEqual({ kind: 'already_scanned', checkpoint_id: C1, round_id: open.id, scanned_at: local('20:03'), drafts: [] });
+    expect(resolveScan(context({ rounds: [open] }), qr(tagOf(state, C1).qr_payload!))).toEqual({
+      kind: 'already_scanned',
+      checkpoint_id: C1,
+      round_id: open.id,
+      scanned_at: local('20:03'),
+      drafts: [],
+    });
   });
 
   it('records a scan without an open round, or of a checkpoint not on its route, as out_of_round', () => {
@@ -95,11 +117,17 @@ describe('scan resolution', () => {
 
   it('flags out_of_order on a fixed route when it is not the first missing checkpoint, but counts it', () => {
     const state = guardState();
-    const fixed = resolveScan(context({ rounds: [round('A', '20:00', { status: 'in_progress', scans: [scanned(C1)] })] }), qr(tagOf(state, C3).qr_payload!));
+    const fixed = resolveScan(
+      context({ rounds: [round('A', '20:00', { status: 'in_progress', scans: [scanned(C1)] })] }),
+      qr(tagOf(state, C3).qr_payload!),
+    );
     expect(fixed).toMatchObject({ kind: 'recorded', out_of_order: true });
     expect(fixed.drafts[0]).toMatchObject({ payload: { flags: ['out_of_order'] } });
 
-    const inOrder = resolveScan(context({ rounds: [round('A', '20:00', { status: 'in_progress', scans: [scanned(C1)] })] }), qr(tagOf(state, C2).qr_payload!));
+    const inOrder = resolveScan(
+      context({ rounds: [round('A', '20:00', { status: 'in_progress', scans: [scanned(C1)] })] }),
+      qr(tagOf(state, C2).qr_payload!),
+    );
     expect(inOrder).toMatchObject({ out_of_order: false });
 
     const free = resolveScan(context({ rounds: [round('B', '20:30')] }), qr(tagOf(state, C4).qr_payload!));
@@ -110,7 +138,11 @@ describe('scan resolution', () => {
     const open = round('A', '20:00', { status: 'in_progress', scans: [scanned(C1), scanned(C3)] });
     const outcome = resolveScan(context({ rounds: [open] }), nfc('04A1B2C3D4E502'));
     expect(outcome).toMatchObject({ kind: 'recorded', completed: true, out_of_order: false });
-    expect(outcome.drafts[1]).toEqual({ type: 'round_closed', payload: { round_id: open.id, status: 'completed', finished_at: NOW }, gnss_time: null });
+    expect(outcome.drafts[1]).toEqual({
+      type: 'round_closed',
+      payload: { round_id: open.id, status: 'completed', finished_at: NOW },
+      gnss_time: null,
+    });
   });
 
   it('counts a checkpoint of two open rounds for the earlier one first, then the other', () => {
@@ -119,16 +151,30 @@ describe('scan resolution', () => {
     const state = guardState();
     const first = resolveScan(context({ rounds: [b, a] }), nfc(tagOf(state, C3).tag_uid!));
     expect(first).toMatchObject({ round_id: a.id, completed: true });
-    const second = resolveScan(context({ rounds: [{ ...a, scans: [...a.scans, scanned(C3, '20:05')] }, b] }), nfc(tagOf(state, C3).tag_uid!));
+    const second = resolveScan(
+      context({ rounds: [{ ...a, scans: [...a.scans, scanned(C3, '20:05')] }, b] }),
+      nfc(tagOf(state, C3).tag_uid!),
+    );
     expect(second).toMatchObject({ kind: 'recorded', round_id: b.id, completed: false });
-    const third = resolveScan(context({ rounds: [{ ...a, scans: [...a.scans, scanned(C3, '20:05')] }, { ...b, scans: [scanned(C3, '20:40')] }] }), nfc(tagOf(state, C3).tag_uid!));
+    const third = resolveScan(
+      context({
+        rounds: [
+          { ...a, scans: [...a.scans, scanned(C3, '20:05')] },
+          { ...b, scans: [scanned(C3, '20:40')] },
+        ],
+      }),
+      nfc(tagOf(state, C3).tag_uid!),
+    );
     expect(third).toMatchObject({ kind: 'already_scanned', round_id: a.id, scanned_at: local('20:05') });
   });
 
   it('counts it for a round the guard has started rather than an earlier one not started', () => {
     const b = round('B', '20:30');
     const a = round('A', '21:00', { status: 'in_progress', scans: [scanned(C1, '21:02')] });
-    expect(resolveScan(context({ rounds: [b, a] }), nfc(tagOf(guardState(), C3).tag_uid!))).toMatchObject({ round_id: a.id, out_of_order: true });
+    expect(resolveScan(context({ rounds: [b, a] }), nfc(tagOf(guardState(), C3).tag_uid!))).toMatchObject({
+      round_id: a.id,
+      out_of_order: true,
+    });
   });
 
   it('uses the version the round was opened with, not the route’s current one', () => {
@@ -141,19 +187,38 @@ describe('scan resolution', () => {
   });
 
   it('flags a mock location', () => {
-    const outcome = resolveScan(context({ rounds: [round('A', '20:00')] }, { ...NEAR_C2, mocked: true, gnss_time: local('20:04') }), nfc('04A1B2C3D4E501'));
+    const outcome = resolveScan(
+      context({ rounds: [round('A', '20:00')] }, { ...NEAR_C2, mocked: true, gnss_time: local('20:04') }),
+      nfc('04A1B2C3D4E501'),
+    );
     expect(outcome.drafts[0]).toMatchObject({ payload: { is_mock: true, flags: ['mock_location'] }, gnss_time: local('20:04') });
   });
 });
 
 describe('manual entry', () => {
-  const entry = (fields = {}) => ({ round_id: round('A', '20:00').id, checkpoint_id: C1, note: ' A címke letörött. ', media: [PHOTO], ...fields });
+  const entry = (fields = {}) => ({
+    round_id: round('A', '20:00').id,
+    checkpoint_id: C1,
+    note: ' A címke letörött. ',
+    media: [PHOTO],
+    ...fields,
+  });
 
   it('records a manual scan and a damaged_tag incident with the scan’s ID, both with the note and the photos', () => {
     const outcome = manualScan(context({ rounds: [round('A', '20:00')] }, NEAR_C2), entry());
     expect(outcome).toMatchObject({ kind: 'recorded', checkpoint_id: C1, round_id: round('A', '20:00').id, completed: false });
     expect(outcome.drafts).toEqual([
-      expect.objectContaining({ type: 'scan', payload: expect.objectContaining({ scan_id: '019a2b3c-4d5e-7f00-8a00-000000001000', method: 'manual', flags: ['manual'], note: 'A címke letörött.', media: [PHOTO], tag_uid: null }) }),
+      expect.objectContaining({
+        type: 'scan',
+        payload: expect.objectContaining({
+          scan_id: '019a2b3c-4d5e-7f00-8a00-000000001000',
+          method: 'manual',
+          flags: ['manual'],
+          note: 'A címke letörött.',
+          media: [PHOTO],
+          tag_uid: null,
+        }),
+      }),
       {
         type: 'incident',
         payload: {
@@ -195,10 +260,16 @@ describe('manual entry', () => {
     const ctx = context({ rounds: [round('A', '20:00')] });
     expect(() => manualScan(ctx, entry({ note: '  ' }))).toThrow(new DomainError('note_required', 'A manual entry needs a note'));
     expect(() => manualScan(ctx, entry({ media: [] }))).toThrow(new DomainError('photo_required', 'A manual entry needs a photo'));
-    expect(() => manualScan(ctx, entry({ media: Array.from({ length: 6 }, () => PHOTO) }))).toThrow(expect.objectContaining({ code: 'too_many_photos' }));
+    expect(() => manualScan(ctx, entry({ media: Array.from({ length: 6 }, () => PHOTO) }))).toThrow(
+      expect.objectContaining({ code: 'too_many_photos' }),
+    );
     expect(() => manualScan(ctx, entry({ checkpoint_id: C4 }))).toThrow(expect.objectContaining({ code: 'checkpoint_not_on_route' }));
-    expect(() => manualScan(context({ rounds: [round('A', '20:00', { status: 'missed' })] }), entry())).toThrow(expect.objectContaining({ code: 'unknown_round' }));
-    expect(() => manualScan(context({ shift: null, rounds: [round('A', '20:00')] }), entry())).toThrow(expect.objectContaining({ code: 'no_shift' }));
+    expect(() => manualScan(context({ rounds: [round('A', '20:00', { status: 'missed' })] }), entry())).toThrow(
+      expect.objectContaining({ code: 'unknown_round' }),
+    );
+    expect(() => manualScan(context({ shift: null, rounds: [round('A', '20:00')] }), entry())).toThrow(
+      expect.objectContaining({ code: 'no_shift' }),
+    );
   });
 });
 
@@ -227,7 +298,9 @@ describe('incident', () => {
   it('needs no note or photo, at most 5 photos, and an open shift', () => {
     const draft = reportIncident(context(), { category: 'other' });
     expect(draft.payload).toMatchObject({ note: null, media: [], lat_e7: null, nearest_checkpoint_id: null });
-    expect(() => reportIncident(context(), { category: 'water', media: Array.from({ length: 6 }, () => PHOTO) })).toThrow(expect.objectContaining({ code: 'too_many_photos' }));
+    expect(() => reportIncident(context(), { category: 'water', media: Array.from({ length: 6 }, () => PHOTO) })).toThrow(
+      expect.objectContaining({ code: 'too_many_photos' }),
+    );
     expect(() => reportIncident(context({ shift: null }), { category: 'water' })).toThrow(expect.objectContaining({ code: 'no_shift' }));
   });
 
@@ -239,8 +312,18 @@ describe('incident', () => {
   it('finds the nearest active checkpoint with a location', () => {
     const { checkpoints } = guardState();
     expect(nearestCheckpoint(checkpoints, { ...NEAR_C2, latitude: 47.4984 })).toBe(C4);
-    expect(nearestCheckpoint(checkpoints.map((c) => (c.id === C4 ? { ...c, active: false } : c)), { ...NEAR_C2, latitude: 47.4984 })).toBe(C3);
-    expect(nearestCheckpoint(checkpoints.map((c) => ({ ...c, lat_e7: null, lng_e7: null })), NEAR_C2)).toBeNull();
+    expect(
+      nearestCheckpoint(
+        checkpoints.map((c) => (c.id === C4 ? { ...c, active: false } : c)),
+        { ...NEAR_C2, latitude: 47.4984 },
+      ),
+    ).toBe(C3);
+    expect(
+      nearestCheckpoint(
+        checkpoints.map((c) => ({ ...c, lat_e7: null, lng_e7: null })),
+        NEAR_C2,
+      ),
+    ).toBeNull();
     expect(nearestCheckpoint(checkpoints, null)).toBeNull();
   });
 });

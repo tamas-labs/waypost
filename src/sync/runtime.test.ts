@@ -20,7 +20,8 @@ let netInfoListener: (state: NetInfoState) => void;
 const removeAppState = jest.fn();
 const unsubscribeNetInfo = jest.fn();
 
-const network = (isConnected: boolean) => ({ type: isConnected ? 'wifi' : 'none', isConnected, isInternetReachable: isConnected, details: null }) as NetInfoState;
+const network = (isConnected: boolean) =>
+  ({ type: isConnected ? 'wifi' : 'none', isConnected, isInternetReachable: isConnected, details: null }) as NetInfoState;
 
 let db: Database;
 let stop: () => void;
@@ -86,7 +87,12 @@ describe('sync runtime', () => {
     stop = startSync(db);
     await settle();
     expect(warn).toHaveBeenCalledWith('Sync failed at pull', expect.any(ApiError));
-    expect(useSyncStatus.getState().lastError).toEqual({ kind: 'device_revoked', step: 'pull', message: 'A telefont visszavonták.', at: '2026-10-27T20:00:00.000Z' });
+    expect(useSyncStatus.getState().lastError).toEqual({
+      kind: 'device_revoked',
+      step: 'pull',
+      message: 'A telefont visszavonták.',
+      at: '2026-10-27T20:00:00.000Z',
+    });
     expect(useSyncStatus.getState().lastSuccessAt).toBeNull();
   });
 

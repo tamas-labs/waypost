@@ -28,8 +28,22 @@ export function loadShiftHomeInfo(db: Database, guardId: string, readClock: Read
   if (state === null) return null;
   const site = db.select({ name: sites.name }).from(sites).where(eq(sites.id, state.site_id)).get();
   const home = shiftHome(state, now);
-  const routeNames = new Map(db.select({ id: routes.id, name: routes.name }).from(routes).where(eq(routes.site_id, state.site_id)).all().map((route) => [route.id, route.name]));
-  const checkpointNames = new Map(db.select({ id: checkpoints.id, name: checkpoints.name }).from(checkpoints).where(eq(checkpoints.site_id, state.site_id)).all().map((point) => [point.id, point.name]));
+  const routeNames = new Map(
+    db
+      .select({ id: routes.id, name: routes.name })
+      .from(routes)
+      .where(eq(routes.site_id, state.site_id))
+      .all()
+      .map((route) => [route.id, route.name]),
+  );
+  const checkpointNames = new Map(
+    db
+      .select({ id: checkpoints.id, name: checkpoints.name })
+      .from(checkpoints)
+      .where(eq(checkpoints.site_id, state.site_id))
+      .all()
+      .map((point) => [point.id, point.name]),
+  );
   return {
     site_name: site?.name ?? '',
     timezone: state.timezone,

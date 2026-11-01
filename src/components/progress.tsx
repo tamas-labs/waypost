@@ -27,12 +27,20 @@ export function ProgressRing({ done, total, size = 'regular' }: ProgressRingProp
   const fraction = total > 0 ? Math.min(done / total, 1) : 0;
   const count = (
     <View style={small ? undefined : styles.inside}>
-      <Text style={[small ? typography.ringValueSm : typography.ringValue, styles.tabular, { color: color.text }]}>{`${done}/${total}`}</Text>
+      <Text
+        style={[small ? typography.ringValueSm : typography.ringValue, styles.tabular, { color: color.text }]}
+      >{`${done}/${total}`}</Text>
       <Text style={[typography.unit, { color: color.text2 }]}>{t('common.points')}</Text>
     </View>
   );
   return (
-    <View accessible accessibilityRole="progressbar" accessibilityLabel={t('components.progress', { done, total })} accessibilityValue={{ min: 0, max: total, now: done }} style={[styles.row, { gap: space.m }]}>
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={t('components.progress', { done, total })}
+      accessibilityValue={{ min: 0, max: total, now: done }}
+      style={[styles.row, { gap: space.m }]}
+    >
       <View style={{ width: diameter, height: diameter }}>
         <Svg width={diameter} height={diameter} viewBox={`0 0 ${VIEW} ${VIEW}`}>
           <Circle cx={VIEW / 2} cy={VIEW / 2} r={r} fill="none" stroke={color.track} strokeWidth={stroke} />
@@ -71,7 +79,10 @@ export function ProgressSegments({ segments }: ProgressSegmentsProps) {
         <View
           // The segments are positions: the index is their identity.
           key={index}
-          style={[styles.segment, { height: size.progressSegment, borderRadius: size.progressSegment / 2, backgroundColor: color[segment ?? 'track'] }]}
+          style={[
+            styles.segment,
+            { height: size.progressSegment, borderRadius: size.progressSegment / 2, backgroundColor: color[segment ?? 'track'] },
+          ]}
         />
       ))}
     </View>

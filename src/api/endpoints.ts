@@ -13,13 +13,24 @@ import type { ApiClient } from './client';
 
 /** POST /auth/login: supervisor login; wrong credentials are 401 unauthenticated. */
 export async function login(api: ApiClient, body: AuthLoginRequest): Promise<AuthLoginResponse> {
-  const { data } = await api.request({ method: 'POST', path: '/auth/login', body, bodySchema: 'api/auth-login.request', responseSchema: 'api/auth-login.response' });
+  const { data } = await api.request({
+    method: 'POST',
+    path: '/auth/login',
+    body,
+    bodySchema: 'api/auth-login.request',
+    responseSchema: 'api/auth-login.response',
+  });
   return data;
 }
 
 /** POST /auth/logout: deletes the supervisor token on the server. */
 export async function logout(api: ApiClient, supervisorToken: string): Promise<AuthLogoutResponse> {
-  const { data } = await api.request({ method: 'POST', path: '/auth/logout', token: supervisorToken, responseSchema: 'api/auth-logout.response' });
+  const { data } = await api.request({
+    method: 'POST',
+    path: '/auth/logout',
+    token: supervisorToken,
+    responseSchema: 'api/auth-logout.response',
+  });
   return data;
 }
 
@@ -44,6 +55,12 @@ export async function enrollDevice(api: ApiClient, supervisorToken: string, body
 
 /** GET /sync/pull: configuration changes since the cursor (null: full state). */
 export async function pull(api: ApiClient, token: string, cursor: string | null): Promise<SyncPullResponse> {
-  const { data } = await api.request({ method: 'GET', path: '/sync/pull', query: { cursor }, token, responseSchema: 'api/sync-pull.response' });
+  const { data } = await api.request({
+    method: 'GET',
+    path: '/sync/pull',
+    query: { cursor },
+    token,
+    responseSchema: 'api/sync-pull.response',
+  });
   return data;
 }

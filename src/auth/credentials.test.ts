@@ -42,7 +42,13 @@ describe('credentials', () => {
   });
 
   it('rejects a secret that is not 32 bytes of base64', async () => {
-    for (const secret of ['', 'not base64', SECRET.slice(0, 43), `${SECRET.slice(0, 42)}A==`, 'q83vEjRWeJq83vEjRWeJq83vEjRWeJq83vEjRWeJq81=']) {
+    for (const secret of [
+      '',
+      'not base64',
+      SECRET.slice(0, 43),
+      `${SECRET.slice(0, 42)}A==`,
+      'q83vEjRWeJq83vEjRWeJq83vEjRWeJq83vEjRWeJq81=',
+    ]) {
       await expect(setDeviceCredentials({ token: '2|device', secret })).rejects.toThrow('32 bytes in base64');
     }
     await expect(setDeviceCredentials({ token: '', secret: SECRET })).rejects.toThrow('Empty device token');

@@ -27,7 +27,8 @@ const write = (drafts: Parameters<typeof appendChainEntries>[1]) => appendChainE
 
 const loadState = (): GuardState => loadGuardState(db, now)!;
 
-const roundStatuses = () => db.select({ scheduled_at: rounds.scheduled_at, status: rounds.status }).from(rounds).orderBy(asc(rounds.scheduled_at)).all();
+const roundStatuses = () =>
+  db.select({ scheduled_at: rounds.scheduled_at, status: rounds.status }).from(rounds).orderBy(asc(rounds.scheduled_at)).all();
 
 beforeEach(async () => {
   ({ db } = await createTestDatabase());
@@ -54,8 +55,19 @@ describe('a night on the site phone', () => {
     const context = () => ({ state: loadState(), now, location: null, newId });
     await write(resolveScan(context(), { method: 'nfc', tag_uid: tag(C1), ndef_raw: null }).drafts);
     const roundA = loadState().rounds.find((r) => r.scheduled_at === local('21:00'))!;
-    const photo = { id: newId(), sha256: 'b'.repeat(64), mime: 'image/jpeg', size_bytes: 240_000, local_uri: 'file:///documents/media/c2.jpg', taken_at: now };
-    await appendChainEntries(db, manualScan(context(), { round_id: roundA.id, checkpoint_id: C2, note: 'Letörött.', media: [photo] }).drafts, { readClock, photos: [photo] });
+    const photo = {
+      id: newId(),
+      sha256: 'b'.repeat(64),
+      mime: 'image/jpeg',
+      size_bytes: 240_000,
+      local_uri: 'file:///documents/media/c2.jpg',
+      taken_at: now,
+    };
+    await appendChainEntries(
+      db,
+      manualScan(context(), { round_id: roundA.id, checkpoint_id: C2, note: 'Letörött.', media: [photo] }).drafts,
+      { readClock, photos: [photo] },
+    );
     // C3 is on both routes: it completes A first.
     const completing = resolveScan(context(), { method: 'nfc', tag_uid: tag(C3), ndef_raw: null });
     expect(completing).toMatchObject({ round_id: roundA.id, completed: true });
@@ -63,14 +75,22 @@ describe('a night on the site phone', () => {
     await write(resolveScan(context(), { method: 'nfc', tag_uid: tag(C3), ndef_raw: null }).drafts);
     expect(roundStatuses().map((r) => r.status)).toEqual(['missed', 'in_progress', 'completed']);
     expect(db.select().from(incidents).all()).toEqual([expect.objectContaining({ category: 'damaged_tag', note: 'Letörött.' })]);
-    const manual = db.select().from(scans).all().find((row) => row.method === 'manual')!;
-    expect(db.select({ owner_type: media.owner_type, owner_id: media.owner_id, uploaded_at: media.uploaded_at }).from(media).all()).toEqual([{ owner_type: 'scan', owner_id: manual.id, uploaded_at: null }]);
+    const manual = db
+      .select()
+      .from(scans)
+      .all()
+      .find((row) => row.method === 'manual')!;
+    expect(db.select({ owner_type: media.owner_type, owner_id: media.owner_id, uploaded_at: media.uploaded_at }).from(media).all()).toEqual(
+      [{ owner_type: 'scan', owner_id: manual.id, uploaded_at: null }],
+    );
 
     now = local('21:15');
     const handover = guardLogin(loadState(), OTHER_GUARD, now, newId);
     await write(handover.drafts);
     expect(roundStatuses().map((r) => r.status)).toEqual(['missed', 'incomplete', 'completed']);
-    expect(db.select({ guard_id: shifts.guard_id, closed_by: shifts.closed_by }).from(shifts).orderBy(asc(shifts.started_at)).all()).toEqual([
+    expect(
+      db.select({ guard_id: shifts.guard_id, closed_by: shifts.closed_by }).from(shifts).orderBy(asc(shifts.started_at)).all(),
+    ).toEqual([
       { guard_id: GUARD, closed_by: 'handover' },
       { guard_id: OTHER_GUARD, closed_by: null },
     ]);
@@ -79,6 +99,12 @@ describe('a night on the site phone', () => {
     now = local('21:20');
     expect(schedulerStep(loadState(), now, newId)).toEqual([]);
     // shift_started; 4 scheduler entries; scan; manual scan + incident; scan + round_closed; scan; handover 3.
-    expect(db.select().from(chainEntries).all().map((entry) => entry.seq)).toEqual(Array.from({ length: 14 }, (_, i) => i + 1));
+    expect(
+      db
+        .select()
+        .from(chainEntries)
+        .all()
+        .map((entry) => entry.seq),
+    ).toEqual(Array.from({ length: 14 }, (_, i) => i + 1));
   });
 });

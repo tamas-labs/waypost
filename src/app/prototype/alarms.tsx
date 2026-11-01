@@ -101,7 +101,10 @@ export default function AlarmsScreen() {
   const body = [typography.bodyRegular, { color: color.text }];
   const small = [typography.small, styles.tabular, { color: color.text2 }];
   const card = { backgroundColor: color.surface, borderColor: color.cardBorder, borderRadius: radius.card, padding: space.l, gap: space.m };
-  const secondary = [styles.button, { backgroundColor: color.bg, borderRadius: radius.pill, minHeight: size.buttonSecondary, paddingHorizontal: space.l }];
+  const secondary = [
+    styles.button,
+    { backgroundColor: color.bg, borderRadius: radius.pill, minHeight: size.buttonSecondary, paddingHorizontal: space.l },
+  ];
 
   const button = (title: TranslationKey, onPress: () => void) => (
     <Pressable accessibilityRole="button" disabled={busy} onPress={onPress} style={secondary}>
@@ -171,10 +174,17 @@ export default function AlarmsScreen() {
         onPress={() => run(scheduleTestAlarms)}
         style={[
           styles.button,
-          { backgroundColor: color.accent, borderRadius: radius.pill, minHeight: size.buttonHero, opacity: busy || !notificationsGranted ? 0.5 : 1 },
+          {
+            backgroundColor: color.accent,
+            borderRadius: radius.pill,
+            minHeight: size.buttonHero,
+            opacity: busy || !notificationsGranted ? 0.5 : 1,
+          },
         ]}
       >
-        <Text style={[typography.button, { color: color.onAccent }]}>{t('prototype.alarms.schedule', { hours: TEST_HOURS, every: TEST_EVERY_MIN })}</Text>
+        <Text style={[typography.button, { color: color.onAccent }]}>
+          {t('prototype.alarms.schedule', { hours: TEST_HOURS, every: TEST_EVERY_MIN })}
+        </Text>
       </Pressable>
       {error !== null && <Text style={[typography.bodyRegular, { color: color.miss }]}>{t('prototype.alarms.error', { error })}</Text>}
 

@@ -30,14 +30,22 @@ describe('PIN lockout', () => {
   });
 
   it('doubles the lock at every further wrong PIN', () => {
-    expect([5, 6, 7, 8].map((n) => failures(n).lock?.duration_ms)).toEqual([FIRST_LOCK_MS, 2 * FIRST_LOCK_MS, 4 * FIRST_LOCK_MS, 8 * FIRST_LOCK_MS]);
+    expect([5, 6, 7, 8].map((n) => failures(n).lock?.duration_ms)).toEqual([
+      FIRST_LOCK_MS,
+      2 * FIRST_LOCK_MS,
+      4 * FIRST_LOCK_MS,
+      8 * FIRST_LOCK_MS,
+    ]);
     expect(failures(200).lock?.duration_ms).toBe(FIRST_LOCK_MS * 2 ** 30);
   });
 
   it('starts a running lock again with its full duration after a restart (Q6)', () => {
     const lockout = failures(6, 5_000_000);
     const afterRestart = lockStatus(lockout, at(40_000, 'android-boot:13'));
-    expect(afterRestart).toEqual({ lockout: { failures: 6, lock: { duration_ms: 2 * FIRST_LOCK_MS, started_uptime_ms: 40_000, boot_id: 'android-boot:13' } }, remaining_ms: 2 * FIRST_LOCK_MS });
+    expect(afterRestart).toEqual({
+      lockout: { failures: 6, lock: { duration_ms: 2 * FIRST_LOCK_MS, started_uptime_ms: 40_000, boot_id: 'android-boot:13' } },
+      remaining_ms: 2 * FIRST_LOCK_MS,
+    });
     expect(lockStatus(afterRestart.lockout, at(40_000 + FIRST_LOCK_MS, 'android-boot:13')).remaining_ms).toBe(FIRST_LOCK_MS);
     // An uptime that went back on the same boot ID is treated the same way.
     expect(lockStatus(lockout, at(0)).remaining_ms).toBe(2 * FIRST_LOCK_MS);

@@ -62,7 +62,12 @@ function isRejectedCursor(error: unknown): boolean {
 }
 
 /** Requests the pages from the saved cursor until has_more is false; nothing is written. */
-export async function fetchPullPages(db: Database, api: ApiClient, token: string, readClock: ReadClock = defaultReadClock): Promise<ReceivedPage[]> {
+export async function fetchPullPages(
+  db: Database,
+  api: ApiClient,
+  token: string,
+  readClock: ReadClock = defaultReadClock,
+): Promise<ReceivedPage[]> {
   let cursor = getKv(db, 'sync.cursor');
   const pages: ReceivedPage[] = [];
   for (;;) {
@@ -99,7 +104,8 @@ function applyChanges(tx: Database, changes: Changes): void {
   for (const row of changes.devices) tx.insert(devices).values(row).onConflictDoUpdate({ target: devices.id, set: row }).run();
   for (const row of changes.checkpoints) tx.insert(checkpoints).values(row).onConflictDoUpdate({ target: checkpoints.id, set: row }).run();
   for (const row of changes.routes) tx.insert(routes).values(row).onConflictDoUpdate({ target: routes.id, set: row }).run();
-  for (const row of changes.route_versions) tx.insert(routeVersions).values(row).onConflictDoUpdate({ target: routeVersions.id, set: row }).run();
+  for (const row of changes.route_versions)
+    tx.insert(routeVersions).values(row).onConflictDoUpdate({ target: routeVersions.id, set: row }).run();
   for (const row of changes.route_version_checkpoints) {
     tx.insert(routeVersionCheckpoints)
       .values(row)
@@ -125,7 +131,8 @@ function applyDeleted(tx: Database, deleted: Deleted): void {
   if (deleted.checkpoints.length > 0) tx.delete(checkpoints).where(inArray(checkpoints.id, deleted.checkpoints)).run();
   if (deleted.routes.length > 0) tx.delete(routes).where(inArray(routes.id, deleted.routes)).run();
   if (deleted.schedules.length > 0) tx.delete(schedules).where(inArray(schedules.id, deleted.schedules)).run();
-  if (deleted.report_subscriptions.length > 0) tx.delete(reportSubscriptions).where(inArray(reportSubscriptions.id, deleted.report_subscriptions)).run();
+  if (deleted.report_subscriptions.length > 0)
+    tx.delete(reportSubscriptions).where(inArray(reportSubscriptions.id, deleted.report_subscriptions)).run();
 }
 
 /** Adds the length of every list to the counts (the lists of a page always have every key). */
@@ -159,7 +166,13 @@ export function applyPullPages(db: Database, pages: readonly ReceivedPage[]): Pu
     }
     setKv(tx, 'sync.cursor', last.page.cursor);
     recordServerTime(tx, last.page.server_time, last.clock);
-    return { pages: pages.length, reset, changed: changed as PullSummary['changed'], deleted: deleted as PullSummary['deleted'], server_time: last.page.server_time };
+    return {
+      pages: pages.length,
+      reset,
+      changed: changed as PullSummary['changed'],
+      deleted: deleted as PullSummary['deleted'],
+      server_time: last.page.server_time,
+    };
   });
 }
 

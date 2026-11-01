@@ -41,7 +41,14 @@ export function loadShiftCloseInfo(db: Database, readClock: ReadClock = readDevi
   const summary = state === null ? null : shiftSummary(state, now);
   if (state === null || shift === null || summary === null) return null;
 
-  const routeNames = new Map(db.select({ id: routes.id, name: routes.name }).from(routes).where(eq(routes.site_id, state.site_id)).all().map((route) => [route.id, route.name]));
+  const routeNames = new Map(
+    db
+      .select({ id: routes.id, name: routes.name })
+      .from(routes)
+      .where(eq(routes.site_id, state.site_id))
+      .all()
+      .map((route) => [route.id, route.name]),
+  );
   const named = <R extends ShiftRound>(round: R): Named<R> => ({ ...round, route_name: routeNames.get(round.route_id) ?? '' });
   return {
     timezone: state.timezone,
@@ -66,7 +73,12 @@ export function loadShiftCloseInfo(db: Database, readClock: ReadClock = readDevi
  * Checks that the PIN is the guard's; if it is, closes the shift and logs the guard out (the navigation follows the session
  * to the PIN screen). Throws if the entries cannot be written, and the guard stays logged in then.
  */
-export async function closeShiftWithPin(db: Database, guardId: string, pin: string, readClock: ReadClock = readDeviceClock): Promise<PinLoginResult> {
+export async function closeShiftWithPin(
+  db: Database,
+  guardId: string,
+  pin: string,
+  readClock: ReadClock = readDeviceClock,
+): Promise<PinLoginResult> {
   const result = await pinConfirm(db, guardId, pin, readClock);
   if (result.status !== 'ok') return result;
   await appendDecidedEntries(

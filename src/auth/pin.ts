@@ -43,17 +43,38 @@ export function pinLockRemaining(db: Database, readClock: ReadClock = readDevice
 /** The active users of this phone's site who have a PIN. */
 function candidates(db: Database) {
   const deviceId = getKv(db, 'device.id');
-  const siteId = deviceId === null ? undefined : db.select({ site_id: devices.site_id }).from(devices).where(eq(devices.id, deviceId)).get()?.site_id;
+  const siteId =
+    deviceId === null ? undefined : db.select({ site_id: devices.site_id }).from(devices).where(eq(devices.id, deviceId)).get()?.site_id;
   if (siteId === undefined || siteId === null) throw new Error('The phone is not assigned to a site');
   return db
-    .select({ id: users.id, name: users.name, role: users.role, pin_hash: users.pin_hash, pin_salt: users.pin_salt, pin_iterations: users.pin_iterations })
+    .select({
+      id: users.id,
+      name: users.name,
+      role: users.role,
+      pin_hash: users.pin_hash,
+      pin_salt: users.pin_salt,
+      pin_iterations: users.pin_iterations,
+    })
     .from(users)
     .innerJoin(siteUser, eq(siteUser.user_id, users.id))
-    .where(and(eq(siteUser.site_id, siteId), eq(users.active, true), isNotNull(users.pin_hash), isNotNull(users.pin_salt), isNotNull(users.pin_iterations)))
+    .where(
+      and(
+        eq(siteUser.site_id, siteId),
+        eq(users.active, true),
+        isNotNull(users.pin_hash),
+        isNotNull(users.pin_salt),
+        isNotNull(users.pin_iterations),
+      ),
+    )
     .all();
 }
 
-async function checkPin(db: Database, pin: string, readClock: ReadClock, usersToCheck: () => ReturnType<typeof candidates>): Promise<PinLoginResult> {
+async function checkPin(
+  db: Database,
+  pin: string,
+  readClock: ReadClock,
+  usersToCheck: () => ReturnType<typeof candidates>,
+): Promise<PinLoginResult> {
   if (!PIN.test(pin)) throw new Error('A PIN is 6 digits');
   const remaining = pinLockRemaining(db, readClock);
   if (remaining > 0) return { status: 'locked', remaining_ms: remaining };

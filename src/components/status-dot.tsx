@@ -30,7 +30,10 @@ export function StatusDot(props: StatusDotProps) {
 
   if ('number' in props) {
     const tone = props.tone ?? 'run';
-    const fill = tone === 'next' ? { borderWidth: border.ring, borderColor: color.accent } : { backgroundColor: tone === 'warn' ? color.warnBg : color.runBg };
+    const fill =
+      tone === 'next'
+        ? { borderWidth: border.ring, borderColor: color.accent }
+        : { backgroundColor: tone === 'warn' ? color.warnBg : color.runBg };
     const fg = tone === 'next' ? color.accent : tone === 'warn' ? color.warn : color.run;
     return (
       <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[styles.dot, circle, fill]}>

@@ -41,7 +41,12 @@ const GUARD = '019a2b3c-4d5e-7f00-8a00-000000000003';
 const SHIFT = '019a2b3c-4d5e-7f00-8a00-000000000020';
 const ROUND = '019a2b3c-4d5e-7f00-8a00-000000000021';
 const CHECKPOINT = '019a2b3c-4d5e-7f00-8a00-000000000006';
-const ROUND_FIELDS = { route_version_id: '019a2b3c-4d5e-7f00-8a00-000000000008', schedule_id: '019a2b3c-4d5e-7f00-8a00-000000000009', scheduled_at: '2026-10-27T20:00:00.000Z', time_limit_min: 20 };
+const ROUND_FIELDS = {
+  route_version_id: '019a2b3c-4d5e-7f00-8a00-000000000008',
+  schedule_id: '019a2b3c-4d5e-7f00-8a00-000000000009',
+  scheduled_at: '2026-10-27T20:00:00.000Z',
+  time_limit_min: 20,
+};
 
 let db: Database;
 let clockMs: number;
@@ -58,7 +63,15 @@ const openRound = (round_id = ROUND) => appendChainEntry(db, roundOpened({ round
 const scanCheckpoint = (scan_id: string, checkpoint_id: string | null = CHECKPOINT) =>
   appendChainEntry(
     db,
-    scan({ scan_id, round_id: ROUND, checkpoint_id, method: 'qr', qr_payload: 'waypost:cp:x', location: null, flags: checkpoint_id === null ? ['unknown_tag'] : [] }),
+    scan({
+      scan_id,
+      round_id: ROUND,
+      checkpoint_id,
+      method: 'qr',
+      qr_payload: 'waypost:cp:x',
+      location: null,
+      flags: checkpoint_id === null ? ['unknown_tag'] : [],
+    }),
     options,
   );
 
@@ -84,7 +97,11 @@ describe('chain writer', () => {
         db,
         [
           roundOpened(SECOND.payload),
-          scan({ ...THIRD.payload, flags: [], location: { latitude: 47.4979, longitude: 19.0402, accuracy_m: 12.5, mocked: false, gnss_time: null } }),
+          scan({
+            ...THIRD.payload,
+            flags: [],
+            location: { latitude: 47.4979, longitude: 19.0402, accuracy_m: 12.5, mocked: false, gnss_time: null },
+          }),
         ],
         { readClock: vectorClock },
       )),
@@ -92,17 +109,47 @@ describe('chain writer', () => {
 
     expect(written).toEqual(vectors);
     expect(allEntries()).toEqual(vectors.map((entry) => ({ ...entry, synced_at: null })));
-    expect(db.select().from(shifts).all()).toEqual([{ id: SHIFT, site_id: SITE, device_id: DEVICE, guard_id: GUARD, started_at: FIRST.device_time, ended_at: null, closed_by: null, chain_entry_id: FIRST.id }]);
-    expect(db.select().from(rounds).all()).toEqual([{ id: ROUND, shift_id: SHIFT, ...ROUND_FIELDS, started_at: THIRD.device_time, finished_at: null, status: 'in_progress' }]);
+    expect(db.select().from(shifts).all()).toEqual([
+      {
+        id: SHIFT,
+        site_id: SITE,
+        device_id: DEVICE,
+        guard_id: GUARD,
+        started_at: FIRST.device_time,
+        ended_at: null,
+        closed_by: null,
+        chain_entry_id: FIRST.id,
+      },
+    ]);
+    expect(db.select().from(rounds).all()).toEqual([
+      { id: ROUND, shift_id: SHIFT, ...ROUND_FIELDS, started_at: THIRD.device_time, finished_at: null, status: 'in_progress' },
+    ]);
     expect(db.select().from(scans).all()).toEqual([
-      expect.objectContaining({ id: '019a2b3c-4d5e-7f00-8a00-000000000022', round_id: ROUND, method: 'qr', scanned_at: THIRD.device_time, lat_e7: 474979000, is_mock: false, flags: [], chain_entry_id: THIRD.id }),
+      expect.objectContaining({
+        id: '019a2b3c-4d5e-7f00-8a00-000000000022',
+        round_id: ROUND,
+        method: 'qr',
+        scanned_at: THIRD.device_time,
+        lat_e7: 474979000,
+        is_mock: false,
+        flags: [],
+        chain_entry_id: THIRD.id,
+      }),
     ]);
     expect(notifyChainEntry).toHaveBeenCalledTimes(2);
   });
 
   it('starts the chain at seq 1 with 64 zeros, without a sync reference before the first sync', async () => {
     const entry = await startShift();
-    expect(entry).toMatchObject({ seq: 1, device_id: DEVICE, prev_hash: GENESIS_HASH, gnss_time: null, ref_server_time: null, ref_uptime_ms: null, ref_boot_id: null });
+    expect(entry).toMatchObject({
+      seq: 1,
+      device_id: DEVICE,
+      prev_hash: GENESIS_HASH,
+      gnss_time: null,
+      ref_server_time: null,
+      ref_uptime_ms: null,
+      ref_boot_id: null,
+    });
     expect(entry).toMatchObject({ device_time: '2026-10-27T20:00:01.000Z', uptime_ms: 72_001_000, boot_id: 'android-17' });
     expect(verifyChainEntry(entry, KEY)).toBe(true);
   });
@@ -110,7 +157,12 @@ describe('chain writer', () => {
   it('records the GNSS time of the location', async () => {
     const entry = await appendChainEntry(
       db,
-      incident({ incident_id: uuidv7(), shift_id: SHIFT, category: 'water', location: { latitude: 47.5, longitude: 19, accuracy_m: 4, mocked: false, gnss_time: '2026-10-27T19:59:59.000Z' } }),
+      incident({
+        incident_id: uuidv7(),
+        shift_id: SHIFT,
+        category: 'water',
+        location: { latitude: 47.5, longitude: 19, accuracy_m: 4, mocked: false, gnss_time: '2026-10-27T19:59:59.000Z' },
+      }),
       options,
     );
     expect(entry.gnss_time).toBe('2026-10-27T19:59:59.000Z');
@@ -121,7 +173,12 @@ describe('chain writer', () => {
     // The secret arrives in random order, so without the lock the writes would interleave.
     const slowSecret = () => new Promise<string>((resolve) => setTimeout(() => resolve(KEY), Math.floor(Math.random() * 5)));
     const written = await Promise.all(
-      ids.map((incident_id) => appendChainEntry(db, incident({ incident_id, shift_id: SHIFT, category: 'other', location: null }), { readClock, readSecret: slowSecret })),
+      ids.map((incident_id) =>
+        appendChainEntry(db, incident({ incident_id, shift_id: SHIFT, category: 'other', location: null }), {
+          readClock,
+          readSecret: slowSecret,
+        }),
+      ),
     );
 
     const stored = allEntries();
@@ -139,7 +196,11 @@ describe('chain writer', () => {
   it('writes neither entries nor projections if one entry of a request fails, and seq does not move', async () => {
     await startShift();
     await expect(
-      appendChainEntries(db, [roundOpened({ round_id: ROUND, shift_id: SHIFT, ...ROUND_FIELDS }), shiftClosed({ shift_id: uuidv7(), closed_by: 'guard' })], options),
+      appendChainEntries(
+        db,
+        [roundOpened({ round_id: ROUND, shift_id: SHIFT, ...ROUND_FIELDS }), shiftClosed({ shift_id: uuidv7(), closed_by: 'guard' })],
+        options,
+      ),
     ).rejects.toThrow(ProjectionError);
     // The same shift again: the projection's primary key fails after the entry was inserted.
     await expect(startShift()).rejects.toThrow();
@@ -163,9 +224,9 @@ describe('chain writer', () => {
     deleteKv(db, 'device.id');
     await expect(startShift()).rejects.toThrow(new ChainWriteError('No device ID: the phone is not enrolled'));
     setKv(db, 'device.id', DEVICE);
-    await expect(appendChainEntry(db, shiftStarted({ shift_id: SHIFT, guard_id: GUARD, site_id: SITE }), { readClock, readSecret: async () => null })).rejects.toThrow(
-      new ChainWriteError('No device secret: the phone is not enrolled'),
-    );
+    await expect(
+      appendChainEntry(db, shiftStarted({ shift_id: SHIFT, guard_id: GUARD, site_id: SITE }), { readClock, readSecret: async () => null }),
+    ).rejects.toThrow(new ChainWriteError('No device secret: the phone is not enrolled'));
     expect(allEntries()).toEqual([]);
 
     await expect(startShift()).resolves.toMatchObject({ seq: 1 });
@@ -199,7 +260,11 @@ describe('chain writer', () => {
     const unsubscribe = onChainEntries((entries) => heard.push(entries.map((entry) => entry.seq)));
     await startShift();
     await expect(startShift()).rejects.toThrow();
-    await appendChainEntries(db, [roundOpened({ round_id: ROUND, shift_id: SHIFT, ...ROUND_FIELDS }), shiftClosed({ shift_id: SHIFT, closed_by: 'guard' })], options);
+    await appendChainEntries(
+      db,
+      [roundOpened({ round_id: ROUND, shift_id: SHIFT, ...ROUND_FIELDS }), shiftClosed({ shift_id: SHIFT, closed_by: 'guard' })],
+      options,
+    );
     unsubscribe();
     await openRound(uuidv7()).catch(() => undefined);
     expect(heard).toEqual([[1], [2, 3]]);
@@ -208,7 +273,10 @@ describe('chain writer', () => {
   it('starts a new chain for a newly enrolled device', async () => {
     await startShift();
     setKv(db, 'device.id', '019a2b3c-4d5e-7f00-8a00-0000000000d2');
-    await expect(appendChainEntry(db, shiftClosed({ shift_id: SHIFT, closed_by: 'guard' }), options)).resolves.toMatchObject({ seq: 1, prev_hash: GENESIS_HASH });
+    await expect(appendChainEntry(db, shiftClosed({ shift_id: SHIFT, closed_by: 'guard' }), options)).resolves.toMatchObject({
+      seq: 1,
+      prev_hash: GENESIS_HASH,
+    });
   });
 });
 
@@ -236,49 +304,103 @@ describe('chain projections', () => {
   });
 
   it('store incidents with the entry time', async () => {
-    const entry = await appendChainEntry(db, incident({ incident_id: uuidv7(), shift_id: SHIFT, category: 'open_door', note: 'Nyitva.', location: null }), options);
-    expect(db.select().from(incidents).get()).toMatchObject({ category: 'open_door', note: 'Nyitva.', occurred_at: entry.device_time, chain_entry_id: entry.id });
+    const entry = await appendChainEntry(
+      db,
+      incident({ incident_id: uuidv7(), shift_id: SHIFT, category: 'open_door', note: 'Nyitva.', location: null }),
+      options,
+    );
+    expect(db.select().from(incidents).get()).toMatchObject({
+      category: 'open_door',
+      note: 'Nyitva.',
+      occurred_at: entry.device_time,
+      chain_entry_id: entry.id,
+    });
   });
 
   it('reject entries for closed or unknown rounds and shifts', async () => {
     await appendChainEntry(db, roundClosed({ round_id: ROUND, status: 'missed', finished_at: '2026-10-27T20:20:00.000Z' }), options);
     await expect(scanCheckpoint(uuidv7())).rejects.toThrow(new ProjectionError(`Round ${ROUND} is already closed`));
-    await expect(appendChainEntry(db, roundClosed({ round_id: ROUND, status: 'completed', finished_at: '2026-10-27T20:21:00.000Z' }), options)).rejects.toThrow(ProjectionError);
+    await expect(
+      appendChainEntry(db, roundClosed({ round_id: ROUND, status: 'completed', finished_at: '2026-10-27T20:21:00.000Z' }), options),
+    ).rejects.toThrow(ProjectionError);
     const unknown = uuidv7();
-    await expect(appendChainEntry(db, roundClosed({ round_id: unknown, status: 'missed', finished_at: '2026-10-27T20:20:00.000Z' }), options)).rejects.toThrow(
-      new ProjectionError(`Unknown round ${unknown}`),
-    );
+    await expect(
+      appendChainEntry(db, roundClosed({ round_id: unknown, status: 'missed', finished_at: '2026-10-27T20:20:00.000Z' }), options),
+    ).rejects.toThrow(new ProjectionError(`Unknown round ${unknown}`));
 
     await appendChainEntry(db, shiftClosed({ shift_id: SHIFT, closed_by: 'guard' }), options);
-    await expect(appendChainEntry(db, shiftClosed({ shift_id: SHIFT, closed_by: 'auto' }), options)).rejects.toThrow(new ProjectionError(`Shift ${SHIFT} is already closed`));
+    await expect(appendChainEntry(db, shiftClosed({ shift_id: SHIFT, closed_by: 'auto' }), options)).rejects.toThrow(
+      new ProjectionError(`Shift ${SHIFT} is already closed`),
+    );
     await expect(openRound(uuidv7())).rejects.toThrow(ProjectionError);
     expect(allEntries()).toHaveLength(4);
   });
 
   const photo = (sha: string): PhotoFile => {
     const id = uuidv7();
-    return { id, sha256: sha.repeat(64), mime: 'image/jpeg', size_bytes: 245_000, local_uri: `file:///data/media/${id}.jpg`, taken_at: '2026-10-27T20:04:00.000Z' };
+    return {
+      id,
+      sha256: sha.repeat(64),
+      mime: 'image/jpeg',
+      size_bytes: 245_000,
+      local_uri: `file:///data/media/${id}.jpg`,
+      taken_at: '2026-10-27T20:04:00.000Z',
+    };
   };
 
   it('record the photos with the entries citing them, owned by the first one', async () => {
     const photos = [photo('a'), photo('b')];
     const scanId = uuidv7();
     const incidentId = uuidv7();
-    const manual = scan({ scan_id: scanId, round_id: ROUND, checkpoint_id: CHECKPOINT, method: 'manual', location: null, flags: ['manual'], note: 'Leszakadt.', media: photos });
-    const damaged = incident({ incident_id: incidentId, shift_id: SHIFT, category: 'damaged_tag', note: 'Leszakadt.', location: null, scan_id: scanId, media: photos });
+    const manual = scan({
+      scan_id: scanId,
+      round_id: ROUND,
+      checkpoint_id: CHECKPOINT,
+      method: 'manual',
+      location: null,
+      flags: ['manual'],
+      note: 'Leszakadt.',
+      media: photos,
+    });
+    const damaged = incident({
+      incident_id: incidentId,
+      shift_id: SHIFT,
+      category: 'damaged_tag',
+      note: 'Leszakadt.',
+      location: null,
+      scan_id: scanId,
+      media: photos,
+    });
     await appendChainEntries(db, [manual, damaged], { ...options, photos });
-    expect(db.select().from(media).orderBy(asc(media.id)).all()).toEqual(photos.map((p) => ({ ...p, owner_type: 'scan', owner_id: scanId, uploaded_at: null })));
+    expect(db.select().from(media).orderBy(asc(media.id)).all()).toEqual(
+      photos.map((p) => ({ ...p, owner_type: 'scan', owner_id: scanId, uploaded_at: null })),
+    );
     const incidentPhoto = photo('c');
-    await appendChainEntries(db, [incident({ incident_id: uuidv7(), shift_id: SHIFT, category: 'water', note: null, location: null, media: [incidentPhoto] })], { ...options, photos: [incidentPhoto] });
-    expect(db.select().from(media).all().find((row) => row.id === incidentPhoto.id)).toMatchObject({ owner_type: 'incident' });
+    await appendChainEntries(
+      db,
+      [incident({ incident_id: uuidv7(), shift_id: SHIFT, category: 'water', note: null, location: null, media: [incidentPhoto] })],
+      { ...options, photos: [incidentPhoto] },
+    );
+    expect(
+      db
+        .select()
+        .from(media)
+        .all()
+        .find((row) => row.id === incidentPhoto.id),
+    ).toMatchObject({ owner_type: 'incident' });
   });
 
   it('write nothing if a cited photo is missing or differs, or a photo is not cited', async () => {
     const given = photo('a');
-    const cites = (refs: { id: string; sha256: string }[]) => incident({ incident_id: uuidv7(), shift_id: SHIFT, category: 'water', note: null, location: null, media: refs });
+    const cites = (refs: { id: string; sha256: string }[]) =>
+      incident({ incident_id: uuidv7(), shift_id: SHIFT, category: 'water', note: null, location: null, media: refs });
     await expect(appendChainEntries(db, [cites([given])], options)).rejects.toThrow(ProjectionError);
-    await expect(appendChainEntries(db, [cites([{ id: given.id, sha256: 'f'.repeat(64) }])], { ...options, photos: [given] })).rejects.toThrow(ProjectionError);
-    await expect(appendChainEntries(db, [cites([])], { ...options, photos: [given] })).rejects.toThrow(new ChainWriteError(`Photos not cited by any entry: ${given.id}`));
+    await expect(
+      appendChainEntries(db, [cites([{ id: given.id, sha256: 'f'.repeat(64) }])], { ...options, photos: [given] }),
+    ).rejects.toThrow(ProjectionError);
+    await expect(appendChainEntries(db, [cites([])], { ...options, photos: [given] })).rejects.toThrow(
+      new ChainWriteError(`Photos not cited by any entry: ${given.id}`),
+    );
     await expect(appendChainEntries(db, [], { ...options, photos: [given] })).rejects.toThrow(ChainWriteError);
     expect(db.select().from(media).all()).toEqual([]);
     expect(db.select().from(incidents).all()).toEqual([]);

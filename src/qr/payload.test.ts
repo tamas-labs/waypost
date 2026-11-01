@@ -20,7 +20,15 @@ describe('isWaypostQr', () => {
   });
 
   test('ignores every other code', () => {
-    for (const text of ['', 'https://waypost.dev/cp/1', 'WAYPOST:CP:' + CHECKPOINT_ID, ' ' + VALID, 'waypost:site:1', 'WIFI:S:guest;;', '5999881234567']) {
+    for (const text of [
+      '',
+      'https://waypost.dev/cp/1',
+      'WAYPOST:CP:' + CHECKPOINT_ID,
+      ' ' + VALID,
+      'waypost:site:1',
+      'WIFI:S:guest;;',
+      '5999881234567',
+    ]) {
       expect(isWaypostQr(text)).toBe(false);
     }
   });

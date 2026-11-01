@@ -103,7 +103,9 @@ export default function ShiftStartScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: color.bg }]}>
       <ScreenHeader onBack={() => useSession.setState({ activeUser: null, shiftStart: null })} backLabel={t('shiftStart.logout')} />
-      <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: space.l, paddingBottom: insets.bottom + space.xxl, gap: space.m }]}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingHorizontal: space.l, paddingBottom: insets.bottom + space.xxl, gap: space.m }]}
+      >
         <View style={{ gap: space.xs, paddingHorizontal: space.xs }}>
           <Text style={[typography.title1, { color: color.text }]} accessibilityRole="header">
             {t('shiftStart.hello', { name: info?.guard_name ?? '' })}
@@ -115,19 +117,31 @@ export default function ShiftStartScreen() {
           <InfoBanner variant="info" text={t('shiftStart.noRounds')} />
         ) : (
           <Card>
-            <ShiftRow label={t('shiftStart.shift')} value={t('shiftStart.shiftTimes', { from: time(day.first_at), to: time(day.last_at) })} large />
+            <ShiftRow
+              label={t('shiftStart.shift')}
+              value={t('shiftStart.shiftTimes', { from: time(day.first_at), to: time(day.last_at) })}
+              large
+            />
             {day.routes.map((route) => (
               <View key={route.route_id} style={{ gap: space.m }}>
-                <ShiftRow label={t('shiftStart.route')} value={t('shiftStart.routeValue', { name: route.name, count: route.checkpoints })} />
+                <ShiftRow
+                  label={t('shiftStart.route')}
+                  value={t('shiftStart.routeValue', { name: route.name, count: route.checkpoints })}
+                />
                 <ShiftRow label={t('shiftStart.rounds')} value={roundsLine(route.rounds, route.schedules)} />
               </View>
             ))}
           </Card>
         )}
 
-        {handover !== null && <InfoBanner variant="info" text={t('shiftStart.handover', { name: handover.guard_name, time: time(handover.at) })} />}
+        {handover !== null && (
+          <InfoBanner variant="info" text={t('shiftStart.handover', { name: handover.guard_name, time: time(handover.at) })} />
+        )}
 
-        <Text style={[typography.label, { color: color.text2, paddingHorizontal: space.xs, paddingTop: space.s }]} accessibilityRole="header">
+        <Text
+          style={[typography.label, { color: color.text2, paddingHorizontal: space.xs, paddingTop: space.s }]}
+          accessibilityRole="header"
+        >
           {t('shiftStart.readiness')}
         </Text>
         {readiness !== null && (

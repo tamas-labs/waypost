@@ -19,12 +19,24 @@ jest.mock('expo-camera', () => {
 });
 jest.mock('expo-image', () => ({ Image: () => null }));
 jest.mock('expo-router', () => ({ Stack: { Screen: () => null } }));
-jest.mock('@/location/location', () => ({ currentLocation: jest.fn(), hasLocationPermission: jest.fn(), requestLocationPermission: jest.fn() }));
+jest.mock('@/location/location', () => ({
+  currentLocation: jest.fn(),
+  hasLocationPermission: jest.fn(),
+  requestLocationPermission: jest.fn(),
+}));
 jest.mock('@/photo/photo', () => ({ takePhoto: jest.fn(), discardPhoto: jest.fn() }));
 jest.mock('@/feedback/feedback', () => ({ playFeedback: jest.fn() }));
 
-const permission = (granted: boolean) => ({ granted, canAskAgain: true, expires: 'never', status: granted ? 'granted' : 'undetermined' }) as PermissionResponse;
-const photo = (id: string): PhotoFile => ({ id, sha256: 'ab'.repeat(32), mime: 'image/jpeg', size_bytes: 312_456, local_uri: `file:///documents/media/${id}.jpg`, taken_at: '2026-10-29T20:00:00.000Z' });
+const permission = (granted: boolean) =>
+  ({ granted, canAskAgain: true, expires: 'never', status: granted ? 'granted' : 'undetermined' }) as PermissionResponse;
+const photo = (id: string): PhotoFile => ({
+  id,
+  sha256: 'ab'.repeat(32),
+  mime: 'image/jpeg',
+  size_bytes: 312_456,
+  local_uri: `file:///documents/media/${id}.jpg`,
+  taken_at: '2026-10-29T20:00:00.000Z',
+});
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -44,7 +56,13 @@ async function renderScreen() {
 
 describe('location, photo and feedback test screen', () => {
   test('shows the location a scan would record, or that it would have none', async () => {
-    jest.mocked(currentLocation).mockResolvedValueOnce({ latitude: 47.4979, longitude: 19.0402, accuracy_m: 4.2, mocked: true, gnss_time: '2026-10-29T20:03:43.000Z' });
+    jest.mocked(currentLocation).mockResolvedValueOnce({
+      latitude: 47.4979,
+      longitude: 19.0402,
+      accuracy_m: 4.2,
+      mocked: true,
+      gnss_time: '2026-10-29T20:03:43.000Z',
+    });
     await renderScreen();
     await act(async () => fireEvent.press(screen.getByText('Helyadat kérése')));
     expect(screen.getByText('47.4979000, 19.0402000')).toBeOnTheScreen();

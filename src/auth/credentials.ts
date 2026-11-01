@@ -34,7 +34,10 @@ export function deleteSupervisorToken(): Promise<void> {
 
 /** The device token and secret; null unless both are stored. */
 export async function getDeviceCredentials(): Promise<DeviceCredentials | null> {
-  const [token, secret] = await Promise.all([SecureStore.getItemAsync(DEVICE_TOKEN, OPTIONS), SecureStore.getItemAsync(DEVICE_SECRET, OPTIONS)]);
+  const [token, secret] = await Promise.all([
+    SecureStore.getItemAsync(DEVICE_TOKEN, OPTIONS),
+    SecureStore.getItemAsync(DEVICE_SECRET, OPTIONS),
+  ]);
   return token !== null && secret !== null ? { token, secret } : null;
 }
 

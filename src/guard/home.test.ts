@@ -29,7 +29,19 @@ beforeEach(async () => {
 
 async function seedWithGuard() {
   await seedSite(db);
-  db.insert(users).values({ id: GUARD, name: 'Nagy Péter', role: 'guard', pin_hash: null, pin_salt: null, pin_iterations: null, active: true, created_at: AT, updated_at: AT }).run();
+  db.insert(users)
+    .values({
+      id: GUARD,
+      name: 'Nagy Péter',
+      role: 'guard',
+      pin_hash: null,
+      pin_salt: null,
+      pin_iterations: null,
+      active: true,
+      created_at: AT,
+      updated_at: AT,
+    })
+    .run();
   db.insert(siteUser).values({ site_id: SITE, user_id: GUARD }).run();
 }
 
@@ -39,7 +51,12 @@ it('is null until the site is pulled', () => {
 
 it('has no home without an open shift', async () => {
   await seedWithGuard();
-  expect(loadShiftHomeInfo(db, GUARD, readClock)).toEqual({ site_name: 'Raktár', timezone: 'Europe/Budapest', guard_name: 'Nagy Péter', home: null });
+  expect(loadShiftHomeInfo(db, GUARD, readClock)).toEqual({
+    site_name: 'Raktár',
+    timezone: 'Europe/Budapest',
+    guard_name: 'Nagy Péter',
+    home: null,
+  });
 });
 
 it('names the routes and the skipped points of the shift', async () => {
@@ -50,7 +67,12 @@ it('names the routes and the skipped points of the shift', async () => {
   await appendChainEntries(db, schedulerStep(loadGuardState(db, now)!, now, newId), { readClock });
 
   const home = loadShiftHomeInfo(db, GUARD, readClock)!.home!;
-  expect(home.rounds[0]).toMatchObject({ route_id: ROUTE_A, route_name: `Útvonal ${ROUTE_A.slice(-2)}`, state: 'missed', missing_names: ['Pont 1', 'Pont 2', 'Pont 3'] });
+  expect(home.rounds[0]).toMatchObject({
+    route_id: ROUTE_A,
+    route_name: `Útvonal ${ROUTE_A.slice(-2)}`,
+    state: 'missed',
+    missing_names: ['Pont 1', 'Pont 2', 'Pont 3'],
+  });
   expect(home.next_at).toBe(local('20:30'));
 });
 

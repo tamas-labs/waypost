@@ -1,4 +1,14 @@
-import type { Checkpoint, Device, ReportSubscription, Route, RouteVersion, RouteVersionCheckpoint, Schedule, Site, User } from '@waypost/schema';
+import type {
+  Checkpoint,
+  Device,
+  ReportSubscription,
+  Route,
+  RouteVersion,
+  RouteVersionCheckpoint,
+  Schedule,
+  Site,
+  User,
+} from '@waypost/schema';
 import { getTableName } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -20,7 +30,17 @@ const _entitiesFit: [
   (typeof schema.routeVersionCheckpoints.$inferInsert)[],
   (typeof schema.schedules.$inferInsert)[],
   (typeof schema.reportSubscriptions.$inferInsert)[],
-] = [[] as Site[], [] as Omit<User, 'site_ids'>[], [] as Device[], [] as Checkpoint[], [] as Route[], [] as RouteVersion[], [] as RouteVersionCheckpoint[], [] as Schedule[], [] as ReportSubscription[]];
+] = [
+  [] as Site[],
+  [] as Omit<User, 'site_ids'>[],
+  [] as Device[],
+  [] as Checkpoint[],
+  [] as Route[],
+  [] as RouteVersion[],
+  [] as RouteVersionCheckpoint[],
+  [] as Schedule[],
+  [] as ReportSubscription[],
+];
 void _entitiesFit;
 
 const EXAMPLES = join(dirname(require.resolve('@waypost/schema/package.json')), 'examples', 'entities');
@@ -47,7 +67,9 @@ describe('local database', () => {
   it('creates every table of the schema', async () => {
     const { sqlite } = await createTestDatabase();
     const tables = sqlite
-      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle%' ORDER BY name")
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__drizzle%' ORDER BY name",
+      )
       .all()
       .map((row) => (row as { name: string }).name);
     const expected = Object.values(schema)
@@ -68,7 +90,11 @@ describe('local database', () => {
 
   it('has no e-mail or password for users, and no secret for devices', async () => {
     const { sqlite } = await createTestDatabase();
-    const columns = (table: string) => sqlite.prepare(`PRAGMA table_info(${table})`).all().map((row) => (row as { name: string }).name);
+    const columns = (table: string) =>
+      sqlite
+        .prepare(`PRAGMA table_info(${table})`)
+        .all()
+        .map((row) => (row as { name: string }).name);
     expect(columns('users')).not.toEqual(expect.arrayContaining(['email']));
     expect(columns('users')).not.toEqual(expect.arrayContaining(['password']));
     expect(columns('devices')).not.toEqual(expect.arrayContaining(['secret']));
@@ -90,7 +116,9 @@ describe('local database', () => {
     const { db } = await createTestDatabase();
     for (const { site_ids: _siteIds, ...user } of validExamples('user')) {
       db.delete(schema.users).run();
-      db.insert(schema.users).values(user as typeof schema.users.$inferInsert).run();
+      db.insert(schema.users)
+        .values(user as typeof schema.users.$inferInsert)
+        .run();
       expect(db.select().from(schema.users).all()).toEqual([user]);
     }
   });
@@ -115,7 +143,12 @@ describe('local database', () => {
     };
     db.insert(schema.chainEntries).values(entry).run();
     expect(db.select().from(schema.chainEntries).get()).toEqual({ ...entry, synced_at: null });
-    expect(() => db.insert(schema.chainEntries).values({ ...entry, id: '01900000-0000-7000-8000-000000000002' }).run()).toThrow(/UNIQUE/);
+    expect(() =>
+      db
+        .insert(schema.chainEntries)
+        .values({ ...entry, id: '01900000-0000-7000-8000-000000000002' })
+        .run(),
+    ).toThrow(/UNIQUE/);
     db.insert(schema.chainEntries)
       .values({ ...entry, id: '01900000-0000-7000-8000-000000000003', device_id: '01900000-0000-7000-8000-0000000000d2' })
       .run();

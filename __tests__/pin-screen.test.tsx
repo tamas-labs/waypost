@@ -47,7 +47,19 @@ afterEach(() => jest.useRealTimers());
 async function seed() {
   await seedSite(db);
   const { pin_hash, pin_salt, pin_iterations } = basic;
-  db.insert(users).values({ id: GUARD, name: 'Kovács Péter', role: 'guard', pin_hash, pin_salt, pin_iterations, active: true, created_at: AT, updated_at: AT }).run();
+  db.insert(users)
+    .values({
+      id: GUARD,
+      name: 'Kovács Péter',
+      role: 'guard',
+      pin_hash,
+      pin_salt,
+      pin_iterations,
+      active: true,
+      created_at: AT,
+      updated_at: AT,
+    })
+    .run();
   db.insert(siteUser).values({ site_id: SITE, user_id: GUARD }).run();
 }
 
@@ -131,7 +143,9 @@ it('warns when the alarms cannot ring as they should', async () => {
   jest.mocked(getAlarmPermissions).mockResolvedValue({ ...GRANTED, exactAlarms: false, batteryExempt: false });
   await seed();
   await renderScreen();
-  expect(await screen.findByText(/Hiányzik: pontos riasztás, akkumulátorkímélés alóli kivétel\. Szólj a supervisornak\.$/)).toBeOnTheScreen();
+  expect(
+    await screen.findByText(/Hiányzik: pontos riasztás, akkumulátorkímélés alóli kivétel\. Szólj a supervisornak\.$/),
+  ).toBeOnTheScreen();
 });
 
 it('explains the supervisor key: supervisors use their own PIN', async () => {

@@ -32,7 +32,11 @@ describe('sync status', () => {
     const entry = {
       device_id: '019a2b3c-4d5e-7f00-8a00-000000000004',
       type: 'shift_started' as const,
-      payload: { shift_id: '019a2b3c-4d5e-7f00-8a00-0000000000b1', site_id: '019a2b3c-4d5e-7f00-8a00-000000000001', guard_id: '019a2b3c-4d5e-7f00-8a00-000000000003' },
+      payload: {
+        shift_id: '019a2b3c-4d5e-7f00-8a00-0000000000b1',
+        site_id: '019a2b3c-4d5e-7f00-8a00-000000000001',
+        guard_id: '019a2b3c-4d5e-7f00-8a00-000000000003',
+      },
       device_time: '2026-10-27T20:00:00.000Z',
       uptime_ms: 1000,
       boot_id: 'android-boot:12',
@@ -45,7 +49,15 @@ describe('sync status', () => {
         { ...entry, id: '019a2b3c-4d5e-7f00-8a00-0000000000c2', seq: 2 },
       ])
       .run();
-    const photo = { owner_type: 'scan' as const, owner_id: 'x', sha256: 'b'.repeat(64), mime: 'image/jpeg', size_bytes: 1, local_uri: 'file:///p.jpg', taken_at: '2026-10-27T20:00:00.000Z' };
+    const photo = {
+      owner_type: 'scan' as const,
+      owner_id: 'x',
+      sha256: 'b'.repeat(64),
+      mime: 'image/jpeg',
+      size_bytes: 1,
+      local_uri: 'file:///p.jpg',
+      taken_at: '2026-10-27T20:00:00.000Z',
+    };
     db.insert(media)
       .values([
         { ...photo, id: '019a2b3c-4d5e-7f00-8a00-0000000000d1' },
@@ -53,7 +65,14 @@ describe('sync status', () => {
       ])
       .run();
     db.insert(outbox)
-      .values({ id: '019a2b3c-4d5e-7f00-8a00-0000000000e1', method: 'POST', path: '/sites', body: {}, idempotency_key: '019a2b3c-4d5e-7f00-8a00-0000000000e2', created_at: '2026-10-27T20:00:00.000Z' })
+      .values({
+        id: '019a2b3c-4d5e-7f00-8a00-0000000000e1',
+        method: 'POST',
+        path: '/sites',
+        body: {},
+        idempotency_key: '019a2b3c-4d5e-7f00-8a00-0000000000e2',
+        created_at: '2026-10-27T20:00:00.000Z',
+      })
       .run();
 
     expect(countPending(db)).toEqual({ chain_entries: 1, media: 1, outbox: 1, total: 3 });

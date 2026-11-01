@@ -33,7 +33,14 @@ export function PhotoSlot({ uri, number, onPress, accessibilityHint, style }: Ph
       <View
         style={[
           styles.check,
-          { top: space.s, right: space.s, width: size.photoCheck, height: size.photoCheck, borderRadius: size.photoCheck / 2, backgroundColor: color.ok },
+          {
+            top: space.s,
+            right: space.s,
+            width: size.photoCheck,
+            height: size.photoCheck,
+            borderRadius: size.photoCheck / 2,
+            backgroundColor: color.ok,
+          },
         ]}
       >
         <Icon name="check" size={iconSize.badge} color={color.bg} strokeWidth={iconStroke.bold} />

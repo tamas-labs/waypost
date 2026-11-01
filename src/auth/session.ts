@@ -35,7 +35,11 @@ export const useSession = create<SessionState>(() => ({ mode: null, deviceId: nu
 /** Reads the credentials and the database, cleans up leftovers, and sets the device mode. At start and after enrollment. */
 export async function loadSession(db: Database): Promise<DeviceMode> {
   const [device, supervisorToken] = await Promise.all([getDeviceCredentials(), getSupervisorToken()]);
-  const startup = resolveStartup({ hasDeviceCredentials: device !== null, deviceId: getKv(db, 'device.id'), hasSupervisorToken: supervisorToken !== null });
+  const startup = resolveStartup({
+    hasDeviceCredentials: device !== null,
+    deviceId: getKv(db, 'device.id'),
+    hasSupervisorToken: supervisorToken !== null,
+  });
   if (startup.deleteDeviceCredentials) await deleteDeviceCredentials();
   if (startup.deleteSupervisorToken) await deleteSupervisorToken();
   useSession.setState({ mode: startup.mode, deviceId: startup.deviceId, activeUser: null, shiftStart: null });

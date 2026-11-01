@@ -88,7 +88,11 @@ describe('the indicator', () => {
       await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Online · 3 vár' })));
       expect(screen.getByRole('button', { name: 'Online · 3 vár' })).toBeExpanded();
       // In the time zone of the device.
-      expect(screen.getByText(`Utolsó szinkron: ${formatSyncTime('2026-10-29T21:14:00.000Z', Date.now(), Intl.DateTimeFormat().resolvedOptions().timeZone)}`)).toBeOnTheScreen();
+      expect(
+        screen.getByText(
+          `Utolsó szinkron: ${formatSyncTime('2026-10-29T21:14:00.000Z', Date.now(), Intl.DateTimeFormat().resolvedOptions().timeZone)}`,
+        ),
+      ).toBeOnTheScreen();
       expect(screen.getByText('3 tétel vár feltöltésre')).toBeOnTheScreen();
 
       await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Szinkronizálás most' })));

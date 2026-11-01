@@ -53,10 +53,16 @@ export function PointListItem({ name, state, meta, position, onPress }: PointLis
             : { backgroundColor: color.card, borderWidth: border.thin, borderColor: color.cardBorder },
       ]}
     >
-      {state === 'pending' && position !== undefined ? <StatusDot number={position} /> : <StatusDot status={s.dot} filled={state === 'missing'} />}
+      {state === 'pending' && position !== undefined ? (
+        <StatusDot number={position} />
+      ) : (
+        <StatusDot status={s.dot} filled={state === 'missing'} />
+      )}
       <View style={styles.texts}>
         <Text style={[typography.body, { color: color.text }]}>{name}</Text>
-        {state !== 'pending' && metaText !== undefined && <Text style={[typography.small, styles.tabular, { color: color[s.meta] }]}>{metaText}</Text>}
+        {state !== 'pending' && metaText !== undefined && (
+          <Text style={[typography.small, styles.tabular, { color: color[s.meta] }]}>{metaText}</Text>
+        )}
       </View>
       {state === 'pending' && <Text style={[typography.small, { color: color.text2 }]}>{statusText}</Text>}
     </Pressable>

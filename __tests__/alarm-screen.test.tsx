@@ -146,7 +146,10 @@ it('opens the round with "Indulok" and stops ringing, opening the round first if
   expect(player().remove).toHaveBeenCalled();
   expect(cancelVibration).toHaveBeenCalled();
   const notifications = jest.requireMock<{ dismissNotificationAsync: jest.Mock }>('expo-notifications');
-  expect(notifications.dismissNotificationAsync.mock.calls.map(([id]) => id)).toEqual([`round:${SCHEDULE_A}:${local('20:00')}`, `reminder:${SCHEDULE_A}:${local('20:00')}`]);
+  expect(notifications.dismissNotificationAsync.mock.calls.map(([id]) => id)).toEqual([
+    `round:${SCHEDULE_A}:${local('20:00')}`,
+    `reminder:${SCHEDULE_A}:${local('20:00')}`,
+  ]);
 });
 
 it('has no way back', async () => {

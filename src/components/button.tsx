@@ -45,9 +45,23 @@ function variantStyle(theme: Theme, variant: ButtonVariant, hero: boolean): Vari
         iconSize: hero ? iconSize.buttonHero : iconSize.button,
       };
     case 'secondary':
-      return { height: size.buttonSecondary, text: 'buttonSm', fg: 'text', bg: 'surface', border: { color: 'cardBorder', width: border.thin, dashed: false }, iconSize: iconSize.button };
+      return {
+        height: size.buttonSecondary,
+        text: 'buttonSm',
+        fg: 'text',
+        bg: 'surface',
+        border: { color: 'cardBorder', width: border.thin, dashed: false },
+        iconSize: iconSize.button,
+      };
     case 'dashed':
-      return { height: size.buttonDashed, text: 'buttonSm', fg: 'accent', bg: null, border: { color: 'dash', width: border.thick, dashed: true }, iconSize: iconSize.button };
+      return {
+        height: size.buttonDashed,
+        text: 'buttonSm',
+        fg: 'accent',
+        bg: null,
+        border: { color: 'dash', width: border.thick, dashed: true },
+        iconSize: iconSize.button,
+      };
     case 'dangerText':
       return { height: size.buttonDanger, text: 'buttonSm', fg: 'miss', bg: null, border: null, iconSize: iconSize.button };
     case 'warnTonal':
@@ -56,7 +70,18 @@ function variantStyle(theme: Theme, variant: ButtonVariant, hero: boolean): Vari
 }
 
 /** The buttons of DESIGN_HANDOFF 5.1: pressed → 0.85 opacity and 0.98 scale, disabled → 0.4 opacity. */
-export function Button({ label, onPress, variant = 'primary', hero = false, icon, iconColor, disabled = false, accessibilityHint, style, testID }: ButtonProps) {
+export function Button({
+  label,
+  onPress,
+  variant = 'primary',
+  hero = false,
+  icon,
+  iconColor,
+  disabled = false,
+  accessibilityHint,
+  style,
+  testID,
+}: ButtonProps) {
   const theme = useTheme();
   const { color, typography, radius, space, press } = theme;
   const v = variantStyle(theme, variant, hero);
@@ -80,7 +105,11 @@ export function Button({ label, onPress, variant = 'primary', hero = false, icon
           gap: space.s,
           backgroundColor: v.bg === null ? undefined : color[v.bg],
         },
-        v.border !== null && { borderColor: color[v.border.color], borderWidth: v.border.width, borderStyle: v.border.dashed ? 'dashed' : 'solid' },
+        v.border !== null && {
+          borderColor: color[v.border.color],
+          borderWidth: v.border.width,
+          borderStyle: v.border.dashed ? 'dashed' : 'solid',
+        },
         pressed && { opacity: press.opacity, transform: [{ scale: press.scale }] },
         disabled && { opacity: press.disabledOpacity },
         style,

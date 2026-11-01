@@ -79,7 +79,9 @@ export default function NewIncidentScreen() {
     setSaving(true);
     setProblem(null);
     try {
-      await draft.recording((photos) => recordIncident(getDatabase(), { category: chosen, note, checkpoint_id: checkpointId }, photos, fix));
+      await draft.recording((photos) =>
+        recordIncident(getDatabase(), { category: chosen, note, checkpoint_id: checkpointId }, photos, fix),
+      );
       playFeedback('success');
       if (useSyncStatus.getState().online === false) showToast(t('incident.savedQueued'), 'offline');
       else showToast(t('incident.saved'));
@@ -95,19 +97,39 @@ export default function NewIncidentScreen() {
   };
 
   const accuracy = fix?.accuracy_m ?? null;
-  const gps = fix === null ? (located ? t('incident.noLocation') : null) : accuracy === null ? t('incident.gpsNoAccuracy') : t('incident.gps', { accuracy: Math.round(accuracy) });
-  const point = place?.point_name == null ? null : t(checkpointId === null ? 'incident.nearest' : 'incident.point', { point: place.point_name });
+  const gps =
+    fix === null
+      ? located
+        ? t('incident.noLocation')
+        : null
+      : accuracy === null
+        ? t('incident.gpsNoAccuracy')
+        : t('incident.gps', { accuracy: Math.round(accuracy) });
+  const point =
+    place?.point_name == null ? null : t(checkpointId === null ? 'incident.nearest' : 'incident.point', { point: place.point_name });
   const auto = [place === null ? null : localTimeOf(place.at_ms, place.timezone), point, gps].filter((part) => part !== null).join(' · ');
 
   const tile = (value: Category, wide = false) => (
-    <CategoryTile key={value} icon={CATEGORIES[value].icon} label={t(CATEGORIES[value].label)} wide={wide} selected={category === value} onPress={() => setCategory(value)} style={wide ? undefined : styles.grow} />
+    <CategoryTile
+      key={value}
+      icon={CATEGORIES[value].icon}
+      label={t(CATEGORIES[value].label)}
+      wide={wide}
+      selected={category === value}
+      onPress={() => setCategory(value)}
+      style={wide ? undefined : styles.grow}
+    />
   );
 
   return (
     // As the Expo guide says: padding on iOS; on Android the view alone keeps the field above the keyboard.
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.grow, { backgroundColor: color.bg }]}>
       <ScreenHeader title={t('incident.title')} onBack={() => router.back()} />
-      <ScrollView style={styles.grow} contentContainerStyle={{ paddingHorizontal: space.l, paddingBottom: space.m, gap: space.l }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.grow}
+        contentContainerStyle={{ paddingHorizontal: space.l, paddingBottom: space.m, gap: space.l }}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={{ gap: space.s }}>
           <Text style={[typography.label, { color: color.text, paddingLeft: space.xs }]}>{t('incident.what')}</Text>
           <View accessibilityRole="radiogroup" accessibilityLabel={t('incident.categories')} style={{ gap: space.s }}>
@@ -120,12 +142,23 @@ export default function NewIncidentScreen() {
           </View>
         </View>
         <PhotoField photos={draft.photos} onAdd={draft.add} onRemove={draft.remove} disabled={saving} />
-        <TextArea label={t('common.note')} requirement="optional" value={note} onChangeText={setNote} maxLength={MAX_NOTE_LENGTH} editable={!saving} />
+        <TextArea
+          label={t('common.note')}
+          requirement="optional"
+          value={note}
+          onChangeText={setNote}
+          maxLength={MAX_NOTE_LENGTH}
+          editable={!saving}
+        />
         {auto !== '' && <Text style={[typography.small, styles.tabular, { color: color.text2, paddingHorizontal: space.xs }]}>{auto}</Text>}
         {problem !== null && <InfoBanner variant="error" text={t(problem === 'closed' ? 'incident.shiftClosed' : 'incident.failed')} />}
       </ScrollView>
       <View style={{ paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: insets.bottom + space.l }}>
-        <Button label={t(saving ? 'incident.saving' : 'incident.submit')} disabled={category === null || saving || problem === 'closed'} onPress={() => category !== null && void save(category)} />
+        <Button
+          label={t(saving ? 'incident.saving' : 'incident.submit')}
+          disabled={category === null || saving || problem === 'closed'}
+          onPress={() => category !== null && void save(category)}
+        />
       </View>
     </KeyboardAvoidingView>
   );
