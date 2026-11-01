@@ -42,13 +42,31 @@ export type ScanOutcome =
   /** No checkpoint has this tag: recorded with unknown_tag, the screen shows an error. */
   { kind: 'unknown_tag'; drafts: ChainEntryDraft[] } | PointOutcome;
 
-/** The active checkpoint of a tag: NFC by UID (uppercase hex), QR by the whole payload. */
-export function findCheckpoint(checkpoints: readonly CheckpointInfo[], read: TagRead): CheckpointInfo | null {
+/** The condition of a checkpoint having a tag: NFC by UID (uppercase hex), QR by the whole payload. */
+function hasTag(read: TagRead): (checkpoint: CheckpointInfo) => boolean {
   if (read.method === 'nfc') {
     const uid = normalizeTagUid(read.tag_uid);
-    return checkpoints.find((checkpoint) => checkpoint.active && checkpoint.tag_uid === uid) ?? null;
+    return (checkpoint) => checkpoint.tag_uid === uid;
   }
-  return checkpoints.find((checkpoint) => checkpoint.active && checkpoint.qr_payload === read.qr_payload) ?? null;
+  return (checkpoint) => checkpoint.qr_payload === read.qr_payload;
+}
+
+/** The active checkpoint of a tag. */
+export function findCheckpoint(checkpoints: readonly CheckpointInfo[], read: TagRead): CheckpointInfo | null {
+  const tagged = hasTag(read);
+  return checkpoints.find((checkpoint) => checkpoint.active && tagged(checkpoint)) ?? null;
+}
+
+/**
+ * The checkpoint a read means. A round uses the route version it opened with to the end, so the points of the open
+ * rounds' versions count first, active or not; only then the other active points.
+ */
+function checkpointOfRead(state: GuardState, read: TagRead): CheckpointInfo | null {
+  const tagged = hasTag(read);
+  const ofOpenRounds = new Set(state.rounds.filter(isOpen).flatMap((round) => versionOf(state, round.route_version_id).checkpoint_ids));
+  return (
+    state.checkpoints.find((checkpoint) => ofOpenRounds.has(checkpoint.id) && tagged(checkpoint)) ?? findCheckpoint(state.checkpoints, read)
+  );
 }
 
 /** The checkpoint IDs of a round's version not scanned yet, in position order. */
@@ -153,7 +171,7 @@ function readFields(read: TagRead | null) {
 
 /** An NFC or QR scan. */
 export function resolveScan(context: ScanContext, read: TagRead): ScanOutcome {
-  const checkpoint = findCheckpoint(context.state.checkpoints, read);
+  const checkpoint = checkpointOfRead(context.state, read);
   if (checkpoint === null) {
     const draft = scan({
       scan_id: context.newId(),

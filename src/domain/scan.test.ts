@@ -39,6 +39,32 @@ describe('checkpoint lookup', () => {
 });
 
 describe('scan resolution', () => {
+  const inactive = (...ids: string[]) => guardState().checkpoints.map((c) => (ids.includes(c.id) ? { ...c, active: false } : c));
+
+  it('records the point of a running round that has been made inactive, so the round can be finished by tag', () => {
+    const open = round('A', '20:00', { scans: [scanned(C1), scanned(C2)] });
+    const outcome = resolveScan(context({ rounds: [open], checkpoints: inactive(C3) }), nfc('04A1B2C3D4E503'));
+    expect(outcome).toMatchObject({ kind: 'recorded', checkpoint_id: C3, round_id: open.id, completed: true });
+  });
+
+  it('does not take an inactive point outside the versions of the open rounds, by tag or by QR', () => {
+    const open = round('A', '20:00');
+    const state = { rounds: [open], checkpoints: inactive(C4) };
+    expect(resolveScan(context(state), nfc('04A1B2C3D4E504')).kind).toBe('unknown_tag');
+    expect(resolveScan(context(state), qr(tagOf(guardState(), C4).qr_payload!)).kind).toBe('unknown_tag');
+  });
+
+  it('lets the version of the running round win when a tag belongs to an inactive and an active point', () => {
+    const uid = '04A1B2C3D4E503';
+    const moved = guardState().checkpoints.map((c) => {
+      if (c.id === C3) return { ...c, active: false };
+      return c.id === C4 ? { ...c, tag_uid: uid } : c;
+    });
+    const open = round('A', '20:00');
+    expect(resolveScan(context({ rounds: [open], checkpoints: moved }), nfc(uid))).toMatchObject({ checkpoint_id: C3, round_id: open.id });
+    expect(resolveScan(context({ rounds: [], checkpoints: moved }), nfc(uid))).toMatchObject({ checkpoint_id: C4, round_id: null });
+  });
+
   it('records a scan in the open round of the checkpoint’s route', () => {
     const open = round('A', '20:00');
     const outcome = resolveScan(context({ rounds: [open] }, NEAR_C2), nfc('04:a1:b2:c3:d4:e5:01'));

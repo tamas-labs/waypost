@@ -536,3 +536,10 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **Ami megmarad:** ha a műszak szerveridővel indult, majd a telefon újraindul hálózat nélkül és rossz az órája, a `started_at` szerveridő, a `now` falióra lesz. Friss hivatkozás nélkül ez nem oldható meg; a `device-test.md` F8 tételénél figyelni kell.
 - **Indok:** Audit 1. hiba: 30 percet siető órával a 20:05-kor belépett őrnek a 20:00-s kör nem nyílt meg, 60 percet késővel 21:05-kor azonnal elmaradt kör jött létre.
 - **Érintett:** `src/chain/projection.ts`, `src/time/trusted-time.ts`, M4-05.
+
+## 2026-11-01 – A futó kör inaktív pontja (J-09)
+
+- **Kérdés:** Mi legyen a leolvasással, ha a futó kör pontját közben inaktívvá tették?
+- **Döntés:** A címke feloldása két lépés: előbb a nyitott körök útvonalverzióinak pontjai között keres az `active` mezőtől függetlenül, utána a többi aktív pont között. Ha egy címke egy inaktív és egy aktív ponthoz is tartozik, a futó kör verziója nyer. Verzión kívüli inaktív pont továbbra is `unknown_tag`, és a `nearestCheckpoint` sem változik.
+- **Indok:** Specifikáció *Kör*: a kör a megnyitáskor rögzített verziót használja végig. Audit 2. hiba: a kör címkeolvasással nem volt befejezhető.
+- **Érintett:** `src/domain/scan.ts`.
