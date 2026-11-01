@@ -6,6 +6,7 @@ import type { Timestamp } from '@waypost/schema';
 import { parseTimestamp, toTimestamp } from '@/time/timestamp';
 import { MINUTE_MS } from '@/time/zone';
 
+import { indexSlots } from './deadline';
 import { autoCloseTime, deadlineOf, expectedSlots, type ClosedStatus } from './rounds';
 import { shiftHome } from './shift';
 import type { GuardState } from './state';
@@ -81,7 +82,7 @@ export function roundAlarmInfo(state: GuardState, slot: AlarmSlot, now: Timestam
   const atMs = parseTimestamp(slot.scheduled_at);
   const slots = expectedSlots(state, Math.min(atMs, parseTimestamp(state.shift.started_at)), Math.max(atMs, nowMs));
   const timing = round ?? slots.find((s) => s.schedule_id === slot.schedule_id && s.scheduled_at === slot.scheduled_at);
-  if (timing === undefined || deadlineOf(state, timing, slots) <= nowMs) return null;
+  if (timing === undefined || deadlineOf(state, timing, indexSlots(slots)) <= nowMs) return null;
 
   const versionId = round?.route_version_id ?? state.routes.find((route) => route.id === slot.route_id)?.current_version_id;
   const previous = shiftHome(state, now)

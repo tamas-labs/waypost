@@ -9,6 +9,7 @@ import { parseTimestamp, toTimestamp } from '@/time/timestamp';
 import { DAY_MS } from '@/time/zone';
 
 import { autoCloseTime, closeRound, closingStatus, deadlineOf, deadlineOfRound, expectedSlots, type ClosedStatus } from './rounds';
+import { indexSlots } from './deadline';
 import type { ScheduleOfRoute } from './schedule';
 import { DomainError, isOpen, versionOf, type GuardState, type NewId, type RoundInfo, type ShiftInfo } from './state';
 
@@ -195,8 +196,9 @@ export function shiftHome(state: GuardState, now: Timestamp): ShiftHome | null {
   if (shift === null) return null;
   const startedMs = parseTimestamp(shift.started_at);
   const slots = expectedSlots(state, startedMs, parseTimestamp(now));
-  const autoCloseMs = autoCloseTime(state, slots, startedMs);
-  const ahead = slots.filter((slot) => deadlineOf(state, slot, slots) > startedMs);
+  const index = indexSlots(slots);
+  const autoCloseMs = autoCloseTime(state, slots, startedMs, index);
+  const ahead = slots.filter((slot) => deadlineOf(state, slot, index) > startedMs);
   const first = ahead[0];
   const schedulesAhead = new Set(ahead.filter((slot) => slot.start_day === first?.start_day).map((slot) => slot.schedule_id));
   const ofShift = slots.filter((slot) => {
@@ -227,7 +229,7 @@ export function shiftHome(state: GuardState, now: Timestamp): ShiftHome | null {
       missing_checkpoint_ids: checkpointIds,
       duration_ms: null,
     };
-    if (deadlineOf(state, slot, slots) <= startedMs) return { ...notOpened, state: 'missed' };
+    if (deadlineOf(state, slot, index) <= startedMs) return { ...notOpened, state: 'missed' };
     nextAt ??= slot.scheduled_at;
     if (routesWithNext.has(slot.route_id)) return { ...notOpened, state: 'future' };
     routesWithNext.add(slot.route_id);
@@ -245,7 +247,7 @@ export function shiftHome(state: GuardState, now: Timestamp): ShiftHome | null {
     running:
       open === undefined
         ? null
-        : { round_id: open.id, scheduled_at: open.scheduled_at, deadline: toTimestamp(deadlineOf(state, open, slots)) },
+        : { round_id: open.id, scheduled_at: open.scheduled_at, deadline: toTimestamp(deadlineOf(state, open, index)) },
     auto_close_at: autoCloseMs === null ? null : toTimestamp(autoCloseMs),
   };
 }

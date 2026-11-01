@@ -26,19 +26,51 @@ export interface DeadlineInput {
   time_limit_min: number | null;
 }
 
-/**
- * The deadline of a round: scheduled_at + time_limit_min; without a time limit the time of the route's next round
- * of the same day (window start day), and for the day's last round scheduled_at + 60 minutes.
- * slots: the route's slots around the round (at least those of its day after it), any order.
- */
-export function roundDeadline(round: DeadlineInput, slots: readonly Slot[]): Timestamp {
-  const scheduled = parseTimestamp(round.scheduled_at);
-  if (round.time_limit_min !== null) return toTimestamp(scheduled + round.time_limit_min * MINUTE_MS);
-  let next: number | null = null;
+/** The slots as the deadlines look them up, built once: a search per round would make the rules quadratic in the slots. */
+export interface SlotIndex {
+  /** By slotKey. */
+  slots: ReadonlyMap<string, Slot>;
+  /** The times of a route's day (window start day), in order, by dayKey. */
+  dayTimes: ReadonlyMap<string, readonly number[]>;
+}
+
+export const slotKey = (slot: Pick<Slot, 'schedule_id' | 'scheduled_at'>) => `${slot.schedule_id}|${slot.scheduled_at}`;
+const dayKey = (slot: Pick<Slot, 'route_id' | 'start_day'>) => `${slot.route_id}|${slot.start_day}`;
+
+export function indexSlots(slots: readonly Slot[]): SlotIndex {
+  const dayTimes = new Map<string, number[]>();
   for (const slot of slots) {
-    if (slot.route_id !== round.route_id || slot.start_day !== round.start_day) continue;
-    const at = parseTimestamp(slot.scheduled_at);
-    if (at > scheduled && (next === null || at < next)) next = at;
+    const times = dayTimes.get(dayKey(slot));
+    if (times === undefined) dayTimes.set(dayKey(slot), [parseTimestamp(slot.scheduled_at)]);
+    else times.push(parseTimestamp(slot.scheduled_at));
   }
-  return toTimestamp(next ?? scheduled + LAST_ROUND_GRACE_MIN * MINUTE_MS);
+  for (const times of dayTimes.values()) times.sort((a, b) => a - b);
+  return { slots: new Map(slots.map((slot) => [slotKey(slot), slot])), dayTimes };
+}
+
+/** The first of the times (in order) after a time. */
+function firstAfter(times: readonly number[], time: number): number | null {
+  let [low, high] = [0, times.length];
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (times[middle]! > time) high = middle;
+    else low = middle + 1;
+  }
+  return times[low] ?? null;
+}
+
+/**
+ * The deadline of a round in milliseconds: scheduled_at + time_limit_min; without a time limit the time of the route's
+ * next round of the same day (window start day), and for the day's last round scheduled_at + 60 minutes.
+ * The index has the route's slots around the round (at least those of its day after it).
+ */
+export function deadlineMs(round: DeadlineInput, index: SlotIndex): number {
+  const scheduled = parseTimestamp(round.scheduled_at);
+  if (round.time_limit_min !== null) return scheduled + round.time_limit_min * MINUTE_MS;
+  return firstAfter(index.dayTimes.get(dayKey(round)) ?? [], scheduled) ?? scheduled + LAST_ROUND_GRACE_MIN * MINUTE_MS;
+}
+
+/** deadlineMs of a round among slots in any order. */
+export function roundDeadline(round: DeadlineInput, slots: readonly Slot[]): Timestamp {
+  return toTimestamp(deadlineMs(round, indexSlots(slots)));
 }

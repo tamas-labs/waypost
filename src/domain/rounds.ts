@@ -9,7 +9,7 @@ import { roundClosed, roundOpened, shiftClosed } from '@/chain/payloads';
 import { parseTimestamp, toTimestamp } from '@/time/timestamp';
 import { DAY_MS, localDateOf } from '@/time/zone';
 
-import { roundDeadline } from './deadline';
+import { deadlineMs, indexSlots, slotKey, type SlotIndex } from './deadline';
 import { slotsBetween, type Slot } from './schedule';
 import { isOpen, versionOf, type GuardState, type NewId, type RoundInfo } from './state';
 
@@ -45,20 +45,17 @@ export function expectedSlots(state: GuardState, fromMs: number, toMs: number): 
   });
 }
 
-/** The deadline of a round, given the slots around it. */
+/** The deadline of a round, given the index of the slots around it. */
 export function deadlineOf(
   state: GuardState,
   round: Pick<RoundInfo, 'route_id' | 'schedule_id' | 'scheduled_at' | 'time_limit_min'>,
-  slots: readonly Slot[],
+  index: SlotIndex,
 ): number {
-  const slot = slots.find((s) => s.schedule_id === round.schedule_id && s.scheduled_at === round.scheduled_at);
   // A round whose schedule has changed since: the day is its local date.
-  const startDay = slot?.start_day ?? localDateOf(parseTimestamp(round.scheduled_at), state.timezone);
-  return parseTimestamp(
-    roundDeadline(
-      { route_id: round.route_id, start_day: startDay, scheduled_at: round.scheduled_at, time_limit_min: round.time_limit_min },
-      slots,
-    ),
+  const startDay = index.slots.get(slotKey(round))?.start_day ?? localDateOf(parseTimestamp(round.scheduled_at), state.timezone);
+  return deadlineMs(
+    { route_id: round.route_id, start_day: startDay, scheduled_at: round.scheduled_at, time_limit_min: round.time_limit_min },
+    index,
   );
 }
 
@@ -68,7 +65,7 @@ export function deadlineOfRound(
   round: Pick<RoundInfo, 'route_id' | 'schedule_id' | 'scheduled_at' | 'time_limit_min'>,
 ): Timestamp {
   const atMs = parseTimestamp(round.scheduled_at);
-  return toTimestamp(deadlineOf(state, round, expectedSlots(state, atMs, atMs)));
+  return toTimestamp(deadlineOf(state, round, indexSlots(expectedSlots(state, atMs, atMs))));
 }
 
 /**
@@ -76,8 +73,13 @@ export function deadlineOfRound(
  * every route. Its day is the window start day of the first round still running or ahead at the shift's start.
  * Null if there is no such round.
  */
-export function autoCloseTime(state: GuardState, slots: readonly Slot[], shiftStartedMs: number): number | null {
-  const withDeadline = slots.map((slot) => ({ slot, deadline: deadlineOf(state, slot, slots) }));
+export function autoCloseTime(
+  state: GuardState,
+  slots: readonly Slot[],
+  shiftStartedMs: number,
+  index: SlotIndex = indexSlots(slots),
+): number | null {
+  const withDeadline = slots.map((slot) => ({ slot, deadline: deadlineOf(state, slot, index) }));
   const first = withDeadline.find(({ deadline }) => deadline > shiftStartedMs);
   if (first === undefined) return null;
   const lastDeadline = Math.max(
@@ -109,7 +111,8 @@ export function schedulerStep(state: GuardState, now: Timestamp, newId: NewId): 
   const earliest = Math.min(shiftStartedMs, ...openRounds.map((round) => parseTimestamp(round.scheduled_at)));
   const routes = new Map(state.routes.map((route) => [route.id, route]));
   const slots = expectedSlots(state, earliest, nowMs);
-  const autoCloseMs = autoCloseTime(state, slots, shiftStartedMs);
+  const index = indexSlots(slots);
+  const autoCloseMs = autoCloseTime(state, slots, shiftStartedMs, index);
   const endMs = autoCloseMs !== null && autoCloseMs <= nowMs ? autoCloseMs : nowMs;
 
   const events: Event[] = [];
@@ -121,7 +124,7 @@ export function schedulerStep(state: GuardState, now: Timestamp, newId: NewId): 
     const previous = current.get(round.route_id);
     // Never more than one; if the data says otherwise, the earlier one closes now.
     if (previous !== undefined) close(previous.round, Math.min(previous.deadline, endMs));
-    current.set(round.route_id, { round, deadline: deadlineOf(state, round, slots) });
+    current.set(round.route_id, { round, deadline: deadlineOf(state, round, index) });
   }
 
   const known = new Set(state.rounds.map((round) => `${round.schedule_id}|${round.scheduled_at}`));
@@ -130,7 +133,7 @@ export function schedulerStep(state: GuardState, now: Timestamp, newId: NewId): 
     if (at > endMs || (autoCloseMs !== null && at >= autoCloseMs)) break;
     const versionId = routes.get(slot.route_id)?.current_version_id;
     if (versionId == null || known.has(`${slot.schedule_id}|${slot.scheduled_at}`)) continue;
-    const deadline = deadlineOf(state, slot, slots);
+    const deadline = deadlineOf(state, slot, index);
     if (deadline <= shiftStartedMs) continue;
 
     const open = current.get(slot.route_id);

@@ -567,3 +567,13 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **A további olvasás rögzítés közben továbbra is elvész:** a dupla érintés ellen kell. A próbán figyelni kell, zavar-e beltérben, ahol a helyadat sokáig tart (`device-test.md`, M3-40).
 - **Indok:** Audit 4. hiba; a 2026-10-29-es döntés „a leolvasás pillanatát” írja.
 - **Érintett:** `src/guard/scan.ts`, `src/navigation/use-scan-recorder.ts`.
+
+## 2026-11-01 – Az ütemező gyorsítása (J-12)
+
+- **Kérdés:** Hogyan csökken az ütemező és a kezdőlap költsége rövid körökkel?
+- **Döntés:**
+  - **Index:** a határidők nem keresnek végig minden slotot. Az `indexSlots` egyszer felépül, és az `autoCloseTime`, a `schedulerStep` és a `shiftHome` továbbadja; a nap következő slotját bináris keresés adja.
+  - **Az `Intl`-hívások maradnak:** a menetrend kibontását (`slotsBetween`) csak akkor gyorsítjuk, ha a `schedulerStep` a gyengébb Android-telefonon 100 ms fölött van. Ezt a J-07 mérése (`device-test.md`, „Ütemező mérése”) dönti el.
+  - **Mért javulás Node-ban, Jest alatt** (`schedulerStep` / `shiftHome` / `alarmPlan`, ms hívásonként): 5 percenként 20:00–08:00: 159 / 253 / 224 → 26 / 28 / 38; 5 percenként 00:00–23:55: 509 / 897 / 754 → 51 / 53 / 76. A maradék nagy része a `slotsBetween` (23 és 46 ms).
+- **Indok:** Audit 3. hiba: a `deadlineOf` négyzetes költsége a JS-szálon fut, az M3-40 pedig 5 perces körökkel megy.
+- **Érintett:** `src/domain/deadline.ts`, `src/domain/rounds.ts`, `src/domain/shift.ts`, `src/domain/alarms.ts`.
