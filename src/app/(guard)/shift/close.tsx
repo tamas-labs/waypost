@@ -17,8 +17,8 @@ import { getDatabase } from '@/db/open';
 import { playFeedback } from '@/feedback/feedback';
 import { closeShiftWithPin, loadShiftCloseInfo, type ShiftCloseInfo } from '@/guard/shift-close';
 import { useLiveQuery } from '@/hooks/use-live-query';
+import { usePinEntry } from '@/hooks/use-pin-entry';
 import { t, type TranslationKey } from '@/i18n';
-import { pinLockedText, usePinLock, wrongPinText } from '@/navigation/use-pin-lock';
 import { useSyncStatus } from '@/sync/status';
 import { useTheme } from '@/theme/theme-provider';
 import { statusStyle, type ColorTokens } from '@/theme/tokens';
@@ -101,43 +101,12 @@ function SummaryRow({
 function PinSheet({ guardId, onClose }: { guardId: string; onClose: () => void }) {
   const { color, typography, space, radius } = useTheme();
   const insets = useSafeAreaInsets();
-  const [lockRemaining, refreshLock] = usePinLock();
-  const [pin, setPin] = useState('');
-  const [shakeKey, setShakeKey] = useState(0);
-  const [message, setMessage] = useState<{ kind: 'wrong'; failures: number } | { kind: 'failed' } | null>(null);
-  const [checking, setChecking] = useState(false);
-
-  const locked = lockRemaining > 0;
+  const { pin, shakeKey, checking, locked, messageText, addDigit, deleteDigit, submit } = usePinEntry(
+    (entered) => closeShiftWithPin(getDatabase(), guardId, entered),
+    'shiftEnd.failed',
+    () => playFeedback('success'),
+  );
   const enabled = !locked && !checking;
-
-  const submit = async () => {
-    setChecking(true);
-    try {
-      const result = await closeShiftWithPin(getDatabase(), guardId, pin);
-      if (result.status === 'ok') {
-        playFeedback('success');
-        return;
-      }
-      setPin('');
-      setShakeKey((n) => n + 1);
-      playFeedback('error');
-      // A lock tells about itself.
-      setMessage(result.status === 'wrong' && result.remaining_ms === 0 ? { kind: 'wrong', failures: result.failures } : null);
-      refreshLock();
-    } catch (error) {
-      if (__DEV__) console.warn('Closing the shift failed', error);
-      setPin('');
-      playFeedback('error');
-      setMessage({ kind: 'failed' });
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  let messageText: string | null = null;
-  if (locked) messageText = pinLockedText(lockRemaining);
-  else if (message?.kind === 'wrong') messageText = wrongPinText(message.failures);
-  else if (message?.kind === 'failed') messageText = t('shiftEnd.failed');
 
   return (
     <>
@@ -164,14 +133,7 @@ function PinSheet({ guardId, onClose }: { guardId: string; onClose: () => void }
               {messageText}
             </Text>
           )}
-          <PinPad
-            disabled={!enabled}
-            onDigit={(digit) => {
-              setMessage(null);
-              setPin((current) => (current.length < PIN_LENGTH ? current + digit : current));
-            }}
-            onDelete={() => setPin((current) => current.slice(0, -1))}
-          />
+          <PinPad disabled={!enabled} onDigit={addDigit} onDelete={deleteDigit} />
           <Button
             label={t(checking ? 'shiftEnd.closing' : 'shiftEnd.confirm')}
             disabled={!enabled || pin.length < PIN_LENGTH}

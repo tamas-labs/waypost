@@ -8,17 +8,15 @@ import { InfoBanner } from '@/components/info-banner';
 import { PIN_LENGTH, PinDots, PinPad } from '@/components/pin-pad';
 import { SyncStatusIndicator } from '@/components/sync-status-indicator';
 import { getDatabase } from '@/db/open';
-import { playFeedback } from '@/feedback/feedback';
 import { loadPinScreenInfo, signInWithPin, type PinScreenInfo } from '@/guard/login';
 import { useLiveQuery } from '@/hooks/use-live-query';
+import { usePinEntry } from '@/hooks/use-pin-entry';
 import { t, type TranslationKey } from '@/i18n';
-import { pinLockedText, usePinLock, wrongPinText } from '@/navigation/use-pin-lock';
 import { useTheme } from '@/theme/theme-provider';
 import { parseTimestamp } from '@/time/timestamp';
 import { DAY_MS, localTimeOf, naiveOf } from '@/time/zone';
 
 /** The line above the keypad and below the dots after a try. */
-type Message = { kind: 'wrong'; failures: number } | { kind: 'failed' } | { kind: 'supervisor' } | null;
 
 /** The time and the shift change while the screen is open (and the trusted time comes with a sync). */
 const INFO_REFRESH_MS = 30_000;
@@ -82,47 +80,12 @@ export default function PinScreen() {
   const insets = useSafeAreaInsets();
   const info = usePinScreenInfo();
   const permissions = useAlarmPermissions();
-  const [lockRemaining, refreshLock] = usePinLock();
-  const [pin, setPin] = useState('');
-  const [shakeKey, setShakeKey] = useState(0);
-  const [message, setMessage] = useState<Message>(null);
-  const [checking, setChecking] = useState(false);
+  const entry = usePinEntry((pin) => signInWithPin(getDatabase(), pin), 'pin.failed');
+  const { pin, shakeKey, checking, locked, messageText } = entry;
+  const [supervisorHint, setSupervisorHint] = useState(false);
 
-  const locked = lockRemaining > 0;
   const enabled = info !== null && !locked && !checking;
   const line = shiftLine(info);
-
-  const addDigit = (digit: string) => {
-    setMessage(null);
-    setPin((current) => (current.length < PIN_LENGTH ? current + digit : current));
-  };
-
-  const submit = async () => {
-    setChecking(true);
-    try {
-      const result = await signInWithPin(getDatabase(), pin);
-      // A successful login leaves the screen (the navigation follows the session).
-      if (result.status === 'ok') return;
-      setPin('');
-      setShakeKey((n) => n + 1);
-      playFeedback('error');
-      // A lock tells about itself.
-      setMessage(result.status === 'wrong' && result.remaining_ms === 0 ? { kind: 'wrong', failures: result.failures } : null);
-      refreshLock();
-    } catch (error) {
-      if (__DEV__) console.warn('PIN login failed', error);
-      setPin('');
-      playFeedback('error');
-      setMessage({ kind: 'failed' });
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  let messageText: string | null = null;
-  if (locked) messageText = pinLockedText(lockRemaining);
-  else if (message?.kind === 'wrong') messageText = wrongPinText(message.failures);
-  else if (message?.kind === 'failed') messageText = t('pin.failed');
 
   return (
     <ScrollView
@@ -170,22 +133,28 @@ export default function PinScreen() {
             {messageText}
           </Text>
         )}
-        {message?.kind === 'supervisor' && <InfoBanner variant="info" text={t('pin.supervisorHint')} style={styles.wide} />}
+        {supervisorHint && <InfoBanner variant="info" text={t('pin.supervisorHint')} style={styles.wide} />}
       </View>
 
       <View style={[styles.pad, styles.wide]}>
         <PinPad
           disabled={!enabled}
-          onDigit={addDigit}
-          onDelete={() => setPin((current) => current.slice(0, -1))}
-          onSupervisor={() => setMessage((current) => (current?.kind === 'supervisor' ? null : { kind: 'supervisor' }))}
+          onDigit={(digit) => {
+            setSupervisorHint(false);
+            entry.addDigit(digit);
+          }}
+          onDelete={entry.deleteDigit}
+          onSupervisor={() => setSupervisorHint((shown) => !shown)}
         />
       </View>
 
       <Button
         label={checking ? t('pin.checking') : info !== null && info.on_shift !== null ? t('pin.signIn') : t('pin.startShift')}
         disabled={!enabled || pin.length < PIN_LENGTH}
-        onPress={() => void submit()}
+        onPress={() => {
+          setSupervisorHint(false);
+          void entry.submit();
+        }}
         style={styles.wide}
       />
     </ScrollView>
