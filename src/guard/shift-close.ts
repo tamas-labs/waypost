@@ -4,7 +4,7 @@ import type { Timestamp } from '@waypost/schema';
 import { and, count, eq } from 'drizzle-orm';
 
 import { pinConfirm, type PinLoginResult } from '@/auth/pin';
-import { useSession } from '@/auth/session';
+import { logOut } from '@/auth/session';
 import { appendDecidedEntries } from '@/chain/writer';
 import type { Database } from '@/db/database';
 import { incidents, rounds, routes, scans } from '@/db/schema';
@@ -89,7 +89,7 @@ export async function closeShiftWithPin(
     },
     { readClock },
   );
-  useSession.setState({ activeUser: null, shiftStart: null });
+  logOut();
   void requestSync('shift_closed');
   return result;
 }

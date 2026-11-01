@@ -2,7 +2,7 @@
 // user; a guard's login runs the shift state machine (a new shift, the same guard's goes on, or a handover) and writes
 // its entries before the session opens the guard mode; a supervisor's opens the supervisor mode.
 import { pinLogin, type PinLoginResult } from '@/auth/pin';
-import { useSession } from '@/auth/session';
+import { logIn } from '@/auth/session';
 import { appendDecidedEntries } from '@/chain/writer';
 import type { Database } from '@/db/database';
 import { guardLogin, type GuardLogin } from '@/domain/shift';
@@ -28,7 +28,7 @@ export async function signInWithPin(db: Database, pin: string, readClock: ReadCl
   if (result.status !== 'ok') return result;
   const { id, name, role } = result.user;
   if (role === 'supervisor') {
-    useSession.setState({ activeUser: { id, role } });
+    logIn({ id, role });
     return { status: 'ok', role, user: { id, name } };
   }
 
@@ -44,7 +44,7 @@ export async function signInWithPin(db: Database, pin: string, readClock: ReadCl
   const closed = decision.closed_shift;
   const handover = closed === undefined ? null : { guard_name: userName(db, closed.guard_id) ?? '', at: decision.now };
   // A new shift goes through the shift start screen (G2); the same guard's shift goes on at the shift home.
-  useSession.setState({ activeUser: { id, role }, shiftStart: decision.outcome === 'continued' ? null : { handover } });
+  logIn({ id, role }, decision.outcome === 'continued' ? null : { handover });
   // A new shift may have rounds due right away.
   if (decision.outcome !== 'continued') requestSchedulerStep('shift_started');
   const { now: _now, ...login } = decision;

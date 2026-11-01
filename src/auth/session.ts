@@ -32,6 +32,21 @@ export interface SessionState {
 /** UI state of who is using the phone; the navigation follows it (src/navigation). */
 export const useSession = create<SessionState>(() => ({ mode: null, deviceId: null, activeUser: null, shiftStart: null }));
 
+/** A user logged in with a PIN; a guard's login that started a shift tells so for the shift start screen. */
+export function logIn(user: ActiveUser, shiftStart: ShiftStartNotice | null = null): void {
+  useSession.setState({ activeUser: user, shiftStart });
+}
+
+/** Back to the PIN screen; an open shift stays open. */
+export function logOut(): void {
+  useSession.setState({ activeUser: null, shiftStart: null });
+}
+
+/** The guard has gone on from the shift start screen. */
+export function clearShiftStart(): void {
+  useSession.setState({ shiftStart: null });
+}
+
 /** Reads the credentials and the database, cleans up leftovers, and sets the device mode. At start and after enrollment. */
 export async function loadSession(db: Database): Promise<DeviceMode> {
   const [device, supervisorToken] = await Promise.all([getDeviceCredentials(), getSupervisorToken()]);

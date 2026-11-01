@@ -15,6 +15,15 @@ function layerRule(folder, pattern) {
   ];
 }
 
+const HARD_CODED_TEXTS = [
+  { selector: 'JSXText[value=/\\S/]', message: 'Texts come from src/i18n/hu.json: use t().' },
+  { selector: 'JSXExpressionContainer > Literal[value=/\\S/]', message: 'Texts come from src/i18n/hu.json: use t().' },
+  {
+    selector: 'JSXAttribute[name.name=/^(title|label|placeholder|accessibilityLabel|accessibilityHint)$/] > Literal[value=/\\S/]',
+    message: 'Texts come from src/i18n/hu.json: use t().',
+  },
+];
+
 module.exports = defineConfig([
   globalIgnores(['dist/*', '.expo/*', 'android/*', 'ios/*', 'docs/*']),
   expoConfig,
@@ -26,13 +35,20 @@ module.exports = defineConfig([
     plugins: { 'react-native': reactNative },
     rules: {
       'react-native/no-color-literals': 'error',
+      'no-restricted-syntax': ['error', ...HARD_CODED_TEXTS],
+    },
+  },
+  {
+    // The session has one writer, src/auth/session.ts (logIn, logOut, clearShiftStart).
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/**/*.test.{ts,tsx}', 'src/**/testing.ts', 'src/auth/session.ts'],
+    rules: {
       'no-restricted-syntax': [
         'error',
-        { selector: 'JSXText[value=/\\S/]', message: 'Texts come from src/i18n/hu.json: use t().' },
-        { selector: 'JSXExpressionContainer > Literal[value=/\\S/]', message: 'Texts come from src/i18n/hu.json: use t().' },
+        ...HARD_CODED_TEXTS,
         {
-          selector: 'JSXAttribute[name.name=/^(title|label|placeholder|accessibilityLabel|accessibilityHint)$/] > Literal[value=/\\S/]',
-          message: 'Texts come from src/i18n/hu.json: use t().',
+          selector: "MemberExpression[object.name='useSession'][property.name='setState']",
+          message: 'The session is written in src/auth/session.ts: use its functions.',
         },
       ],
     },

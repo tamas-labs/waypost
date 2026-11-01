@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useActiveAlarms } from '@/alarms/active-alarms';
-import { useSession } from '@/auth/session';
+import { logOut, useSession } from '@/auth/session';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { InfoBanner } from '@/components/info-banner';
@@ -56,12 +56,11 @@ export default function HomeScreen() {
   const { color, space } = useTheme();
   const guardId = useSession(({ activeUser }) => activeUser?.id ?? null);
   const info = useShiftHomeInfo(guardId);
-  const logOut = useCallback(() => useSession.setState({ activeUser: null, shiftStart: null }), []);
 
   const shiftClosed = info !== null && info.home === null;
   useEffect(() => {
     if (shiftClosed) logOut();
-  }, [shiftClosed, logOut]);
+  }, [shiftClosed]);
 
   const home = info?.home ?? null;
   useOpenRunningRound(home?.running?.round_id ?? null);

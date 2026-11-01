@@ -4,7 +4,7 @@ import { AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useSession } from '@/auth/session';
+import { clearShiftStart, logOut, useSession } from '@/auth/session';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { CheckRow } from '@/components/check-row';
@@ -87,7 +87,7 @@ export default function ShiftStartScreen() {
   const info = useShiftStartInfo(guardId);
 
   const goOn = () => {
-    useSession.setState({ shiftStart: null });
+    clearShiftStart();
     router.replace('/home');
   };
 
@@ -97,7 +97,7 @@ export default function ShiftStartScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: color.bg }]}>
-      <ScreenHeader onBack={() => useSession.setState({ activeUser: null, shiftStart: null })} backLabel={t('shiftStart.logout')} />
+      <ScreenHeader onBack={logOut} backLabel={t('shiftStart.logout')} />
       <ScrollView
         contentContainerStyle={[styles.content, { paddingHorizontal: space.l, paddingBottom: insets.bottom + space.xxl, gap: space.m }]}
       >
