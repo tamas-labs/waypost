@@ -56,6 +56,7 @@ Az `android/` és `ios/` mappát az Expo generálja (Continuous Native Generatio
 | `npm start` | Metro dev szerver a development buildhez |
 | `npm run typecheck` | TypeScript-ellenőrzés (`tsc --noEmit`) |
 | `npm run lint` | ESLint (`expo lint`), a beégetett színek és feliratok tiltásával |
+| `npm run format` | Prettier: formázás (`format:check`: csak ellenőrzés) |
 | `npm test` | Jest (`jest-expo`) |
 | `npx expo-doctor` | a függőségek és a konfiguráció ellenőrzése |
 | `npm run db:generate` | új adatbázis-migráció a `src/db/schema.ts` változása után |

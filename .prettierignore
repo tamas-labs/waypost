@@ -1,0 +1,8 @@
+# Written by hand or handed over, not code
+docs/
+*.md
+
+# Generated
+src/db/migrations/
+package-lock.json
+assets/

@@ -60,7 +60,7 @@ Importban a `@/…` alias a `src/…`-ra mutat.
 - TypeScript `strict` és `noUncheckedIndexedAccess`; `any` helyett pontos típus vagy `unknown`.
 - A hálózati és a lánc-adatok típusai a `@waypost/schema` típusai (`SyncPullResponse`, `ChainEntry`, `UnsignedChainEntry` …); ezeket nem írjuk újra. A lánc és a menetrend-kibontás tesztjei a `@waypost/schema/vectors` közös vektoraival futnak.
 - Időbélyeg: ISO 8601, UTC, ezredmásodperccel; azonosító: UUIDv7; a láncolt adatban nincs lebegőpontos szám.
-- Ha egy feladat lezárul: `npm run typecheck`, `npm run lint` és `npm test` zöld; a `docs/tasks.md`-ben pipa; az eldöntött kérdés a `docs/decisions.md`-be kerül.
+- Ha egy feladat lezárul: `npm run typecheck`, `npm run lint`, `npm run format:check` és `npm test` zöld; a `docs/tasks.md`-ben pipa; az eldöntött kérdés a `docs/decisions.md`-be kerül.
 
 ## Parancsok
 
@@ -69,6 +69,7 @@ Importban a `@/…` alias a `src/…`-ra mutat.
 - `npm start` – Metro dev szerver a development buildhez.
 - `npm run typecheck` – `tsc --noEmit`.
 - `npm run lint` – `expo lint` (ESLint, `eslint-config-expo`).
+- `npm run format`, `npm run format:check` – Prettier (`.prettierrc`, 140 karakter); a `docs/`, a Markdown-fájlok és a generált fájlok kimaradnak (`.prettierignore`). A nagy formázó commit a `.git-blame-ignore-revs`-ben van: `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 - `npm run test:coverage` – Jest lefedettséggel; a `src/domain`, `src/chain` és `src/sync` mappának mappánként 90% alatt hibát ad.
 - `npm test` – Jest (`jest-expo` preset). A `jest.testTimeout` 30 mp, mert párhuzamos futásnál egy csomag első képernyőtesztje lassan indul (a Babel és a natív mockok betöltése miatt), és az alap 5 mp véletlenszerű bukást okozott. A `jest.modulePaths` azért kell, mert a symlinkelt `@waypost/schema` fájljait a Jest a valódi útvonalukon fordítja, és a Babel-segédeket innen kell feloldani. A `jest.moduleNameMapper` a lucide-ikonokat a CommonJS-változatukra irányítja (az ESM-változat a Jestben nem fut). A `jest.resolver` a Reanimated saját resolvere (a natív helyett a webes megvalósítás fut).
 - `npx expo-doctor` – függőségek és konfiguráció ellenőrzése.

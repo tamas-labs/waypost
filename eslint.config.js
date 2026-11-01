@@ -1,6 +1,7 @@
 // https://docs.expo.dev/guides/using-eslint/
 const { defineConfig, globalIgnores } = require('eslint/config');
 const expoConfig = require('eslint-config-expo/flat');
+const prettierConfig = require('eslint-config-prettier/flat');
 const reactNative = require('eslint-plugin-react-native');
 
 module.exports = defineConfig([
@@ -25,4 +26,6 @@ module.exports = defineConfig([
       ],
     },
   },
+  // Formatting is Prettier's: it has to stay last, to switch off the rules that would disagree with it.
+  prettierConfig,
 ]);

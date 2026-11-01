@@ -33,12 +33,18 @@ start-clear: ## Metro with a cleared cache (e.g. after a new migration)
 
 ## Checks
 
-.PHONY: typecheck lint test test-watch coverage check doctor db-generate
+.PHONY: typecheck lint format format-check test test-watch coverage check doctor db-generate
 typecheck: ## tsc --noEmit
 	npm run typecheck
 
 lint: ## expo lint
 	npm run lint
+
+format: ## Prettier: format the files
+	npm run format
+
+format-check: ## Prettier: only check the format
+	npm run format:check
 
 test: ## Jest
 	npm test
@@ -49,7 +55,7 @@ test-watch: ## Jest in watch mode
 coverage: ## Jest with coverage of src/domain, src/chain and src/sync (M3-39)
 	npm test -- --coverage --collectCoverageFrom='src/{domain,chain,sync}/**/*.ts' --coverageDirectory="$${TMPDIR:-/tmp}/waypost-coverage"
 
-check: typecheck lint test ## typecheck + lint + test (what closing a task needs)
+check: typecheck lint format-check test ## typecheck + lint + format + test (what closing a task needs)
 
 doctor: ## expo-doctor: dependencies and configuration
 	npx expo-doctor
