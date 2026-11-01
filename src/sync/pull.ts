@@ -3,6 +3,7 @@
 // whole pull is applied or nothing, so the guard never works with half of a new configuration.
 import type { SyncPullResponse } from '@waypost/schema';
 import { eq, inArray } from 'drizzle-orm';
+import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 
 import type { ApiClient } from '@/api/client';
 import { pull } from '@/api/endpoints';
@@ -98,58 +99,120 @@ function removeCheckpoints(tx: Database, ids: readonly string[]): void {
   if (gone.length > 0) tx.delete(checkpoints).where(inArray(checkpoints.id, gone)).run();
 }
 
-/** Deletes the configuration before a full state. Route versions stay: they never change, and a round in progress keeps using its own. */
+/** How one list of a pull page goes to the database. */
+interface SyncedList<K extends keyof Changes> {
+  upsert: (tx: Database, row: Changes[K][number]) => void;
+  /** Deletes by the IDs under "deleted"; null for a list that has none there. */
+  remove: K extends keyof Deleted ? (tx: Database, ids: readonly string[]) => void : null;
+  /** Deletes everything before a full state; null for what a full state keeps. */
+  clear: ((tx: Database) => void) | null;
+}
+
+type TableWithId = SQLiteTable & { id: SQLiteColumn };
+
+const upsertOn =
+  <T extends SQLiteTable>(table: T, target: SQLiteColumn | SQLiteColumn[]) =>
+  (tx: Database, row: T['$inferInsert']) => {
+    tx.insert(table).values(row).onConflictDoUpdate({ target, set: row }).run();
+  };
+
+const removeFrom =
+  <T extends TableWithId>(table: T) =>
+  (tx: Database, ids: readonly string[]) => {
+    tx.delete(table)
+      .where(inArray(table.id, [...ids]))
+      .run();
+  };
+
+const clearOf = (table: SQLiteTable) => (tx: Database) => {
+  tx.delete(table).run();
+};
+
+/** A list whose rows are one table's rows, by their id. */
+const plainList = <T extends TableWithId>(table: T) => ({
+  upsert: upsertOn(table, table.id),
+  remove: removeFrom(table),
+  clear: clearOf(table),
+});
+
+/**
+ * Every list of a page, in the order they are applied. Route versions stay at a full state: they never change, and a
+ * round in progress keeps using its own.
+ */
+const SYNCED_LISTS: { [K in keyof Changes]: SyncedList<K> } = {
+  sites: {
+    ...plainList(sites),
+    remove: (tx, ids) => {
+      removeFrom(sites)(tx, ids);
+      tx.delete(siteUser)
+        .where(inArray(siteUser.site_id, [...ids]))
+        .run();
+    },
+  },
+  users: {
+    upsert: (tx, { site_ids, ...row }) => {
+      upsertOn(users, users.id)(tx, row);
+      tx.delete(siteUser).where(eq(siteUser.user_id, row.id)).run();
+      for (const site_id of site_ids) tx.insert(siteUser).values({ site_id, user_id: row.id }).run();
+    },
+    remove: (tx, ids) => {
+      removeFrom(users)(tx, ids);
+      tx.delete(siteUser)
+        .where(inArray(siteUser.user_id, [...ids]))
+        .run();
+    },
+    clear: (tx) => {
+      clearOf(users)(tx);
+      clearOf(siteUser)(tx);
+    },
+  },
+  devices: plainList(devices),
+  checkpoints: {
+    upsert: upsertOn(checkpoints, checkpoints.id),
+    remove: removeCheckpoints,
+    clear: (tx) =>
+      removeCheckpoints(
+        tx,
+        tx
+          .select({ id: checkpoints.id })
+          .from(checkpoints)
+          .all()
+          .map((row) => row.id),
+      ),
+  },
+  routes: plainList(routes),
+  route_versions: { upsert: upsertOn(routeVersions, routeVersions.id), remove: null, clear: null },
+  route_version_checkpoints: {
+    upsert: upsertOn(routeVersionCheckpoints, [routeVersionCheckpoints.route_version_id, routeVersionCheckpoints.position]),
+    remove: null,
+    clear: null,
+  },
+  schedules: plainList(schedules),
+  report_subscriptions: plainList(reportSubscriptions),
+};
+
+const LISTS = Object.keys(SYNCED_LISTS) as (keyof Changes)[];
+
 function deleteConfiguration(tx: Database): void {
-  for (const table of [sites, users, siteUser, devices, routes, schedules, reportSubscriptions]) tx.delete(table).run();
-  removeCheckpoints(
-    tx,
-    tx
-      .select({ id: checkpoints.id })
-      .from(checkpoints)
-      .all()
-      .map((row) => row.id),
-  );
+  for (const list of LISTS) SYNCED_LISTS[list].clear?.(tx);
+}
+
+function upsertList<K extends keyof Changes>(tx: Database, list: K, rows: readonly Changes[K][number][]): void {
+  const { upsert } = SYNCED_LISTS[list];
+  for (const row of rows) upsert(tx, row);
 }
 
 function applyChanges(tx: Database, changes: Changes): void {
-  for (const row of changes.sites) tx.insert(sites).values(row).onConflictDoUpdate({ target: sites.id, set: row }).run();
-  for (const { site_ids, ...row } of changes.users) {
-    tx.insert(users).values(row).onConflictDoUpdate({ target: users.id, set: row }).run();
-    tx.delete(siteUser).where(eq(siteUser.user_id, row.id)).run();
-    for (const site_id of site_ids) tx.insert(siteUser).values({ site_id, user_id: row.id }).run();
-  }
-  for (const row of changes.devices) tx.insert(devices).values(row).onConflictDoUpdate({ target: devices.id, set: row }).run();
-  for (const row of changes.checkpoints) tx.insert(checkpoints).values(row).onConflictDoUpdate({ target: checkpoints.id, set: row }).run();
-  for (const row of changes.routes) tx.insert(routes).values(row).onConflictDoUpdate({ target: routes.id, set: row }).run();
-  for (const row of changes.route_versions)
-    tx.insert(routeVersions).values(row).onConflictDoUpdate({ target: routeVersions.id, set: row }).run();
-  for (const row of changes.route_version_checkpoints) {
-    tx.insert(routeVersionCheckpoints)
-      .values(row)
-      .onConflictDoUpdate({ target: [routeVersionCheckpoints.route_version_id, routeVersionCheckpoints.position], set: row })
-      .run();
-  }
-  for (const row of changes.schedules) tx.insert(schedules).values(row).onConflictDoUpdate({ target: schedules.id, set: row }).run();
-  for (const row of changes.report_subscriptions) {
-    tx.insert(reportSubscriptions).values(row).onConflictDoUpdate({ target: reportSubscriptions.id, set: row }).run();
-  }
+  for (const list of LISTS) upsertList(tx, list, changes[list]);
 }
 
 function applyDeleted(tx: Database, deleted: Deleted): void {
-  if (deleted.sites.length > 0) {
-    tx.delete(sites).where(inArray(sites.id, deleted.sites)).run();
-    tx.delete(siteUser).where(inArray(siteUser.site_id, deleted.sites)).run();
+  for (const list of LISTS) {
+    const { remove } = SYNCED_LISTS[list];
+    if (remove === null) continue;
+    const ids = deleted[list as keyof Deleted];
+    if (ids.length > 0) remove(tx, ids);
   }
-  if (deleted.users.length > 0) {
-    tx.delete(users).where(inArray(users.id, deleted.users)).run();
-    tx.delete(siteUser).where(inArray(siteUser.user_id, deleted.users)).run();
-  }
-  if (deleted.devices.length > 0) tx.delete(devices).where(inArray(devices.id, deleted.devices)).run();
-  removeCheckpoints(tx, deleted.checkpoints);
-  if (deleted.routes.length > 0) tx.delete(routes).where(inArray(routes.id, deleted.routes)).run();
-  if (deleted.schedules.length > 0) tx.delete(schedules).where(inArray(schedules.id, deleted.schedules)).run();
-  if (deleted.report_subscriptions.length > 0)
-    tx.delete(reportSubscriptions).where(inArray(reportSubscriptions.id, deleted.report_subscriptions)).run();
 }
 
 /** Adds the length of every list to the counts (the lists of a page always have every key). */
