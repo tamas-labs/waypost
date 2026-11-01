@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: waypost
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: waypost
+      - name: Read the schema version
+        id: schema
+        run: echo "tag=$(cat .waypost-schema-version)" >> "$GITHUB_OUTPUT"
+      # The app depends on file:../waypost-schema, so the schema goes next to it, at the pinned tag.
+      - uses: actions/checkout@v7
+        with:
+          repository: tamas-labs/waypost-schema
+          ref: ${{ steps.schema.outputs.tag }}
+          path: waypost-schema
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: waypost/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:coverage
