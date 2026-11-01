@@ -8,7 +8,7 @@ import type { ChainEntryDraft } from '@/chain/writer';
 import { parseTimestamp, toTimestamp } from '@/time/timestamp';
 import { DAY_MS } from '@/time/zone';
 
-import { autoCloseTime, closeRound, closingStatus, deadlineOf, expectedSlots, type ClosedStatus } from './rounds';
+import { autoCloseTime, closeRound, closingStatus, deadlineOf, deadlineOfRound, expectedSlots, type ClosedStatus } from './rounds';
 import type { ScheduleOfRoute } from './schedule';
 import { DomainError, isOpen, versionOf, type GuardState, type NewId, type RoundInfo, type ShiftInfo } from './state';
 
@@ -21,9 +21,12 @@ export interface GuardLogin {
   drafts: ChainEntryDraft[];
 }
 
-/** The open rounds closed now by the usual rule (completed, incomplete or missed). */
+/** The open rounds closed now by the usual rule (completed, incomplete or missed); one already expired finishes at its deadline, as in the scheduler. */
 function closeOpenRounds(state: GuardState, now: Timestamp): ChainEntryDraft[] {
-  return state.rounds.filter(isOpen).map((round) => closeRound(state, round, now));
+  const nowMs = parseTimestamp(now);
+  return state.rounds
+    .filter(isOpen)
+    .map((round) => closeRound(state, round, toTimestamp(Math.min(parseTimestamp(deadlineOfRound(state, round)), nowMs))));
 }
 
 /**

@@ -56,7 +56,7 @@ describe('shift state machine', () => {
     expect(login.outcome).toBe('handover');
     expect(login.closed_shift).toEqual(OPEN_SHIFT);
     expect(login.drafts).toEqual([
-      { type: 'round_closed', payload: { round_id: scanned.id, status: 'incomplete', finished_at: local('20:40') }, gnss_time: null },
+      { type: 'round_closed', payload: { round_id: scanned.id, status: 'incomplete', finished_at: local('20:20') }, gnss_time: null },
       { type: 'round_closed', payload: { round_id: unscanned.id, status: 'missed', finished_at: local('20:40') }, gnss_time: null },
       { type: 'shift_closed', payload: { shift_id: SHIFT, closed_by: 'handover' }, gnss_time: null },
       { type: 'shift_started', payload: { shift_id: login.shift_id, guard_id: OTHER_GUARD, site_id: SITE }, gnss_time: null },
@@ -298,5 +298,22 @@ describe('the summary of closing the shift', () => {
     const summary = shiftSummary(guardState({ shift: { ...OPEN_SHIFT, started_at: local('21:30') } }), local('21:40'))!;
     expect(summary.counts.missed).toBeGreaterThan(0);
     expect(summary.open_rounds).toEqual([]);
+  });
+});
+
+describe('closing a round that has expired', () => {
+  const FINISHED = (drafts: { type: string; payload: object }[]) =>
+    drafts.flatMap((draft) => (draft.type === 'round_closed' ? [(draft.payload as { finished_at: string }).finished_at] : []));
+
+  it('finishes it at its deadline on a handover and on the guard closing the shift', () => {
+    const state = guardState({ shift: OPEN_SHIFT, rounds: [round('A', '20:00')] });
+    expect(FINISHED(guardLogin(state, OTHER_GUARD, local('23:30'), idSequence()).drafts)).toEqual([local('20:20')]);
+    expect(FINISHED(closeShiftByGuard(state, local('23:30')))).toEqual([local('20:20')]);
+  });
+
+  it('finishes it now while its deadline is ahead', () => {
+    const state = guardState({ shift: OPEN_SHIFT, rounds: [round('A', '20:00')] });
+    expect(FINISHED(guardLogin(state, OTHER_GUARD, local('20:10'), idSequence()).drafts)).toEqual([local('20:10')]);
+    expect(FINISHED(closeShiftByGuard(state, local('20:10')))).toEqual([local('20:10')]);
   });
 });

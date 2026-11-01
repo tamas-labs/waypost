@@ -550,3 +550,10 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
 - **Döntés:** A futó kör (`open`, `in_progress`) verziójának pontja törlés helyett inaktív lesz. A J-09 szabálya szerint így a körben leolvasható, máshol nem számít. Ha a szerver később újra elküldi, visszaáll; ha nem, a következő, futó kör nélküli `reset` törli. A többi pont törlődik, ahogy eddig.
 - **Indok:** Specifikáció *Kör*: a kör a megnyitáskor rögzített verziót használja végig. Az inaktív sor kisebb kockázat, mint egy félbehagyott kör, és a telefonon végzett munka megmarad.
 - **Érintett:** `src/sync/pull.ts`.
+
+## 2026-11-01 – A lejárt kör `finished_at` értéke (J-10)
+
+- **Kérdés:** Átadásnál és őri zárásnál mi legyen a már lejárt, de még le nem zárt kör `finished_at` értéke?
+- **Döntés:** Körönként a határidő és a „most” közül a korábbi, ahogy az ütemezőnél. Még le nem járt körnél marad a „most”.
+- **Indok:** Audit 5. hiba: 20:20-as határidejű körnél 23:30-at írt a lánc.
+- **Érintett:** `src/domain/shift.ts`.
