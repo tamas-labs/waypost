@@ -9,10 +9,10 @@ import {
   getPresentedNotificationsAsync,
   type Notification,
 } from 'expo-notifications';
-import { AppState, type AppStateStatus } from 'react-native';
 
 import { useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
+import { onForeground } from '@/device/foreground';
 import type { AlarmSlot } from '@/domain/alarms';
 import { loadAlarmScreenInfo } from '@/guard/alarm';
 
@@ -96,20 +96,16 @@ export function startAlarmScreen(db: Database): () => void {
   });
   const received = addNotificationReceivedListener(raise);
   const response = addNotificationResponseReceivedListener(({ notification }) => raise(notification));
-  let active = AppState.currentState === 'active';
-  const appStateSubscription = AppState.addEventListener('change', (state: AppStateStatus) => {
-    if (state === 'active' && !active) {
-      raisePresentedAlarms(db).catch((error: unknown) => {
-        if (__DEV__) console.warn('Checking the presented alarms failed', error);
-      });
-    }
-    active = state === 'active';
+  const stopForeground = onForeground(() => {
+    raisePresentedAlarms(db).catch((error: unknown) => {
+      if (__DEV__) console.warn('Checking the presented alarms failed', error);
+    });
   });
 
   return () => {
     setForegroundTakeover(() => false);
     received.remove();
     response.remove();
-    appStateSubscription.remove();
+    stopForeground();
   };
 }

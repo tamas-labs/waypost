@@ -12,11 +12,11 @@ import {
   scheduleNotificationAsync,
   type NotificationRequestInput,
 } from 'expo-notifications';
-import { AppState, type AppStateStatus } from 'react-native';
 
 import { onChainEntries } from '@/chain/events';
 import type { Database } from '@/db/database';
 import { routes } from '@/db/schema';
+import { onForeground } from '@/device/foreground';
 import { alarmPlan, type AlarmSlot, type PlannedAlarm } from '@/domain/alarms';
 import { loadGuardStateNow } from '@/guard/state';
 import { t } from '@/i18n';
@@ -178,11 +178,7 @@ export function startRoundAlarms(db: Database): () => void {
   });
   const received = addNotificationReceivedListener(() => void requestAlarmReschedule());
   const response = addNotificationResponseReceivedListener(() => void requestAlarmReschedule());
-  let active = AppState.currentState === 'active';
-  const appStateSubscription = AppState.addEventListener('change', (state: AppStateStatus) => {
-    if (state === 'active' && !active) void requestAlarmReschedule();
-    active = state === 'active';
-  });
+  const stopForeground = onForeground(() => void requestAlarmReschedule());
 
   ensureRoundsChannel()
     .catch((error: unknown) => {
@@ -195,7 +191,7 @@ export function startRoundAlarms(db: Database): () => void {
     unsubscribeChain();
     received.remove();
     response.remove();
-    appStateSubscription.remove();
+    stopForeground();
     if (database === db) database = null;
     if (stopAlarms === stop) stopAlarms = null;
   };

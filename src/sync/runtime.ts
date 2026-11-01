@@ -2,11 +2,11 @@
 // the specification (Szinkron protokoll / Mikor fut). startSync() is called once the database and the session are
 // loaded; it follows the chain writer's events, and the shift close calls requestSync('shift_closed').
 import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
-import { AppState, type AppStateStatus } from 'react-native';
 
 import { createApiClient, type ApiClient } from '@/api/client';
 import { apiBaseUrl } from '@/api/config';
 import { getDeviceCredentials, getSupervisorToken } from '@/device/credentials';
+import { whileInForeground } from '@/device/foreground';
 import { useSession } from '@/auth/session';
 import { onChainEntries } from '@/chain/events';
 import type { Database } from '@/db/database';
@@ -110,26 +110,11 @@ export function startSync(db: Database): () => void {
     lastError: null,
   });
 
-  let interval: ReturnType<typeof setInterval> | null = null;
-  const startInterval = () => {
-    interval ??= setInterval(() => void sync.sync('interval'), FOREGROUND_SYNC_INTERVAL_MS);
-  };
-  const stopInterval = () => {
-    if (interval !== null) clearInterval(interval);
-    interval = null;
-  };
-
-  let active = AppState.currentState === 'active';
-  if (active) startInterval();
-  const appStateSubscription = AppState.addEventListener('change', (state: AppStateStatus) => {
-    if (state === 'active' && !active) {
-      void sync.sync('foreground');
-      startInterval();
-    } else if (state !== 'active') {
-      stopInterval();
-    }
-    active = state === 'active';
-  });
+  const stopForeground = whileInForeground(
+    () => void sync.sync('interval'),
+    FOREGROUND_SYNC_INTERVAL_MS,
+    () => void sync.sync('foreground'),
+  );
 
   const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
     const online = isOnline(state);
@@ -153,8 +138,7 @@ export function startSync(db: Database): () => void {
 
   const stop = () => {
     sync.dispose();
-    stopInterval();
-    appStateSubscription.remove();
+    stopForeground();
     unsubscribeNetInfo();
     unsubscribeSession();
     unsubscribeChainEntries();

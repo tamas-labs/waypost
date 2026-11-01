@@ -33,7 +33,7 @@ src/
   time/       # időbélyeg, readClock() (waypost-clock), megbízható idő
   domain/     # üzleti szabályok (menetrend → körök, műszak, kör, leolvasás) és a képernyők nézetmodelljei (shift-view.ts) – UI és I/O nélkül
   guard/      # a domain és az adatbázis között: a GuardState betöltése, az ütemező futtató; testing.ts (a domain-fixture az adatbázisban)
-  device/     # a telefon saját adatai és állapota, a domaintól függetlenül: tokenek és eszköztitok a secure store-ban (credentials.ts), készenlét (readiness.ts)
+  device/     # a telefon saját adatai és állapota, a domaintól függetlenül: tokenek és eszköztitok a secure store-ban (credentials.ts), készenlét (readiness.ts), előtér-figyelés és intervallum (foreground.ts)
   schema/     # JSON Schema-ellenőrzés fejlesztői módban (validation.ts, Ajv)
   sync/       # pull, push, outbox, média
   chain/      # láncbejegyzés: kanonikus JSON, HMAC

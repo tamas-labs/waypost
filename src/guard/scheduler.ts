@@ -3,10 +3,10 @@
 // chain. Each step reads the state under the chain lock, so steps at the same time cannot open a round twice.
 import type { ChainEntry } from '@waypost/schema';
 import { addNotificationReceivedListener, addNotificationResponseReceivedListener } from 'expo-notifications';
-import { AppState, type AppStateStatus } from 'react-native';
 
 import { appendDecidedEntries } from '@/chain/writer';
 import type { Database } from '@/db/database';
+import { whileInForeground } from '@/device/foreground';
 import { schedulerStep } from '@/domain/rounds';
 import { uuidv7 } from '@/id/uuidv7';
 import { requestSync } from '@/sync/runtime';
@@ -55,26 +55,11 @@ export function startScheduler(db: Database): () => void {
   stopScheduler?.();
   database = db;
 
-  let interval: ReturnType<typeof setInterval> | null = null;
-  const startInterval = () => {
-    interval ??= setInterval(() => run(db, 'interval'), SCHEDULER_INTERVAL_MS);
-  };
-  const stopInterval = () => {
-    if (interval !== null) clearInterval(interval);
-    interval = null;
-  };
-
-  let active = AppState.currentState === 'active';
-  if (active) startInterval();
-  const appStateSubscription = AppState.addEventListener('change', (state: AppStateStatus) => {
-    if (state === 'active' && !active) {
-      run(db, 'foreground');
-      startInterval();
-    } else if (state !== 'active') {
-      stopInterval();
-    }
-    active = state === 'active';
-  });
+  const stopForeground = whileInForeground(
+    () => run(db, 'interval'),
+    SCHEDULER_INTERVAL_MS,
+    () => run(db, 'foreground'),
+  );
 
   // Every notification of the app is a round alarm (M3-24): arriving while the app runs, or tapped.
   const received = addNotificationReceivedListener(() => run(db, 'notification'));
@@ -83,8 +68,7 @@ export function startScheduler(db: Database): () => void {
   run(db, 'start');
 
   const stop = () => {
-    stopInterval();
-    appStateSubscription.remove();
+    stopForeground();
     received.remove();
     response.remove();
     if (database === db) database = null;
