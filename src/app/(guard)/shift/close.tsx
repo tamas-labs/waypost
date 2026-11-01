@@ -1,11 +1,10 @@
 import type { Timestamp } from '@waypost/schema';
 import { router, useIsFocused } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSession } from '@/auth/session';
-import { onChainEntries } from '@/chain/events';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Icon, type IconName } from '@/components/icon';
@@ -17,9 +16,9 @@ import { StatusDot } from '@/components/status-dot';
 import { getDatabase } from '@/db/open';
 import { playFeedback } from '@/feedback/feedback';
 import { closeShiftWithPin, loadShiftCloseInfo, type ShiftCloseInfo } from '@/guard/shift-close';
+import { useLiveQuery } from '@/hooks/use-live-query';
 import { t, type TranslationKey } from '@/i18n';
 import { pinLockedText, usePinLock, wrongPinText } from '@/navigation/use-pin-lock';
-import { onConfigurationPulled } from '@/sync/events';
 import { useSyncStatus } from '@/sync/status';
 import { useTheme } from '@/theme/theme-provider';
 import { statusStyle, type ColorTokens } from '@/theme/tokens';
@@ -32,15 +31,11 @@ const STATS = [
   { status: 'missed', label: 'shiftEnd.missed' },
 ] as const satisfies readonly { status: keyof ShiftCloseInfo['counts']; label: TranslationKey }[];
 
+const loadInfo = () => loadShiftCloseInfo(getDatabase());
+
 /** The summary, reloaded after a chain entry (a round closed meanwhile) and a pull. */
 function useShiftCloseInfo(): ShiftCloseInfo | null {
-  const [info, setInfo] = useState(() => loadShiftCloseInfo(getDatabase()));
-  useEffect(() => {
-    const reload = () => setInfo(loadShiftCloseInfo(getDatabase()));
-    const stops = [onConfigurationPulled(reload), onChainEntries(reload)];
-    return () => stops.forEach((stop) => stop());
-  }, []);
-  return info;
+  return useLiveQuery(loadInfo);
 }
 
 function StatTile({ status, label, count }: { status: keyof ShiftCloseInfo['counts']; label: string; count: number }) {

@@ -1,12 +1,11 @@
 import type { Timestamp } from '@waypost/schema';
 import { router, useIsFocused } from 'expo-router';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useActiveAlarms } from '@/alarms/active-alarms';
 import { useSession } from '@/auth/session';
-import { onChainEntries } from '@/chain/events';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { InfoBanner } from '@/components/info-banner';
@@ -17,8 +16,8 @@ import { getDatabase } from '@/db/open';
 import { loadShiftHomeInfo, type ShiftHomeInfo, type ShiftHomeRound } from '@/guard/home';
 import { forgetShownRounds, markRoundShown, wasRoundShown } from '@/guard/round';
 import { useCountdown } from '@/guard/use-countdown';
+import { useLiveQuery } from '@/hooks/use-live-query';
 import { t } from '@/i18n';
-import { onConfigurationPulled } from '@/sync/events';
 import { useTheme } from '@/theme/theme-provider';
 import { statusStyle } from '@/theme/tokens';
 import { parseTimestamp } from '@/time/timestamp';
@@ -32,14 +31,7 @@ const isClosed = (round: ShiftHomeRound): round is ClosedRound =>
 
 /** The shift's rounds, reloaded after a chain entry (a round opened, a scan, a shift closed) and a pull. */
 function useShiftHomeInfo(guardId: string | null): ShiftHomeInfo | null {
-  const load = useCallback(() => (guardId === null ? null : loadShiftHomeInfo(getDatabase(), guardId)), [guardId]);
-  const [info, setInfo] = useState(load);
-  useEffect(() => {
-    const reload = () => setInfo(load());
-    const stops = [onConfigurationPulled(reload), onChainEntries(reload)];
-    return () => stops.forEach((stop) => stop());
-  }, [load]);
-  return info;
+  return useLiveQuery(useCallback(() => (guardId === null ? null : loadShiftHomeInfo(getDatabase(), guardId)), [guardId]));
 }
 
 // Shift home (G3, B-Kezdolap): the next round with a countdown, the rounds of the shift on a timeline, the closed ones

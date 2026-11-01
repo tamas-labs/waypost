@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { onChainEntries } from '@/chain/events';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { IconButton } from '@/components/icon-button';
@@ -19,6 +18,7 @@ import { showToast } from '@/components/toast';
 import { getDatabase } from '@/db/open';
 import { playFeedback, playHaptic } from '@/feedback/feedback';
 import { closedStatusOf, loadRoundScreenInfo, markRoundShown, roundMapOf, type RoundPoint, type RoundScreenInfo } from '@/guard/round';
+import { useLiveQuery } from '@/hooks/use-live-query';
 import { tagReadOf } from '@/guard/scan';
 import { useCountdown } from '@/guard/use-countdown';
 import { t } from '@/i18n';
@@ -27,7 +27,6 @@ import { useScanRecorder } from '@/navigation/use-scan-recorder';
 import { openNfcSettings } from '@/nfc/reader';
 import type { TagReading } from '@/nfc/tag';
 import { useTagReader } from '@/nfc/use-tag-reader';
-import { onConfigurationPulled } from '@/sync/events';
 import { useTheme } from '@/theme/theme-provider';
 import { statusStyle } from '@/theme/tokens';
 import { countdownText } from '@/time/countdown';
@@ -45,14 +44,7 @@ const VIEWS: readonly { value: RoundView; label: string }[] = [
 
 /** The round, reloaded after a chain entry (a scan, its closing) and a pull. */
 function useRoundInfo(roundId: string): RoundScreenInfo | null {
-  const load = useCallback(() => loadRoundScreenInfo(getDatabase(), roundId), [roundId]);
-  const [info, setInfo] = useState(load);
-  useEffect(() => {
-    const reload = () => setInfo(load());
-    const stops = [onConfigurationPulled(reload), onChainEntries(reload)];
-    return () => stops.forEach((stop) => stop());
-  }, [load]);
-  return info;
+  return useLiveQuery(useCallback(() => loadRoundScreenInfo(getDatabase(), roundId), [roundId]));
 }
 
 function pointState(point: RoundPoint): PointState {

@@ -3,7 +3,6 @@ import { AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { allAlarmPermissionsGranted, getAlarmPermissions, type AlarmPermissions } from '@/alarms/permissions';
-import { onChainEntries } from '@/chain/events';
 import { Button } from '@/components/button';
 import { InfoBanner } from '@/components/info-banner';
 import { PIN_LENGTH, PinDots, PinPad } from '@/components/pin-pad';
@@ -11,9 +10,9 @@ import { SyncStatusIndicator } from '@/components/sync-status-indicator';
 import { getDatabase } from '@/db/open';
 import { playFeedback } from '@/feedback/feedback';
 import { loadPinScreenInfo, signInWithPin, type PinScreenInfo } from '@/guard/login';
+import { useLiveQuery } from '@/hooks/use-live-query';
 import { t, type TranslationKey } from '@/i18n';
 import { pinLockedText, usePinLock, wrongPinText } from '@/navigation/use-pin-lock';
-import { onConfigurationPulled } from '@/sync/events';
 import { useTheme } from '@/theme/theme-provider';
 import { parseTimestamp } from '@/time/timestamp';
 import { DAY_MS, localTimeOf, naiveOf } from '@/time/zone';
@@ -48,19 +47,11 @@ function missingAlarmSettings(permissions: AlarmPermissions): string {
   return missing.map((key) => t(key)).join(', ');
 }
 
+const loadInfo = () => loadPinScreenInfo(getDatabase());
+
 /** The site's information, reloaded after a pull, a chain entry (e.g. an automatic shift close), and every 30 s. */
 function usePinScreenInfo(): PinScreenInfo | null {
-  const [info, setInfo] = useState(() => loadPinScreenInfo(getDatabase()));
-  useEffect(() => {
-    const reload = () => setInfo(loadPinScreenInfo(getDatabase()));
-    const stops = [onConfigurationPulled(reload), onChainEntries(reload)];
-    const interval = setInterval(reload, INFO_REFRESH_MS);
-    return () => {
-      stops.forEach((stop) => stop());
-      clearInterval(interval);
-    };
-  }, []);
-  return info;
+  return useLiveQuery(loadInfo, INFO_REFRESH_MS);
 }
 
 /** The alarm settings, checked again whenever the app comes back (e.g. from the system settings). */

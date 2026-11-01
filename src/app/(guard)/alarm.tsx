@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { clearAlarm, muteAlarm, useActiveAlarms } from '@/alarms/active-alarms';
 import { useRinging } from '@/alarms/ringing';
-import { onChainEntries } from '@/chain/events';
 import { Button } from '@/components/button';
 import { StatusDot } from '@/components/status-dot';
 import { SyncStatusIndicator } from '@/components/sync-status-indicator';
@@ -14,8 +13,8 @@ import { getDatabase } from '@/db/open';
 import type { AlarmSlot } from '@/domain/alarms';
 import { loadAlarmScreenInfo, type AlarmScreenInfo } from '@/guard/alarm';
 import { runSchedulerStep } from '@/guard/scheduler';
+import { useLiveQuery } from '@/hooks/use-live-query';
 import { t } from '@/i18n';
-import { onConfigurationPulled } from '@/sync/events';
 import { useTheme } from '@/theme/theme-provider';
 import { statusStyle } from '@/theme/tokens';
 import { parseTimestamp } from '@/time/timestamp';
@@ -24,17 +23,9 @@ import { localTimeOf } from '@/time/zone';
 /** The round of the alarm, reloaded after a chain entry (the round opened, started or closed) and a pull. */
 function useAlarmInfo(slot: AlarmSlot): AlarmScreenInfo | null {
   const { route_id, schedule_id, scheduled_at } = slot;
-  const load = useCallback(
-    () => loadAlarmScreenInfo(getDatabase(), { route_id, schedule_id, scheduled_at }),
-    [route_id, schedule_id, scheduled_at],
+  return useLiveQuery(
+    useCallback(() => loadAlarmScreenInfo(getDatabase(), { route_id, schedule_id, scheduled_at }), [route_id, schedule_id, scheduled_at]),
   );
-  const [info, setInfo] = useState(load);
-  useEffect(() => {
-    const reload = () => setInfo(load());
-    const stops = [onConfigurationPulled(reload), onChainEntries(reload)];
-    return () => stops.forEach((stop) => stop());
-  }, [load]);
-  return info;
 }
 
 // The alarm (G4, B-Ebresztes): a round is due. It rings until "Indulok" (to the round's screen; the time starts with

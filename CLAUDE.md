@@ -24,6 +24,7 @@ A Waypost mobilapp (Expo / React Native, TypeScript): az őrök a telephelyi tel
 src/
   app/        # expo-router képernyők – csak route-fájl lehet benne (teszt, segéd nem); (auth)/ (guard)/ (supervisor)/, dev/ és prototype/ (M1 eszközpróbák) csak fejlesztői buildben
   navigation/ # melyik csoport nyitott az állapot szerint (Stack.Protected), kezdőképernyő
+  hooks/      # képernyők közös hookjai: useLiveQuery (élő betöltés az adatbázisból)
   components/ # közös UI-komponensek (DESIGN_HANDOFF 5); ikon: icon.tsx (lucide, ikononként importálva); képernyőfejléc: screen-header.tsx (jobbra a szinkronjelző); rövid üzenet: toast.tsx (`showToast`)
   api/        # API-kliens: client.ts (token, Idempotency-Key, típusos hibák, __DEV__ Ajv), endpoints.ts
   auth/       # indulási állapot, munkamenet (Zustand), hozzárendelés, PIN
