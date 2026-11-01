@@ -17,6 +17,7 @@ import { manualScan, reportIncident, resolveScan } from '@/domain/scan';
 import { closeShiftByGuard, guardLogin } from '@/domain/shift';
 import { C1, C2, C3, GUARD, idSequence, local, OTHER_GUARD, SITE } from '@/domain/testing';
 import { playFeedback } from '@/feedback/feedback';
+import * as shiftClose from '@/guard/shift-close';
 import { loadGuardState } from '@/guard/state';
 import { seedSite } from '@/guard/testing';
 import { requestSync } from '@/sync/runtime';
@@ -67,9 +68,12 @@ const enter = async (pin: string) => {
   for (const digit of pin) await press(digit);
 };
 const confirm = async (pin: string) => {
+  const closing = jest.spyOn(shiftClose, 'closeShiftWithPin');
   await press('Zárás PIN-kóddal');
   await enter(pin);
   await press('Műszak zárása');
+  // PBKDF2 runs off the JS thread in real time: act does not wait for it, and findBy's timeout counts fake time here.
+  await act(async () => void (await Promise.allSettled(closing.mock.results.map(({ value }) => value))));
 };
 
 async function addUser(id: string, name: string, pin: string) {
