@@ -1,5 +1,5 @@
 import { pinVectors } from '@waypost/schema/vectors';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { getAlarmPermissions, type AlarmPermissions } from '@/alarms/permissions';
@@ -12,6 +12,7 @@ import { shifts, siteUser, users } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import { GUARD, local, SITE } from '@/domain/testing';
 import { playFeedback } from '@/feedback/feedback';
+import * as login from '@/guard/login';
 import { seedSite } from '@/guard/testing';
 import { ThemeProvider } from '@/theme/theme-provider';
 
@@ -27,8 +28,6 @@ const GRANTED: AlarmPermissions = { notifications: { granted: true, canAskAgain:
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 const basic = pinVectors.cases.find((c) => c.name === 'basic')!;
 const AT = '2026-10-27T12:00:00.000Z';
-/** PBKDF2 with 100 000 iterations is slow when the test suites run in parallel. */
-const CHECK_TIMEOUT_MS = 10_000;
 
 let db: Database;
 
@@ -75,6 +74,15 @@ async function renderScreen() {
 
 const key = (name: string) => screen.getByRole('button', { name });
 
+/** Presses the button and waits for the PIN check. */
+async function submit() {
+  const signing = jest.spyOn(login, 'signInWithPin');
+  await act(async () => fireEvent.press(key('Műszak kezdése')));
+  // PBKDF2 runs off the JS thread in real time: act does not wait for it, and findBy's timeout counts fake time here.
+  await act(async () => void (await Promise.allSettled(signing.mock.results.map(({ value }) => value))));
+  signing.mockRestore();
+}
+
 async function enter(pin: string) {
   for (const digit of pin) await act(async () => fireEvent.press(key(digit)));
 }
@@ -105,9 +113,8 @@ it('starts the shift with a guard’s PIN once all six digits are in', async () 
   await enter(basic.pin.slice(5) + '1');
   expect(screen.getByLabelText('6 számjegy megadva a 6-ból')).toBeOnTheScreen();
 
-  await act(async () => fireEvent.press(key('Műszak kezdése')));
-  // PBKDF2 runs off the JS thread.
-  await waitFor(() => expect(useSession.getState().activeUser).toEqual({ id: GUARD, role: 'guard' }), { timeout: CHECK_TIMEOUT_MS });
+  await submit();
+  expect(useSession.getState().activeUser).toEqual({ id: GUARD, role: 'guard' });
   expect(db.select({ guard_id: shifts.guard_id }).from(shifts).all()).toEqual([{ guard_id: GUARD }]);
 });
 
@@ -115,8 +122,8 @@ it('tells a wrong PIN, with the error feedback, and empties the dots', async () 
   await seed();
   await renderScreen();
   await enter('000000');
-  await act(async () => fireEvent.press(key('Műszak kezdése')));
-  expect(await screen.findByText('Hibás PIN-kód', {}, { timeout: CHECK_TIMEOUT_MS })).toBeOnTheScreen();
+  await submit();
+  expect(screen.getByText('Hibás PIN-kód')).toBeOnTheScreen();
   expect(playFeedback).toHaveBeenCalledWith('error');
   expect(screen.getByLabelText('0 számjegy megadva a 6-ból')).toBeOnTheScreen();
   expect(useSession.getState().activeUser).toBeNull();
