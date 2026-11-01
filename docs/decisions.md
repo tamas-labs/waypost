@@ -584,3 +584,10 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
 - **Döntés:** A `startSync` iratkozik fel az `onChainEntries` eseményre, és a `stop`-ban leiratkozik. Az esemény egy kivételt dobó figyelőt elkülönít, így a hívó nem kap hibát, ha a bejegyzés már rögzült. A viselkedés más nem változik: frissül a számláló, és 2 mp múlva indul a szinkron.
 - **Indok:** Audit 6. hiba, „a legrosszabb él”.
 - **Érintett:** `src/chain/writer.ts`, `src/sync/runtime.ts`.
+
+## 2026-11-01 – Az M3-40 pipája a telefonos futás előtt
+
+- **Kérdés:** Az M3-40 telefonos futást is kér, ez még nincs meg. Lezárható-e az M3 addig?
+- **Döntés:** A gazda döntése szerint igen, az M3 egyelőre kész. A telefonos futást a gazda végzi el (`device-test.md`, „M3 – Elfogadás”, F1–F9 és a korábbi M3-as tételek), és addig a J-19 nyitott marad. Ami ott hibásnak bizonyul, új feladatként javítjuk.
+- **Indok:** Az automatikus rész (közös vektorok, typecheck, lint, formázás, teszt) zöld, a munka ezen a részen nem várhat a telefonra. Kockázat: az ébresztés, az NFC és a teljes offline műszak valódi telefonon még nem futott, ezért az M3 elfogadása addig csak a tesztekre épül.
+- **Érintett:** `docs/tasks.md`, `docs/audit-m1-m3-javitasi-terv.md`.

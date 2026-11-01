@@ -403,8 +403,8 @@ Cél: SQLite, pull, PIN-belépés, műszak, menetrend, kör-állapotgép, leolva
   - Megjegyzés (2026-10-31): a lefedettség megvan és kikényszerített (`npm run test:coverage`, `coverageThreshold`: domain, chain és sync külön-külön ≥ 90%), az ESLint hibamentes. **Nyitott:** a GitHubon lévő `waypost-schema` (`main`, `v0.1.0`, 2026-10-27) régebbi annál, amire az app épül, ezért friss checkouton a `typecheck` és 5 tesztcsomag piros. Hiányzik: `pinVectors` (`pin/test-vectors.json`, Q11), a pull `reset` mezője, `api/site-list.response` és `SiteListResponse`, a `server_error` és `bad_request` hibakód. A séma friss változatával pipálható; részletek: `docs/decisions.md`.
   - Megjegyzés (2026-11-01): a `waypost-schema` `v0.2.0` kiadva, az app ezt várja (`.waypost-schema-version`). Friss checkouton is zöld a typecheck, a lint és a teszt; a CI minden `main`-re és PR-re futtatja, lefedettség: chain 99,0%, domain 99,6%, sync 96,4% (utasítás).
 
-- [ ] **M3-40 Elfogadás**: a domain és a lánc tesztjei zöldek a közös tesztvektorokkal; telefonon egy 5 perces körökkel beállított, 1 órás műszak teljesen offline végigvihető (a demó-telephellyel); a `device-test.md` M3-as futása kitöltve.
-  - Megjegyzés (2026-10-31): a lánc és a menetrend közös vektorai zöldek. A telefonos futás hátravan (`device-test.md`, „M3 – Elfogadás”, F1–F9). A séma frissítése (M3-39, 2026-11-01) már megvan; addig fejlesztői buildben: fejlesztői buildben a régi sémával a hozzárendelés és a pull elbukik.
+- [x] **M3-40 Elfogadás**: a domain és a lánc tesztjei zöldek a közös tesztvektorokkal; telefonon egy 5 perces körökkel beállított, 1 órás műszak teljesen offline végigvihető (a demó-telephellyel); a `device-test.md` M3-as futása kitöltve.
+  - Megjegyzés (2026-11-01): a gazda döntése szerint egyelőre késznek vesszük, **a telefonos futás nélkül**. Ellenőrizve: a lánc és a menetrend közös vektorai, a typecheck, a lint, a formázás és a teszt zöld. **Nyitott:** a telefonos futás (`device-test.md`, „M3 – Elfogadás”, F1–F9 és a korábbi M3-as tételek) a gazdánál van, a `device-test.md` M3-as sorai üresek (`audit-m1-m3-javitasi-terv.md`, J-19). Ha ott hiba jön elő, új feladatként javítjuk. Döntések: `docs/decisions.md`.
 
 ---
 
@@ -414,8 +414,9 @@ Cél: az eszköz adatai hibátlanul a szerverre kerülnek, és a szerver ellenő
 
 ### Séma
 
-- [ ] **M4-01 Séma: push-final, média, entitások**
+- [x] **M4-01 Séma: push-final, média, entitások**
   - Mit: `sync-push-final.request/response`, `media-upload` (multipart mezők leírása, `sha256`) és válasza, a `media` entitás; minor verzióemelés és CHANGELOG.
+  - Megjegyzés (2026-11-01): `waypost-schema` `0.3.0`, az app és a backend erre mutat. A `v0.3.0` kiadva. Két döntés kiegészíti a specifikációt (`waypost-schema/docs/decisions.md`): a push-final több kötegben mehet, és a `done: true` zárja le; a `PUT /media/{id}` szöveges mezői `sha256`, `owner_type`, `owner_id`, `taken_at`, a pont kéréseiben pedig új a `photo_media_id`.
 
 ### Backend
 
@@ -442,12 +443,12 @@ Cél: az eszköz adatai hibátlanul a szerverre kerülnek, és a szerver ellenő
   - Spec: Láncolt napló / Jelölések.
 
 - [ ] **M4-07 `media_missing` és `PUT /media/{id}`**
-  - Mit: a push válaszában azok a hivatkozott fotók, amelyek még nincsenek fent; a feltöltés multipart, a sha256 ellenőrzése a payloadban rögzített lenyomattal, privát lemez, `path` és `uploaded_at` beállítása; idempotens újrafeltöltés.
-  - Kész, ha: feature tesztek (jó, rossz lenyomat, idegen eszköz, ismételt feltöltés).
+  - Mit: a push válaszában azok a hivatkozott fotók, amelyek még nincsenek fent; a feltöltés multipart, a sha256 ellenőrzése a payloadban rögzített lenyomattal, privát lemez, `path` és `uploaded_at` beállítása; idempotens újrafeltöltés. A `PUT` multipart törzsét a PHP nem bontja ki magától (`request_parse_body()`, PHP 8.4). A pont fotója a bejegyzés nélkül is feltölthető, és a pont kérésének `photo_media_id` mezője erre hivatkozik (létezik és ehhez a ponthoz tartozik, különben 422). A visszavont eszköz a lezárásig tölthet fel.
+  - Kész, ha: feature tesztek (jó, rossz lenyomat, idegen eszköz, ismételt feltöltés, bejegyzés előtti feltöltés 404, a pont fotója, visszavont eszköz a lezárás előtt és után).
 
 - [ ] **M4-08 `POST /sync/push-final`**
-  - Mit: visszavont eszköz egyszeri utolsó feltöltése (ugyanaz az ellenőrzés, mint a push-nál), utána ez a lehetőség is lezárul.
-  - Kész, ha: feature tesztek (első hívás sikerül, második 401, nem visszavont eszköz nem használhatja).
+  - Mit: visszavont eszköz utolsó feltöltése kötegekben (ugyanaz az ellenőrzés, mint a push-nál); a `done: true` kérés után ez a lehetőség is lezárul.
+  - Kész, ha: feature tesztek (kötegek, a `done: true` üres listával is lezár, utána 401, nem visszavont eszköz 403).
 
 ### App
 
@@ -461,7 +462,7 @@ Cél: az eszköz adatai hibátlanul a szerverre kerülnek, és a szerver ellenő
   - Kész, ha: Jest tesztek.
 
 - [ ] **M4-11 Visszavont eszköz kezelése**
-  - Mit: `device_revoked` válaszra `push-final` (a még fel nem töltött adatokkal), utána a tokenek és a titok törlése, és az app „nincs hozzárendelve” állapotba lép.
+  - Mit: `device_revoked` válaszra `push-final` kötegekben, majd a fotók, végül a `done: true` kérés; utána a tokenek és a titok törlése, és az app „nincs hozzárendelve” állapotba lép.
   - Kész, ha: Jest teszt a folyamatra.
 
 - [ ] **M4-12 Helyi takarítás**
