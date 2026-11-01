@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { getDatabase } from '@/db/open';
 import type { PointOutcome, ScanOutcome, TagRead } from '@/domain/scan';
 import { playFeedback } from '@/feedback/feedback';
-import { recordTagRead, scanFeedback } from '@/guard/scan';
+import { previewTagRead, recordTagRead, scanFeedback } from '@/guard/scan';
 
 /** The params of the result screen for a known checkpoint (a tag read or a manual entry). */
 export function pointResultParams(outcome: PointOutcome): Record<string, string> {
@@ -46,8 +46,11 @@ export function useScanRecorder(navigate: 'push' | 'replace', roundId: string): 
       setRecording(true);
       setFailed(false);
       try {
+        const previewed = scanFeedback(previewTagRead(getDatabase(), read));
+        playFeedback(previewed);
         const outcome = await recordTagRead(getDatabase(), read);
-        playFeedback(scanFeedback(outcome));
+        // A round may have closed while the location was coming.
+        if (scanFeedback(outcome) !== previewed) playFeedback(scanFeedback(outcome));
         router[navigate]({ pathname: '/scan-result', params: scanResultParams(outcome, read, roundId) });
       } catch (error) {
         if (__DEV__) console.warn('Recording a scan failed', error);

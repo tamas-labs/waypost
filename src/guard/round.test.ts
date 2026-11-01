@@ -9,7 +9,7 @@ import type { TagReading } from '@/nfc/tag';
 import type { ClockReading } from '@/time/clock';
 
 import { forgetShownRounds, loadRoundScreenInfo, markRoundShown, roundMapOf, wasRoundShown, type RoundPoint } from './round';
-import { recordTagRead, scanFeedback, tagReadOf } from './scan';
+import { previewTagRead, recordTagRead, scanFeedback, tagReadOf } from './scan';
 import { loadGuardState } from './state';
 import { seedSite } from './testing';
 
@@ -129,6 +129,13 @@ describe('recording a read', () => {
     expect(state().rounds[0]!.status).toBe('in_progress');
     expect(outcome.drafts[0]).toMatchObject({ type: 'scan', payload: { lat_e7: 475000000, lng_e7: 190000000 } });
     expect(scanFeedback(outcome)).toBe('success');
+  });
+
+  it('previews the outcome without writing anything', async () => {
+    const id = await openRound();
+    expect(previewTagRead(db, nfc(C1), readClock)).toMatchObject({ kind: 'recorded', checkpoint_id: C1, round_id: id });
+    expect(state().rounds[0]!.status).toBe('open');
+    expect(state().rounds[0]!.scans).toEqual([]);
   });
 
   it('feels different for a wrong order, a repeat and an unknown tag', async () => {

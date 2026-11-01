@@ -427,7 +427,7 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **Hátralévő idő:** a határidő a kör saját adataiból, a G3-mal azonos visszaszámlálással (`useCountdown`, mm:ss, 1 óra felett h:mm). Az utolsó 5 percben `warn` szín és egy rezgés hang nélkül (`playHaptic`), lejártkor `miss` szín és azonnali ütemező lépés. Ha a képernyő már az utolsó 5 percben nyílik meg, a rezgés akkor szól.
   - **Zárulás:** ha a kör lezárul, a képernyő visszalép, de csak ha felül van, így a kört befejező leolvasás előbb az eredményét mutatja. **Toast nincs**, a design 7. táblázatával szemben: nincs még ilyen komponens; a lezárt kör a G3 listájának tetején látszik. A G11 toastja (M3-37) idején érdemes visszatérni rá.
   - **Rögzítés** (`recordTagRead`): először a helyadat (`currentLocation()`, legfeljebb 5 mp), utána a láncíró zárja alatt a döntés és a bejegyzés, így a leolvasás ideje legfeljebb ennyivel késhet a címke érintéséhez képest. Közben a gomb „Rögzítés…”, és a további olvasás elvész (ugyanaz a címke kétszer érintve). Sikertelen írásnál hibajelzés és sáv, a kör megy tovább. Érvénytelen UID-jú címkénél nincs mit rögzíteni (a séma nem fogadja el), csak hibajelzés és sáv.
-  - **Visszajelzés:** a leolvasás pillanatában (`scanFeedback`): siker, ismeretlen címke = hiba, már leolvasva és rossz sorrend = figyelmeztetés. A rossz sorrendé a Q13 javaslata szerint, ideiglenesen; a Q13 az M3-35-ben dől el. Az eredményképernyő a kimenetet paraméterben kapja.
+  - **Visszajelzés:** a leolvasás pillanatában (`scanFeedback`, 2026-11-01 óta a rögzítés előtt, lásd a J-11-et): siker, ismeretlen címke = hiba, már leolvasva és rossz sorrend = figyelmeztetés. A rossz sorrendé a Q13 javaslata szerint, ideiglenesen; a Q13 az M3-35-ben dől el. Az eredményképernyő a kimenetet paraméterben kapja.
   - **QR-olvasó:** `(guard)/qr`, a specifikáció teljes képernyős kameranézete, engedélykéréssel, lámpával; csak `waypost:cp:` kódot fogad el (`QrScanner`), a találat után az eredményképernyő váltja fel, így onnan vissza a körhöz jut.
   - **Lista/Térkép választó nincs** a térkép elkészültéig (M3-34, Q1).
   - **Új elemek:** `qr` ikon, `playHaptic`, `countdownText` (`src/time/countdown.ts`), `useCountdown` (`src/guard/use-countdown.ts`), `deadlineOfRound`, `ShiftHome.running.round_id`, `routeNameAmongSeveral` (`src/guard/alarm.ts`), helyőrzők: `(guard)/scan-result`, `(guard)/manual`.
@@ -557,3 +557,13 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
 - **Döntés:** Körönként a határidő és a „most” közül a korábbi, ahogy az ütemezőnél. Még le nem járt körnél marad a „most”.
 - **Indok:** Audit 5. hiba: 20:20-as határidejű körnél 23:30-at írt a lánc.
 - **Érintett:** `src/domain/shift.ts`.
+
+## 2026-11-01 – Azonnali visszajelzés leolvasáskor (J-11)
+
+- **Kérdés:** A rezgés a helyadat után jött, ami legfeljebb 5 mp. Hogyan lehet azonnali?
+- **Döntés:**
+  - **A döntés és a rögzítés szétválik:** a kimenetelhez nem kell helyadat, ezért a `previewTagRead` azonnal megmondja, mi lesz a leolvasásból, és nem ír semmit. A visszajelzés ebből szól, utána jön a helyadat és a rögzítés.
+  - **Ha a tényleges döntés eltér** (a várakozás alatt zárult egy kör), a tényleges visszajelzés még egyszer szól, és az eredményképernyő a tényleges kimenetet mutatja. Ha az írás bukik, a hibajelzés szól, mint eddig.
+  - **A további olvasás rögzítés közben továbbra is elvész:** a dupla érintés ellen kell. A próbán figyelni kell, zavar-e beltérben, ahol a helyadat sokáig tart (`device-test.md`, M3-40).
+- **Indok:** Audit 4. hiba; a 2026-10-29-es döntés „a leolvasás pillanatát” írja.
+- **Érintett:** `src/guard/scan.ts`, `src/navigation/use-scan-recorder.ts`.

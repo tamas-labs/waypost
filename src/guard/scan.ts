@@ -41,6 +41,14 @@ function scanContext(db: Database, location: LocationFix | null, readClock: Read
   return { state, now, location, newId: uuidv7 };
 }
 
+/**
+ * What a read comes to, without its location and without writing anything: the outcome does not depend on the location,
+ * so the feedback does not have to wait for the GPS. The recording decides again, under the chain lock.
+ */
+export function previewTagRead(db: Database, read: TagRead, readClock: ReadClock = readDeviceClock): ScanOutcome {
+  return resolveScan(scanContext(db, null, readClock), read);
+}
+
 export async function recordTagRead(db: Database, read: TagRead, readClock: ReadClock = readDeviceClock): Promise<ScanOutcome> {
   const location = await currentLocation();
   const { decision } = await appendDecidedEntries(db, () => resolveScan(scanContext(db, location, readClock), read), { readClock });

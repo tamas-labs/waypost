@@ -17,7 +17,11 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
 jest.mock('@/feedback/feedback', () => ({ playFeedback: jest.fn() }));
-jest.mock('@/guard/scan', () => ({ ...jest.requireActual<object>('@/guard/scan'), recordTagRead: jest.fn() }));
+jest.mock('@/guard/scan', () => ({
+  ...jest.requireActual<object>('@/guard/scan'),
+  previewTagRead: jest.fn(() => ({ kind: 'unknown_tag', drafts: [] })),
+  recordTagRead: jest.fn(),
+}));
 // The header's sync indicator is not what this test is about.
 jest.mock('@/components/sync-status-indicator', () => ({ SyncStatusIndicator: () => null }));
 
