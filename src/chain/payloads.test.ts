@@ -3,7 +3,18 @@ import { chainVectors } from '@waypost/schema/vectors';
 
 import { schemaErrors } from '@/schema/validation';
 
-import { incident, roundClosed, roundOpened, scan, shiftClosed, shiftStarted, toAccuracyDm, toE7, type LocationFix } from './payloads';
+import {
+  normalizeTagUid,
+  incident,
+  roundClosed,
+  roundOpened,
+  scan,
+  shiftClosed,
+  shiftStarted,
+  toAccuracyDm,
+  toE7,
+  type LocationFix,
+} from './payloads';
 
 const SHIFT = '019a2b3c-4d5e-7f00-8a00-000000000020';
 const ROUND = '019a2b3c-4d5e-7f00-8a00-000000000021';
@@ -187,4 +198,24 @@ describe('chain entry builders', () => {
     expect(toAccuracyDm(-1)).toBeNull();
     expect(toAccuracyDm(Number.NaN)).toBeNull();
   });
+});
+
+describe('normalizeTagUid', () => {
+  test.each([
+    ['04A1B2C3D4E580', '04A1B2C3D4E580'],
+    ['04a1b2c3d4e580', '04A1B2C3D4E580'],
+    ['04:A1:B2:C3:D4:E5:80', '04A1B2C3D4E580'],
+    ['04-a1-b2-c3-d4-e5-80', '04A1B2C3D4E580'],
+    [' 04 A1 B2 C3 ', '04A1B2C3'],
+    ['0102030405060708090A', '0102030405060708090A'],
+  ])('%j → %s', (value, uid) => {
+    expect(normalizeTagUid(value)).toBe(uid);
+  });
+
+  test.each([[''], ['04A1B2'], ['04A1B2C3D'], ['04A1B2C3D4E5G0'], ['0102030405060708090A0B'], ['04.A1.B2.C3']])(
+    '%j is not a UID',
+    (value) => {
+      expect(normalizeTagUid(value)).toBeNull();
+    },
+  );
 });

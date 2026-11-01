@@ -54,7 +54,7 @@ export type ScanOutcome =
 function hasTag(read: TagRead): (checkpoint: CheckpointInfo) => boolean {
   if (read.method === 'nfc') {
     const uid = normalizeTagUid(read.tag_uid);
-    return (checkpoint) => checkpoint.tag_uid === uid;
+    return (checkpoint) => uid !== null && checkpoint.tag_uid === uid;
   }
   return (checkpoint) => checkpoint.qr_payload === read.qr_payload;
 }

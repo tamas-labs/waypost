@@ -28,6 +28,13 @@ describe('checkpoint lookup', () => {
     expect(findCheckpoint(checkpoints, nfc('04:a1:b2:c3:d4:e5:02'))?.id).toBe(C2);
     expect(findCheckpoint(checkpoints, qr(checkpoints[2]!.qr_payload!))?.id).toBe(C3);
     expect(findCheckpoint(checkpoints, qr(`${checkpoints[2]!.qr_payload!}x`))).toBeNull();
+    // A value that is no UID finds nothing, not even a checkpoint without a tag.
+    expect(
+      findCheckpoint(
+        checkpoints.map((c) => ({ ...c, tag_uid: null })),
+        nfc('not-a-uid'),
+      ),
+    ).toBeNull();
     expect(
       findCheckpoint(
         checkpoints.map((c) => ({ ...c, active: false })),

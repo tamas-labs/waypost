@@ -82,9 +82,16 @@ export function locationFields(location: LocationFix | null): Pick<ScanPayload, 
   return { lat_e7: toE7(location.latitude, 90), lng_e7: toE7(location.longitude, 180), accuracy_dm: toAccuracyDm(location.accuracy_m) };
 }
 
-/** NFC tag UID as stored: uppercase hex without separators (04:a1:b2 → 04A1B2). */
-export function normalizeTagUid(uid: string): string {
-  return uid.replace(/[\s:-]/g, '').toUpperCase();
+/** Same pattern as tag_uid in @waypost/schema (checkpoint, scan payload): uppercase hex, 4 to 10 bytes. */
+const TAG_UID = /^([0-9A-F]{2}){4,10}$/;
+
+/**
+ * NFC tag UID as stored: uppercase hex without separators (04:a1:b2 → 04A1B2, also with - or spaces, as a person or a
+ * reader app writes it); null if the value is not a 4–10 byte UID.
+ */
+export function normalizeTagUid(uid: string): string | null {
+  const normalized = uid.replace(/[\s:-]/g, '').toUpperCase();
+  return TAG_UID.test(normalized) ? normalized : null;
 }
 
 /** A note as stored: trimmed, null if empty. */

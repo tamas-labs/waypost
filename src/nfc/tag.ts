@@ -1,11 +1,7 @@
 // Platform-independent handling of a read NFC tag: UID normalisation and the raw NDEF message.
 import type { NdefRecord, TagEvent } from 'react-native-nfc-manager';
 
-/** Same pattern as tag_uid in @waypost/schema (checkpoint, scan payload): uppercase hex, 4 to 10 bytes. */
-const TAG_UID = /^([0-9A-F]{2}){4,10}$/;
-
-/** Separators accepted in a UID written by hand or by a reader app (04:A1:B2…, 04-a1-b2…, 04 A1 B2…). */
-const SEPARATORS = /[\s:-]/g;
+import { normalizeTagUid } from '@/chain/payloads';
 
 /** Same limit as ndef_raw in @waypost/schema (base64 characters). */
 const NDEF_RAW_MAX_LENGTH = 8192;
@@ -32,12 +28,6 @@ export interface NdefRecordSummary {
   /** Decoded content of URI and text records; null for others. */
   text: string | null;
   payloadLength: number;
-}
-
-/** Uppercase hex without separators, or null if the value is not a 4–10 byte UID. */
-export function normalizeTagUid(value: string): string | null {
-  const uid = value.replace(SEPARATORS, '').toUpperCase();
-  return TAG_UID.test(uid) ? uid : null;
 }
 
 /** A normalised UID as people read it: 04:A2:19:6B. */

@@ -1,7 +1,7 @@
 import { schemas } from '@waypost/schema';
 import type { NdefRecord, TagEvent } from 'react-native-nfc-manager';
 
-import { encodeNdefMessage, formatTagUid, normalizeTagUid, readTag, toBase64 } from './tag';
+import { encodeNdefMessage, formatTagUid, readTag, toBase64 } from './tag';
 
 const BASE64 = new RegExp(String(schemas['common/base64'].pattern));
 
@@ -16,26 +16,6 @@ const URI_MESSAGE_BASE64 = '0QERVQR3YXlwb3N0LmRldi9jcC8x';
 
 it('shows a UID in pairs', () => {
   expect(formatTagUid('04A2196B')).toBe('04:A2:19:6B');
-});
-
-describe('normalizeTagUid', () => {
-  test.each([
-    ['04A1B2C3D4E580', '04A1B2C3D4E580'],
-    ['04a1b2c3d4e580', '04A1B2C3D4E580'],
-    ['04:A1:B2:C3:D4:E5:80', '04A1B2C3D4E580'],
-    ['04-a1-b2-c3-d4-e5-80', '04A1B2C3D4E580'],
-    [' 04 A1 B2 C3 ', '04A1B2C3'],
-    ['0102030405060708090A', '0102030405060708090A'],
-  ])('%j → %s', (value, uid) => {
-    expect(normalizeTagUid(value)).toBe(uid);
-  });
-
-  test.each([[''], ['04A1B2'], ['04A1B2C3D'], ['04A1B2C3D4E5G0'], ['0102030405060708090A0B'], ['04.A1.B2.C3']])(
-    '%j is not a UID',
-    (value) => {
-      expect(normalizeTagUid(value)).toBeNull();
-    },
-  );
 });
 
 describe('toBase64', () => {
