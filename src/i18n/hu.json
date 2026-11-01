@@ -72,13 +72,25 @@
     }
   },
   "prototype": {
+    "benchmark": {
+      "title": "Ütemező mérése",
+      "hint": "A menetrendi szabályok ideje ezen a telefonon, hívásonként (5 futás mediánja). Fejlesztői buildben a számok rosszabbak, a kiadott JS-csomaggal mérj. A futás idejére a képernyő megakadhat.",
+      "run": "Mérés indítása",
+      "ms": "{{ms}} ms",
+      "schedules": {
+        "hourly": "Óránként, 20:00–08:00",
+        "night5": "5 percenként, 20:00–08:00",
+        "day5": "5 percenként, 00:00–23:55"
+      }
+    },
     "subtitle": "Prototípus – eszközpróbák",
     "screens": {
       "clock": "Monoton óra és boot ID",
       "nfc": "NFC-címke olvasása",
       "qr": "QR-kód olvasása",
       "alarms": "Ébresztés és engedélyek",
-      "field": "Helyadat, fotó, visszajelzés"
+      "field": "Helyadat, fotó, visszajelzés",
+      "benchmark": "Ütemező mérése"
     },
     "clock": {
       "title": "Monoton óra",

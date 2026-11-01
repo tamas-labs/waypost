@@ -78,6 +78,15 @@ A próbasorozat: „Ütemezés: 3 óra, 15 percenként” → 12 értesítés eg
 | E8 | Android: energiatakarékos mód bekapcsolva (és ha van, a gyártói „alkalmazás alvó állapotba” funkció). | Pontosan szól; ha nem, a megjegyzésbe a gyártó, a beállítás és a késés. |
 | E9 | iPhone: egy Fókusz mód (pl. Alvás) bekapcsolva. | Az időérzékeny értesítés átjut. |
 
+### M1 – Ütemező mérése (J-06, képernyő: „Ütemező mérése”; új dev build nem kell, csak a JS változott)
+
+Kiadott JS-csomaggal (`make apk` vagy release build) mérj, mert fejlesztői buildben a Hermes és a Metro lassabb. A gyengébb Android-telefonon elég, az eredmény az *Eredmények* szakaszba kerül.
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| M1 | „Mérés indítása” háromszor egymás után; a harmadik futás számait jegyezd fel menetrendenként. | Megjelenik a három menetrend és az öt szabály ideje. |
+| M2 | Hasonlítsd össze a `schedulerStep` idejét a 100 ms-os határral (J-12) és a `slotsBetween` idejével. | Az 5 perces menetrendeknél is 100 ms alatt marad; ha nem, a `slotsBetween` aránya mutatja, hogy a kibontást kell-e gyorsítani. |
+
 ### M3 – Indulás és fejlesztői hozzárendelés (M3-01, M3-05, M3-06; fejlesztői build)
 
 A workbench demó-telephelye kell (`laravel-waypost`: `composer serve`), olyan címen, amelyet a telefon elér (ugyanazon a Wi-Fi-n a gép IP-címe, Android-emulátoron `10.0.2.2`), pl. `http://192.168.1.10:8088/api/waypost/v1`. A demó supervisor: `supervisor@waypost.test` / `password`.

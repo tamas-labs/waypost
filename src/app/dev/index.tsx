@@ -14,6 +14,7 @@ const SCREENS: { href: Href; title: TranslationKey }[] = [
   { href: '/prototype/qr', title: 'prototype.screens.qr' },
   { href: '/prototype/alarms', title: 'prototype.screens.alarms' },
   { href: '/prototype/field', title: 'prototype.screens.field' },
+  { href: '/prototype/benchmark', title: 'prototype.screens.benchmark' },
 ];
 
 const THEME_PREFERENCES: ThemePreference[] = ['system', 'dark', 'light'];
