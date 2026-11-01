@@ -1,6 +1,6 @@
 import type { IncidentPayload } from '@waypost/schema';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,11 +15,10 @@ import { TextArea } from '@/components/text-field';
 import { showToast } from '@/components/toast';
 import { getDatabase } from '@/db/open';
 import { MAX_NOTE_LENGTH } from '@/domain/scan';
-import { DomainError } from '@/domain/state';
 import { playFeedback } from '@/feedback/feedback';
 import { incidentPlace, recordIncident } from '@/guard/scan';
+import { useRecordForm } from '@/hooks/use-record-form';
 import { t, type TranslationKey } from '@/i18n';
-import { currentLocation } from '@/location/location';
 import { usePhotoDraft } from '@/photo/use-photo-draft';
 import { useSyncStatus } from '@/sync/status';
 import { useTheme } from '@/theme/theme-provider';
@@ -53,48 +52,33 @@ export default function NewIncidentScreen() {
   const [note, setNote] = useState('');
   const [place, setPlace] = useState(() => incidentPlace(getDatabase(), checkpointId, null));
   const [fix, setFix] = useState<LocationFix | null>(null);
-  const [located, setLocated] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [problem, setProblem] = useState<'failed' | 'closed' | null>(null);
-  const busy = useRef(false);
-  const mounted = useRef(true);
+  const {
+    located,
+    saving,
+    problem,
+    isMounted,
+    save: saveForm,
+  } = useRecordForm(
+    useCallback(
+      (location: LocationFix) => {
+        setFix(location);
+        setPlace(incidentPlace(getDatabase(), checkpointId, location));
+      },
+      [checkpointId],
+    ),
+    'no_shift',
+  );
 
-  useEffect(() => {
-    mounted.current = true;
-    void currentLocation().then((location) => {
-      if (!mounted.current) return;
-      setLocated(true);
-      if (location === null) return;
-      setFix(location);
-      setPlace(incidentPlace(getDatabase(), checkpointId, location));
-    });
-    return () => {
-      mounted.current = false;
-    };
-  }, [checkpointId]);
-
-  const save = async (chosen: Category) => {
-    if (busy.current) return;
-    busy.current = true;
-    setSaving(true);
-    setProblem(null);
-    try {
+  const save = (chosen: Category) =>
+    saveForm(async () => {
       await draft.recording((photos) =>
         recordIncident(getDatabase(), { category: chosen, note, checkpoint_id: checkpointId }, photos, fix),
       );
       playFeedback('success');
       if (useSyncStatus.getState().online === false) showToast(t('incident.savedQueued'), 'offline');
       else showToast(t('incident.saved'));
-      if (mounted.current) router.back();
-    } catch (error) {
-      if (__DEV__) console.warn('Recording an incident failed', error);
-      playFeedback('error');
-      setProblem(error instanceof DomainError && error.code === 'no_shift' ? 'closed' : 'failed');
-    } finally {
-      busy.current = false;
-      setSaving(false);
-    }
-  };
+      if (isMounted()) router.back();
+    });
 
   const accuracy = fix?.accuracy_m ?? null;
   const gps =

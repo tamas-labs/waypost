@@ -1,5 +1,5 @@
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,13 +14,12 @@ import { StatusBadge } from '@/components/status-badge';
 import { TextArea } from '@/components/text-field';
 import { getDatabase } from '@/db/open';
 import { MAX_NOTE_LENGTH } from '@/domain/scan';
-import { DomainError } from '@/domain/state';
 import { playFeedback } from '@/feedback/feedback';
 import { trustedNowMs } from '@/guard/home';
 import { loadRoundScreenInfo, type RoundPoint } from '@/guard/round';
 import { nearestOf, recordManualEntry, scanFeedback } from '@/guard/scan';
+import { useRecordForm } from '@/hooks/use-record-form';
 import { t } from '@/i18n';
-import { currentLocation } from '@/location/location';
 import { pointResultParams } from '@/navigation/use-scan-recorder';
 import { usePhotoDraft } from '@/photo/use-photo-draft';
 import { useTheme } from '@/theme/theme-provider';
@@ -149,51 +148,36 @@ function ManualForm({
   const chosen = useRef(false);
   const [note, setNote] = useState('');
   const [fix, setFix] = useState<{ location: LocationFix; at: number } | null>(null);
-  const [located, setLocated] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [problem, setProblem] = useState<'failed' | 'closed' | null>(null);
-  const busy = useRef(false);
-  const mounted = useRef(true);
+  const {
+    located,
+    saving,
+    problem,
+    isMounted,
+    save: saveForm,
+  } = useRecordForm(
+    useCallback(
+      (location: LocationFix) => {
+        setFix({ location, at: trustedNowMs(getDatabase()) });
+        const nearest = nearestOf(
+          getDatabase(),
+          points.map((point) => point.checkpoint_id),
+          location,
+        );
+        if (nearest !== null && !chosen.current) setPointId(nearest);
+      },
+      [points],
+    ),
+    'unknown_round',
+  );
 
-  useEffect(() => {
-    mounted.current = true;
-    void currentLocation().then((location) => {
-      if (!mounted.current) return;
-      setLocated(true);
-      if (location === null) return;
-      setFix({ location, at: trustedNowMs(getDatabase()) });
-      const nearest = nearestOf(
-        getDatabase(),
-        points.map((point) => point.checkpoint_id),
-        location,
-      );
-      if (nearest !== null && !chosen.current) setPointId(nearest);
-    });
-    return () => {
-      mounted.current = false;
-    };
-  }, [points]);
-
-  const save = async () => {
-    if (busy.current) return;
-    busy.current = true;
-    setSaving(true);
-    setProblem(null);
-    try {
+  const save = () =>
+    saveForm(async () => {
       const outcome = await draft.recording((photos) =>
         recordManualEntry(getDatabase(), { round_id: roundId, checkpoint_id: pointId, note }, photos, fix?.location ?? null),
       );
       playFeedback(scanFeedback(outcome));
-      if (mounted.current) router.replace({ pathname: '/scan-result', params: pointResultParams(outcome) });
-    } catch (error) {
-      if (__DEV__) console.warn('Recording a manual entry failed', error);
-      playFeedback('error');
-      setProblem(error instanceof DomainError && error.code === 'unknown_round' ? 'closed' : 'failed');
-    } finally {
-      busy.current = false;
-      setSaving(false);
-    }
-  };
+      if (isMounted()) router.replace({ pathname: '/scan-result', params: pointResultParams(outcome) });
+    });
 
   const accuracy = fix?.location.accuracy_m ?? null;
   const time = fix === null ? '' : localTimeOf(fix.at, timezone);
