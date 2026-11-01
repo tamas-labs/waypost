@@ -16,7 +16,7 @@ import { showToast } from '@/components/toast';
 import { getDatabase } from '@/db/open';
 import { MAX_NOTE_LENGTH } from '@/domain/scan';
 import { playFeedback } from '@/feedback/feedback';
-import { incidentPlace, recordIncident } from '@/guard/scan';
+import { incidentPlace, recordIncident, type IncidentPlace } from '@/guard/scan';
 import { useRecordForm } from '@/hooks/use-record-form';
 import { t, type TranslationKey } from '@/i18n';
 import { usePhotoDraft } from '@/photo/use-photo-draft';
@@ -40,6 +40,59 @@ const CATEGORY_ROWS: readonly (readonly Category[])[] = [
   ['water', 'intruder'],
 ];
 
+/** The place of the incident, more exact once the location has come. */
+function useIncidentLocation(checkpointId: string | null) {
+  const [place, setPlace] = useState(() => incidentPlace(getDatabase(), checkpointId, null));
+  const [fix, setFix] = useState<LocationFix | null>(null);
+  const onLocation = useCallback(
+    (location: LocationFix) => {
+      setFix(location);
+      setPlace(incidentPlace(getDatabase(), checkpointId, location));
+    },
+    [checkpointId],
+  );
+  return { place, fix, onLocation };
+}
+
+function gpsText(fix: LocationFix | null, located: boolean): string | null {
+  if (fix === null) return located ? t('incident.noLocation') : null;
+  return fix.accuracy_m === null ? t('incident.gpsNoAccuracy') : t('incident.gps', { accuracy: Math.round(fix.accuracy_m) });
+}
+
+/** The line of the time, the place and the location. */
+function autoLine(place: IncidentPlace | null, pointGiven: boolean, gps: string | null): string {
+  const point = place?.point_name == null ? null : t(pointGiven ? 'incident.point' : 'incident.nearest', { point: place.point_name });
+  return [place === null ? null : localTimeOf(place.at_ms, place.timezone), point, gps].filter((part) => part !== null).join(' · ');
+}
+
+function CategoryPicker({ selected, onSelect }: { selected: Category | null; onSelect: (category: Category) => void }) {
+  const { color, typography, space } = useTheme();
+  const tile = (value: Category, wide = false) => (
+    <CategoryTile
+      key={value}
+      icon={CATEGORIES[value].icon}
+      label={t(CATEGORIES[value].label)}
+      wide={wide}
+      selected={selected === value}
+      onPress={() => onSelect(value)}
+      style={wide ? undefined : styles.grow}
+    />
+  );
+  return (
+    <View style={{ gap: space.s }}>
+      <Text style={[typography.label, { color: color.text, paddingLeft: space.xs }]}>{t('incident.what')}</Text>
+      <View accessibilityRole="radiogroup" accessibilityLabel={t('incident.categories')} style={{ gap: space.s }}>
+        {CATEGORY_ROWS.map((row) => (
+          <View key={row[0]} style={[styles.row, { gap: space.s }]}>
+            {row.map((value) => tile(value))}
+          </View>
+        ))}
+        {tile('other', true)}
+      </View>
+    </View>
+  );
+}
+
 // Recording an incident (G11, B-Esemeny): the category, up to 5 camera photos, a note, and the line of the time and the
 // place. It goes back to where it came from, and a toast tells about the saving. "Esemény ennél a pontnál" gives the point
 // (checkpoint_id); otherwise it is the nearest to the location.
@@ -50,24 +103,8 @@ export default function NewIncidentScreen() {
   const draft = usePhotoDraft();
   const [category, setCategory] = useState<Category | null>(null);
   const [note, setNote] = useState('');
-  const [place, setPlace] = useState(() => incidentPlace(getDatabase(), checkpointId, null));
-  const [fix, setFix] = useState<LocationFix | null>(null);
-  const {
-    located,
-    saving,
-    problem,
-    isMounted,
-    save: saveForm,
-  } = useRecordForm(
-    useCallback(
-      (location: LocationFix) => {
-        setFix(location);
-        setPlace(incidentPlace(getDatabase(), checkpointId, location));
-      },
-      [checkpointId],
-    ),
-    'no_shift',
-  );
+  const { place, fix, onLocation } = useIncidentLocation(checkpointId);
+  const { located, saving, problem, isMounted, save: saveForm } = useRecordForm(onLocation, 'no_shift');
 
   const save = (chosen: Category) =>
     saveForm(async () => {
@@ -80,30 +117,7 @@ export default function NewIncidentScreen() {
       if (isMounted()) router.back();
     });
 
-  const accuracy = fix?.accuracy_m ?? null;
-  const gps =
-    fix === null
-      ? located
-        ? t('incident.noLocation')
-        : null
-      : accuracy === null
-        ? t('incident.gpsNoAccuracy')
-        : t('incident.gps', { accuracy: Math.round(accuracy) });
-  const point =
-    place?.point_name == null ? null : t(checkpointId === null ? 'incident.nearest' : 'incident.point', { point: place.point_name });
-  const auto = [place === null ? null : localTimeOf(place.at_ms, place.timezone), point, gps].filter((part) => part !== null).join(' · ');
-
-  const tile = (value: Category, wide = false) => (
-    <CategoryTile
-      key={value}
-      icon={CATEGORIES[value].icon}
-      label={t(CATEGORIES[value].label)}
-      wide={wide}
-      selected={category === value}
-      onPress={() => setCategory(value)}
-      style={wide ? undefined : styles.grow}
-    />
-  );
+  const auto = autoLine(place, checkpointId !== null, gpsText(fix, located));
 
   return (
     // As the Expo guide says: padding on iOS; on Android the view alone keeps the field above the keyboard.
@@ -114,17 +128,7 @@ export default function NewIncidentScreen() {
         contentContainerStyle={{ paddingHorizontal: space.l, paddingBottom: space.m, gap: space.l }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ gap: space.s }}>
-          <Text style={[typography.label, { color: color.text, paddingLeft: space.xs }]}>{t('incident.what')}</Text>
-          <View accessibilityRole="radiogroup" accessibilityLabel={t('incident.categories')} style={{ gap: space.s }}>
-            {CATEGORY_ROWS.map((row) => (
-              <View key={row[0]} style={[styles.row, { gap: space.s }]}>
-                {row.map((value) => tile(value))}
-              </View>
-            ))}
-            {tile('other', true)}
-          </View>
-        </View>
+        <CategoryPicker selected={category} onSelect={setCategory} />
         <PhotoField photos={draft.photos} onAdd={draft.add} onRemove={draft.remove} disabled={saving} />
         <TextArea
           label={t('common.note')}

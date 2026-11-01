@@ -145,6 +145,43 @@ function PinSheet({ guardId, onClose }: { guardId: string; onClose: () => void }
   );
 }
 
+/** A round still open closes with the shift. */
+function OpenRoundBanner({
+  round,
+  severalRoutes,
+  time,
+}: {
+  round: ShiftCloseInfo['open_rounds'][number];
+  severalRoutes: boolean;
+  time: (at: Timestamp) => string;
+}) {
+  const title = t('round.title', { time: time(round.scheduled_at) });
+  return (
+    <InfoBanner
+      variant="warn"
+      title={t('shiftEnd.openRound', { round: severalRoutes ? `${round.route_name}, ${title}` : title })}
+      text={t('shiftEnd.openRoundBody', { done: round.scanned, total: round.total, status: t(statusStyle[round.closes_as].label) })}
+    />
+  );
+}
+
+/** The PIN sheet; it gives way to a screen pushed over this one (an alarm), which it would cover. */
+function PinSheetModal({ guardId, open, onClose }: { guardId: string; open: boolean; onClose: () => void }) {
+  const focused = useIsFocused();
+  return (
+    <Modal
+      visible={open && focused}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onClose}
+    >
+      <PinSheet guardId={guardId} onClose={onClose} />
+    </Modal>
+  );
+}
+
 // Closing the shift (G12, B-Zaras; specification: Műszak 3): how the rounds went, the incidents and unverified points, what
 // waits for upload, and a warning about the rounds still open, which close with the shift. The guard's PIN confirms it.
 export default function ShiftCloseScreen() {
@@ -153,7 +190,6 @@ export default function ShiftCloseScreen() {
   const guardId = useSession(({ activeUser }) => activeUser?.id ?? null);
   const info = useShiftCloseInfo();
   const pending = useSyncStatus(({ pendingCount }) => pendingCount);
-  const focused = useIsFocused();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   if (info === null || guardId === null) {
@@ -177,16 +213,7 @@ export default function ShiftCloseScreen() {
       />
       <ScrollView style={styles.grow} contentContainerStyle={{ paddingHorizontal: space.l, paddingBottom: space.m, gap: space.m }}>
         {info.open_rounds.map((round) => (
-          <InfoBanner
-            key={`${round.schedule_id}|${round.scheduled_at}`}
-            variant="warn"
-            title={t('shiftEnd.openRound', {
-              round: severalRoutes
-                ? `${round.route_name}, ${t('round.title', { time: time(round.scheduled_at) })}`
-                : t('round.title', { time: time(round.scheduled_at) }),
-            })}
-            text={t('shiftEnd.openRoundBody', { done: round.scanned, total: round.total, status: t(statusStyle[round.closes_as].label) })}
-          />
+          <OpenRoundBanner key={`${round.schedule_id}|${round.scheduled_at}`} round={round} severalRoutes={severalRoutes} time={time} />
         ))}
         <View style={[styles.row, { gap: space.s }]}>
           {STATS.map(({ status, label }) => (
@@ -207,17 +234,7 @@ export default function ShiftCloseScreen() {
       <View style={{ paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: insets.bottom + space.l }}>
         <Button label={t('shiftEnd.submit')} onPress={() => setSheetOpen(true)} />
       </View>
-      {/* It gives way to a screen pushed over this one (an alarm), which it would cover. */}
-      <Modal
-        visible={sheetOpen && focused}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        navigationBarTranslucent
-        onRequestClose={() => setSheetOpen(false)}
-      >
-        <PinSheet guardId={guardId} onClose={() => setSheetOpen(false)} />
-      </Modal>
+      <PinSheetModal guardId={guardId} open={sheetOpen} onClose={() => setSheetOpen(false)} />
     </View>
   );
 }

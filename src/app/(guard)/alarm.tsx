@@ -28,30 +28,16 @@ function useAlarmInfo(slot: AlarmSlot): AlarmScreenInfo | null {
   );
 }
 
-// The alarm (G4, B-Ebresztes): a round is due. It rings until "Indulok" (to the round's screen; the time starts with
-// the first scan) or "Hang némítása" (the screen stays, the reminder rings again). There is no snooze and no way back;
-// the screen leaves by itself once the round has nothing to wait for (it started or closed).
-export default function AlarmScreen() {
-  const { color, typography, space, size, radius, border } = useTheme();
-  const insets = useSafeAreaInsets();
-  const {
-    route_id = '',
-    schedule_id = '',
-    scheduled_at = '',
-  } = useLocalSearchParams<{ route_id: string; schedule_id: string; scheduled_at: string }>();
-  const info = useAlarmInfo({ route_id, schedule_id, scheduled_at });
-  const muted = useActiveAlarms((state) => state.muted);
-  const [going, setGoing] = useState(false);
-
-  // The screen would go dark, and the app with it to the background, where the sound stops.
-  useKeepAwake();
-  useRinging(info !== null && !muted && !going);
-
+/** There is no way back from the alarm. */
+function useBackButtonBlocked() {
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => true);
     return () => subscription.remove();
   }, []);
+}
 
+/** Leaves the screen, once and clearing the alarm; by itself when the round has nothing to wait for. */
+function useLeaveAlarm({ route_id, schedule_id, scheduled_at }: AlarmSlot, over: boolean) {
   const left = useRef(false);
   const leave = useCallback(
     (href: Href | null) => {
@@ -66,31 +52,55 @@ export default function AlarmScreen() {
     [route_id, schedule_id, scheduled_at],
   );
 
-  const over = info === null;
   useEffect(() => {
     if (over) leave(null);
   }, [over, leave]);
+  return leave;
+}
 
-  const go = async () => {
-    setGoing(true);
-    // The scheduler has a step at every alarm, but it may not have run yet.
-    await runSchedulerStep(getDatabase()).catch((error: unknown) => __DEV__ && console.warn('Scheduler step failed (alarm)', error));
-    const roundId = loadAlarmScreenInfo(getDatabase(), { route_id, schedule_id, scheduled_at })?.round_id ?? null;
-    leave(roundId === null ? null : { pathname: '/round/[id]', params: { id: roundId } });
-  };
-
-  if (info === null) return <View style={[styles.screen, { backgroundColor: color.bg }]} />;
-
-  const time = (at: string) => localTimeOf(parseTimestamp(at), info.timezone);
-  const [outer, middle, inner] = size.alarmRing;
-  const circle = (diameter: number) => ({ width: diameter, height: diameter, borderRadius: diameter / 2 });
-  const details = [
+function alarmDetails(info: AlarmScreenInfo): string {
+  return [
     info.route_name,
     t('alarm.points', { count: info.checkpoints }),
     info.time_limit_min === null ? null : t('alarm.limit', { minutes: info.time_limit_min }),
   ]
     .filter((part) => part !== null)
     .join(' · ');
+}
+
+// The alarm (G4, B-Ebresztes): a round is due. It rings until "Indulok" (to the round's screen; the time starts with
+// the first scan) or "Hang némítása" (the screen stays, the reminder rings again). There is no snooze and no way back;
+// the screen leaves by itself once the round has nothing to wait for (it started or closed).
+export default function AlarmScreen() {
+  const { color, typography, space, size } = useTheme();
+  const insets = useSafeAreaInsets();
+  const {
+    route_id = '',
+    schedule_id = '',
+    scheduled_at = '',
+  } = useLocalSearchParams<{ route_id: string; schedule_id: string; scheduled_at: string }>();
+  const slot = { route_id, schedule_id, scheduled_at };
+  const info = useAlarmInfo(slot);
+  const muted = useActiveAlarms((state) => state.muted);
+  const [going, setGoing] = useState(false);
+
+  // The screen would go dark, and the app with it to the background, where the sound stops.
+  useKeepAwake();
+  useRinging(info !== null && !muted && !going);
+  useBackButtonBlocked();
+  const leave = useLeaveAlarm(slot, info === null);
+
+  const go = async () => {
+    setGoing(true);
+    // The scheduler has a step at every alarm, but it may not have run yet.
+    await runSchedulerStep(getDatabase()).catch((error: unknown) => __DEV__ && console.warn('Scheduler step failed (alarm)', error));
+    const roundId = loadAlarmScreenInfo(getDatabase(), slot)?.round_id ?? null;
+    leave(roundId === null ? null : { pathname: '/round/[id]', params: { id: roundId } });
+  };
+
+  if (info === null) return <View style={[styles.screen, { backgroundColor: color.bg }]} />;
+
+  const time = (at: string) => localTimeOf(parseTimestamp(at), info.timezone);
 
   return (
     <ScrollView
@@ -105,58 +115,16 @@ export default function AlarmScreen() {
       </View>
 
       <View style={[styles.main, { gap: space.xxl }]}>
-        {/* The title says the time. */}
-        <View
-          importantForAccessibility="no-hide-descendants"
-          accessibilityElementsHidden
-          style={[styles.ring, circle(outer), { backgroundColor: color.ring1 }]}
-        >
-          <View style={[styles.ring, circle(middle), { backgroundColor: color.ring2 }]}>
-            <View style={[styles.ring, circle(inner), { backgroundColor: color.accent }]}>
-              <Text
-                style={[typography.alarmTime, styles.tabular, { color: color.onAccent }]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                maxFontSizeMultiplier={1.2}
-              >
-                {time(scheduled_at)}
-              </Text>
-            </View>
-          </View>
-        </View>
+        <AlarmClock time={time(scheduled_at)} />
 
         <View style={[styles.centre, { gap: space.s }]}>
           <Text style={[typography.alarm, styles.text, styles.tabular, { color: color.text }]} accessibilityRole="header">
             {t('alarm.title', { time: time(scheduled_at) })}
           </Text>
-          <Text style={[typography.resultBody, styles.text, styles.tabular, { color: color.text2 }]}>{details}</Text>
+          <Text style={[typography.resultBody, styles.text, styles.tabular, { color: color.text2 }]}>{alarmDetails(info)}</Text>
         </View>
 
-        {info.previous !== null && (
-          <View
-            accessible
-            style={[
-              styles.previous,
-              {
-                gap: space.s,
-                paddingHorizontal: space.l,
-                paddingVertical: space.m,
-                borderRadius: radius.item,
-                backgroundColor: color.surface,
-                borderWidth: border.thin,
-                borderColor: color.cardBorder,
-              },
-            ]}
-          >
-            <StatusDot status={info.previous.status} />
-            <Text style={[typography.siteName, styles.tabular, styles.previousText, { color: color.text }]}>
-              {t('alarm.previous', {
-                time: time(info.previous.scheduled_at),
-                status: t(statusStyle[info.previous.status].label).toLowerCase(),
-              })}
-            </Text>
-          </View>
-        )}
+        {info.previous !== null && <PreviousRound status={info.previous.status} time={time(info.previous.scheduled_at)} />}
       </View>
 
       <View style={[styles.wide, { gap: space.m }]}>
@@ -164,6 +132,59 @@ export default function AlarmScreen() {
         <Button variant="secondary" label={muted ? t('alarm.muted') : t('alarm.mute')} disabled={muted || going} onPress={muteAlarm} />
       </View>
     </ScrollView>
+  );
+}
+
+function AlarmClock({ time }: { time: string }) {
+  const { color, typography, size } = useTheme();
+  const [outer, middle, inner] = size.alarmRing;
+  const circle = (diameter: number) => ({ width: diameter, height: diameter, borderRadius: diameter / 2 });
+  return (
+    // The title says the time.
+    <View
+      importantForAccessibility="no-hide-descendants"
+      accessibilityElementsHidden
+      style={[styles.ring, circle(outer), { backgroundColor: color.ring1 }]}
+    >
+      <View style={[styles.ring, circle(middle), { backgroundColor: color.ring2 }]}>
+        <View style={[styles.ring, circle(inner), { backgroundColor: color.accent }]}>
+          <Text
+            style={[typography.alarmTime, styles.tabular, { color: color.onAccent }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.2}
+          >
+            {time}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function PreviousRound({ status, time }: { status: NonNullable<AlarmScreenInfo['previous']>['status']; time: string }) {
+  const { color, typography, space, radius, border } = useTheme();
+  return (
+    <View
+      accessible
+      style={[
+        styles.previous,
+        {
+          gap: space.s,
+          paddingHorizontal: space.l,
+          paddingVertical: space.m,
+          borderRadius: radius.item,
+          backgroundColor: color.surface,
+          borderWidth: border.thin,
+          borderColor: color.cardBorder,
+        },
+      ]}
+    >
+      <StatusDot status={status} />
+      <Text style={[typography.siteName, styles.tabular, styles.previousText, { color: color.text }]}>
+        {t('alarm.previous', { time, status: t(statusStyle[status].label).toLowerCase() })}
+      </Text>
+    </View>
   );
 }
 

@@ -34,14 +34,26 @@ function useShiftHomeInfo(guardId: string | null): ShiftHomeInfo | null {
   return useLiveQuery(useCallback(() => (guardId === null ? null : loadShiftHomeInfo(getDatabase(), guardId)), [guardId]));
 }
 
+/** A round open for the first time goes on to its screen; an alarm goes first, because its "Indulok" opens the round. */
+function useOpenRunningRound(runningId: string | null) {
+  const focused = useIsFocused();
+  const alarmActive = useActiveAlarms(({ alarms }) => alarms.length > 0);
+  // This screen is mounted at a login: the guard's rounds are shown again.
+  useEffect(() => forgetShownRounds(), []);
+  useEffect(() => {
+    if (!focused || alarmActive || runningId === null || wasRoundShown(runningId)) return;
+    markRoundShown(runningId);
+    router.push({ pathname: '/round/[id]', params: { id: runningId } });
+  }, [focused, alarmActive, runningId]);
+}
+
 // Shift home (G3, B-Kezdolap): the next round with a countdown, the rounds of the shift on a timeline, the closed ones
 // in a list, and the buttons of the incident and of closing the shift. A round open for the first time goes on to its
 // screen (G5); back from there, this screen stays, so the shift can be closed or handed over meanwhile. The back button
 // logs out to the PIN screen, so another guard can take over (the shift stays open); a shift closed meanwhile
 // (automatically) logs out by itself.
 export default function HomeScreen() {
-  const { color, typography, space } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { color, space } = useTheme();
   const guardId = useSession(({ activeUser }) => activeUser?.id ?? null);
   const info = useShiftHomeInfo(guardId);
   const logOut = useCallback(() => useSession.setState({ activeUser: null, shiftStart: null }), []);
@@ -52,17 +64,7 @@ export default function HomeScreen() {
   }, [shiftClosed, logOut]);
 
   const home = info?.home ?? null;
-  const runningId = home?.running?.round_id ?? null;
-  const focused = useIsFocused();
-  // An alarm goes first: its "Indulok" opens the round.
-  const alarmActive = useActiveAlarms(({ alarms }) => alarms.length > 0);
-  // This screen is mounted at a login: the guard's rounds are shown again.
-  useEffect(() => forgetShownRounds(), []);
-  useEffect(() => {
-    if (!focused || alarmActive || runningId === null || wasRoundShown(runningId)) return;
-    markRoundShown(runningId);
-    router.push({ pathname: '/round/[id]', params: { id: runningId } });
-  }, [focused, alarmActive, runningId]);
+  useOpenRunningRound(home?.running?.round_id ?? null);
 
   const rounds = home?.rounds ?? [];
   const closed = rounds.filter(isClosed);
@@ -78,54 +80,12 @@ export default function HomeScreen() {
         backLabel={t('home.logout')}
       />
       <ScrollView style={styles.screen} contentContainerStyle={{ paddingHorizontal: space.l, paddingBottom: space.l, gap: space.m }}>
-        {home !== null && home.running !== null ? (
-          <CountdownCard
-            key={home.running.deadline}
-            title={t('round.title', { time: time(home.running.scheduled_at) })}
-            target={home.running.deadline}
-            caption={t('home.remaining', { time: time(home.running.deadline) })}
-          >
-            <Button
-              hero
-              label={t('home.openRound')}
-              onPress={() => router.push({ pathname: '/round/[id]', params: { id: home.running!.round_id } })}
-              style={styles.wide}
-            />
-          </CountdownCard>
-        ) : home !== null && home.next_at !== null ? (
-          <CountdownCard
-            key={home.next_at}
-            title={t('home.nextRound', { time: time(home.next_at) })}
-            target={home.next_at}
-            caption={t('home.startsIn')}
-          />
-        ) : (
-          rounds.length > 0 && (
-            <Card style={styles.centre}>
-              <Text style={[typography.title2, styles.centredText, { color: color.text }]}>{t('home.noMoreRounds')}</Text>
-              {home?.auto_close_at != null && (
-                <Text style={[typography.bodyRegular, styles.centredText, { color: color.text2 }]}>
-                  {t('home.autoClose', { time: time(home.auto_close_at) })}
-                </Text>
-              )}
-            </Card>
-          )
-        )}
+        {home !== null && <WhatComesNext home={home} time={time} />}
 
         {rounds.length === 0 ? (
           <InfoBanner variant="info" text={t('home.noRounds')} />
         ) : (
-          <Card>
-            <View style={[styles.cardTitle, { gap: space.s }]}>
-              <Text style={[typography.buttonSm, { color: color.text }]} accessibilityRole="header">
-                {t('home.rounds')}
-              </Text>
-              <Text style={[typography.rowLabel, styles.tabular, { color: color.text2 }]}>
-                {t('home.closedCount', { closed: closed.length, total: rounds.length })}
-              </Text>
-            </View>
-            <ShiftTimeline rounds={rounds} time={time} />
-          </Card>
+          <RoundsCard rounds={rounds} closedCount={closed.length} time={time} />
         )}
 
         {/* Newest on top. */}
@@ -139,25 +99,87 @@ export default function HomeScreen() {
         ))}
       </ScrollView>
 
-      <View
-        style={[styles.buttons, { paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: insets.bottom + space.l, gap: space.s }]}
+      <HomeButtons />
+    </View>
+  );
+}
+
+/** The running round, the next one, or that no more come; nothing without rounds. */
+function WhatComesNext({ home, time }: { home: NonNullable<ShiftHomeInfo['home']>; time: (at: Timestamp) => string }) {
+  const { color, typography } = useTheme();
+  const { running, next_at: nextAt, auto_close_at: autoCloseAt } = home;
+  if (running !== null) {
+    return (
+      <CountdownCard
+        key={running.deadline}
+        title={t('round.title', { time: time(running.scheduled_at) })}
+        target={running.deadline}
+        caption={t('home.remaining', { time: time(running.deadline) })}
       >
         <Button
-          variant="secondary"
-          label={t('home.incident')}
-          icon="flag"
-          iconColor="warn"
-          onPress={() => router.push('/incident/new')}
-          style={[styles.button, { paddingHorizontal: space.s }]}
+          hero
+          label={t('home.openRound')}
+          onPress={() => router.push({ pathname: '/round/[id]', params: { id: running.round_id } })}
+          style={styles.wide}
         />
-        <Button
-          variant="secondary"
-          label={t('home.endShift')}
-          icon="shiftEnd"
-          onPress={() => router.push('/shift/close')}
-          style={[styles.button, { paddingHorizontal: space.s }]}
-        />
+      </CountdownCard>
+    );
+  }
+  if (nextAt !== null) {
+    return <CountdownCard key={nextAt} title={t('home.nextRound', { time: time(nextAt) })} target={nextAt} caption={t('home.startsIn')} />;
+  }
+  if (home.rounds.length === 0) return null;
+  return (
+    <Card style={styles.centre}>
+      <Text style={[typography.title2, styles.centredText, { color: color.text }]}>{t('home.noMoreRounds')}</Text>
+      {autoCloseAt !== null && (
+        <Text style={[typography.bodyRegular, styles.centredText, { color: color.text2 }]}>
+          {t('home.autoClose', { time: time(autoCloseAt) })}
+        </Text>
+      )}
+    </Card>
+  );
+}
+
+function RoundsCard({ rounds, closedCount, time }: { rounds: ShiftHomeRound[]; closedCount: number; time: (at: Timestamp) => string }) {
+  const { color, typography, space } = useTheme();
+  return (
+    <Card>
+      <View style={[styles.cardTitle, { gap: space.s }]}>
+        <Text style={[typography.buttonSm, { color: color.text }]} accessibilityRole="header">
+          {t('home.rounds')}
+        </Text>
+        <Text style={[typography.rowLabel, styles.tabular, { color: color.text2 }]}>
+          {t('home.closedCount', { closed: closedCount, total: rounds.length })}
+        </Text>
       </View>
+      <ShiftTimeline rounds={rounds} time={time} />
+    </Card>
+  );
+}
+
+function HomeButtons() {
+  const { space } = useTheme();
+  const insets = useSafeAreaInsets();
+  return (
+    <View
+      style={[styles.buttons, { paddingHorizontal: space.l, paddingTop: space.s, paddingBottom: insets.bottom + space.l, gap: space.s }]}
+    >
+      <Button
+        variant="secondary"
+        label={t('home.incident')}
+        icon="flag"
+        iconColor="warn"
+        onPress={() => router.push('/incident/new')}
+        style={[styles.button, { paddingHorizontal: space.s }]}
+      />
+      <Button
+        variant="secondary"
+        label={t('home.endShift')}
+        icon="shiftEnd"
+        onPress={() => router.push('/shift/close')}
+        style={[styles.button, { paddingHorizontal: space.s }]}
+      />
     </View>
   );
 }

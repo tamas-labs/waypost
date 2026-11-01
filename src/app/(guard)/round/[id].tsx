@@ -26,7 +26,7 @@ import { usePosition } from '@/location/use-position';
 import { useScanRecorder } from '@/navigation/use-scan-recorder';
 import { openNfcSettings } from '@/nfc/reader';
 import type { TagReading } from '@/nfc/tag';
-import { useTagReader } from '@/nfc/use-tag-reader';
+import { useTagReader, type TagReader } from '@/nfc/use-tag-reader';
 import { useTheme } from '@/theme/theme-provider';
 import { statusStyle } from '@/theme/tokens';
 import { countdownText } from '@/time/countdown';
@@ -41,6 +41,11 @@ const VIEWS: readonly { value: RoundView; label: string }[] = [
   { value: 'list', label: t('round.list') },
   { value: 'map', label: t('round.map') },
 ];
+
+interface RoundMessage {
+  variant: 'error' | 'info' | 'warn';
+  text: string;
+}
 
 /** The round, reloaded after a chain entry (a scan, its closing) and a pull. */
 function useRoundInfo(roundId: string): RoundScreenInfo | null {
@@ -87,34 +92,23 @@ function RoundMapView({ info, focused }: { info: RoundScreenInfo; focused: boole
   );
 }
 
-// The round in progress, as a list (G5, B-Kor; specification: (guard)/round/[id]) or on a map (G6, B-Terkep): how many
-// points are done, the time left, the points, and the ways to scan. Android reads tags without a button while the screen
-// is focused; iOS reads with "Leolvasás". The screen stays awake, and leaves by itself once the round has closed and it
-// is on top again (a scan that completes the round first shows its result).
-export default function RoundScreen() {
-  const { color, space } = useTheme();
-  const insets = useSafeAreaInsets();
-  const { id = '' } = useLocalSearchParams<{ id: string }>();
-  const info = useRoundInfo(id);
-  const focused = useIsFocused();
-  const scanner = useScanRecorder('push', id);
+/** What the banner above the points says: the first that holds. */
+function roundMessage(state: { failed: boolean; invalidTag: boolean; reader: TagReader; hint: boolean }): RoundMessage | null {
+  const { failed, invalidTag, reader, hint } = state;
+  if (failed) return { variant: 'error', text: t('round.recordFailed') };
+  if (invalidTag) return { variant: 'error', text: t('round.tagInvalid') };
+  if (reader.error !== null) return { variant: 'error', text: t('round.readFailed') };
+  if (reader.status?.supported === false) return { variant: 'info', text: t('round.nfcMissing') };
+  if (Platform.OS === 'android' && reader.status?.enabled === false) return { variant: 'warn', text: t('round.nfcOff') };
+  return hint ? { variant: 'info', text: t('round.nfcHint') } : null;
+}
+
+/** The ways to scan on this screen: tags are recorded as they come, "Leolvasás" and QR by the buttons. */
+function useRoundScanning(roundId: string) {
+  const scanner = useScanRecorder('push', roundId);
   // Android: what "Leolvasás" says while tags are read anyway.
   const [hint, setHint] = useState(false);
   const [invalidTag, setInvalidTag] = useState(false);
-  const [view, setView] = useState<RoundView>('list');
-
-  useKeepAwake();
-  useEffect(() => markRoundShown(id), [id]);
-
-  const over = info === null;
-  useEffect(() => {
-    if (!over || !focused) return;
-    // A round completed by a scan has told so on its result.
-    const status = closedStatusOf(getDatabase(), id);
-    if (status === 'incomplete' || status === 'missed') showToast(t('round.closedToast', { status: t(statusStyle[status].label) }), 'warn');
-    if (router.canGoBack()) router.back();
-    else router.replace('/home');
-  }, [over, focused, id]);
 
   const onTag = (tag: TagReading) => {
     setHint(false);
@@ -124,33 +118,55 @@ export default function RoundScreen() {
     else void scanner.record(read);
   };
   const reader = useTagReader(onTag);
-  const status = reader.status;
 
-  const openQr = () => router.push({ pathname: '/qr', params: { round_id: id } });
+  const openQr = () => router.push({ pathname: '/qr', params: { round_id: roundId } });
   const scan = () => {
     setHint(false);
-    if (status?.supported === false) openQr();
+    if (reader.status?.supported === false) openQr();
     else if (Platform.OS === 'ios') void reader.read();
-    else if (status?.enabled === false)
+    else if (reader.status?.enabled === false)
       openNfcSettings().catch((error: unknown) => __DEV__ && console.warn('Opening the NFC settings failed', error));
     else setHint(true);
   };
 
-  if (info === null) return <View style={[styles.screen, { backgroundColor: color.bg }]} />;
+  return {
+    message: roundMessage({ failed: scanner.failed, invalidTag, reader, hint }),
+    recording: scanner.recording,
+    busy: scanner.recording || reader.reading,
+    openQr,
+    scan,
+  };
+}
 
-  const message = scanner.failed
-    ? { variant: 'error' as const, text: t('round.recordFailed') }
-    : invalidTag
-      ? { variant: 'error' as const, text: t('round.tagInvalid') }
-      : reader.error !== null
-        ? { variant: 'error' as const, text: t('round.readFailed') }
-        : status?.supported === false
-          ? { variant: 'info' as const, text: t('round.nfcMissing') }
-          : Platform.OS === 'android' && status?.enabled === false
-            ? { variant: 'warn' as const, text: t('round.nfcOff') }
-            : hint
-              ? { variant: 'info' as const, text: t('round.nfcHint') }
-              : null;
+/** Once the round has closed and this screen is on top again, it leaves. */
+function useLeaveClosedRound(roundId: string, over: boolean, focused: boolean) {
+  useEffect(() => {
+    if (!over || !focused) return;
+    // A round completed by a scan has told so on its result.
+    const status = closedStatusOf(getDatabase(), roundId);
+    if (status === 'incomplete' || status === 'missed') showToast(t('round.closedToast', { status: t(statusStyle[status].label) }), 'warn');
+    if (router.canGoBack()) router.back();
+    else router.replace('/home');
+  }, [over, focused, roundId]);
+}
+
+// The round in progress, as a list (G5, B-Kor; specification: (guard)/round/[id]) or on a map (G6, B-Terkep): how many
+// points are done, the time left, the points, and the ways to scan. Android reads tags without a button while the screen
+// is focused; iOS reads with "Leolvasás". The screen stays awake, and leaves by itself once the round has closed and it
+// is on top again (a scan that completes the round first shows its result).
+export default function RoundScreen() {
+  const { color, space } = useTheme();
+  const { id = '' } = useLocalSearchParams<{ id: string }>();
+  const info = useRoundInfo(id);
+  const focused = useIsFocused();
+  const scanning = useRoundScanning(id);
+  const [view, setView] = useState<RoundView>('list');
+
+  useKeepAwake();
+  useEffect(() => markRoundShown(id), [id]);
+  useLeaveClosedRound(id, info === null, focused);
+
+  if (info === null) return <View style={[styles.screen, { backgroundColor: color.bg }]} />;
 
   return (
     <View style={[styles.screen, { backgroundColor: color.bg }]}>
@@ -160,61 +176,77 @@ export default function RoundScreen() {
         onBack={() => router.back()}
       />
       <View style={{ paddingHorizontal: space.l, paddingBottom: space.m, gap: space.m }}>
-        <Card style={[styles.summary, { gap: space.l }]}>
-          {view === 'list' && <ProgressRing done={info.scanned} total={info.points.length} />}
-          {/* In one place in both views: the warning vibration of the last 5 minutes does not start over. */}
-          <TimeLeft key={info.deadline} deadline={info.deadline} timezone={info.timezone} compact={view === 'map'} />
-          {view === 'map' && <ProgressRing size="small" done={info.scanned} total={info.points.length} />}
-        </Card>
-        {message !== null && <InfoBanner variant={message.variant} text={message.text} />}
+        <RoundSummary info={info} view={view} />
+        {scanning.message !== null && <InfoBanner variant={scanning.message.variant} text={scanning.message.text} />}
         <SegmentedControl options={VIEWS} value={view} onChange={setView} accessibilityLabel={t('round.view')} />
       </View>
+      {view === 'list' ? <RoundPointList info={info} /> : <RoundMapView info={info} focused={focused} />}
+      <RoundActions roundId={id} view={view} scanning={scanning} />
+    </View>
+  );
+}
 
-      {view === 'list' ? (
-        <ScrollView style={styles.screen} contentContainerStyle={{ paddingHorizontal: space.l, gap: space.s }}>
-          {info.points.map((point) => (
-            <PointListItem
-              key={point.checkpoint_id}
-              name={point.name}
-              state={pointState(point)}
-              meta={pointMeta(point, info.timezone)}
-              position={info.fixed_order && point.scan === null ? point.position : undefined}
-            />
-          ))}
-        </ScrollView>
-      ) : (
-        <RoundMapView info={info} focused={focused} />
-      )}
+function RoundSummary({ info, view }: { info: RoundScreenInfo; view: RoundView }) {
+  const { space } = useTheme();
+  return (
+    <Card style={[styles.summary, { gap: space.l }]}>
+      {view === 'list' && <ProgressRing done={info.scanned} total={info.points.length} />}
+      {/* In one place in both views: the warning vibration of the last 5 minutes does not start over. */}
+      <TimeLeft key={info.deadline} deadline={info.deadline} timezone={info.timezone} compact={view === 'map'} />
+      {view === 'map' && <ProgressRing size="small" done={info.scanned} total={info.points.length} />}
+    </Card>
+  );
+}
 
-      <View style={{ paddingHorizontal: space.l, paddingTop: space.m, paddingBottom: insets.bottom + space.l, gap: space.m }}>
-        {view === 'list' && (
-          <View style={[styles.row, { gap: space.s }]}>
-            <Button variant="secondary" icon="qr" label={t('round.qr')} onPress={openQr} />
-            <Button
-              variant="secondary"
-              label={t('round.tagUnreadable')}
-              onPress={() => router.push({ pathname: '/manual', params: { round_id: id } })}
-              style={[styles.grow, { paddingHorizontal: space.s }]}
-            />
-          </View>
-        )}
-        <View style={[styles.row, { gap: space.m }]}>
-          <IconButton
-            size="large"
-            icon="flag"
-            iconColor="warn"
-            accessibilityLabel={t('round.recordIncident')}
-            onPress={() => router.push('/incident/new')}
-          />
+function RoundPointList({ info }: { info: RoundScreenInfo }) {
+  const { space } = useTheme();
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={{ paddingHorizontal: space.l, gap: space.s }}>
+      {info.points.map((point) => (
+        <PointListItem
+          key={point.checkpoint_id}
+          name={point.name}
+          state={pointState(point)}
+          meta={pointMeta(point, info.timezone)}
+          position={info.fixed_order && point.scan === null ? point.position : undefined}
+        />
+      ))}
+    </ScrollView>
+  );
+}
+
+function RoundActions({ roundId, view, scanning }: { roundId: string; view: RoundView; scanning: ReturnType<typeof useRoundScanning> }) {
+  const { space } = useTheme();
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={{ paddingHorizontal: space.l, paddingTop: space.m, paddingBottom: insets.bottom + space.l, gap: space.m }}>
+      {view === 'list' && (
+        <View style={[styles.row, { gap: space.s }]}>
+          <Button variant="secondary" icon="qr" label={t('round.qr')} onPress={scanning.openQr} />
           <Button
-            hero
-            icon="nfc"
-            label={scanner.recording ? t('round.recording') : t('round.scan')}
-            disabled={scanner.recording || reader.reading}
-            onPress={scan}
-            style={styles.grow}
+            variant="secondary"
+            label={t('round.tagUnreadable')}
+            onPress={() => router.push({ pathname: '/manual', params: { round_id: roundId } })}
+            style={[styles.grow, { paddingHorizontal: space.s }]}
           />
         </View>
+      )}
+      <View style={[styles.row, { gap: space.m }]}>
+        <IconButton
+          size="large"
+          icon="flag"
+          iconColor="warn"
+          accessibilityLabel={t('round.recordIncident')}
+          onPress={() => router.push('/incident/new')}
+        />
+        <Button
+          hero
+          icon="nfc"
+          label={scanning.recording ? t('round.recording') : t('round.scan')}
+          disabled={scanning.busy}
+          onPress={scanning.scan}
+          style={styles.grow}
+        />
       </View>
     </View>
   );

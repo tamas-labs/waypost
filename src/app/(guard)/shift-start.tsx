@@ -67,6 +67,14 @@ function useShiftStartInfo(guardId: string | null): ShiftStartInfo | null {
   return info;
 }
 
+function rowText(row: ReadinessRow) {
+  const text = ROW_TEXT[row.item];
+  if (row.ok) return { label: t(text.ok) };
+  // Without NFC hardware there is nothing to switch on.
+  const detail = row.item === 'nfc' && !row.fixable ? t('shiftStart.nfcMissing') : t(text.detail);
+  return { label: t(text.label), detail, actionLabel: row.fixable ? t('shiftStart.fix') : undefined };
+}
+
 // Shift start (G2, B-Muszakkezdes): after a guard's PIN started a shift (or took one over). The shift, its routes and
 // rounds, the handover if there was one, and whether the phone is ready; a missing setting warns but does not stop
 // the shift. The shift is already open (the PIN login wrote it): "Műszak indítása" goes on to the shift home, the
@@ -76,12 +84,6 @@ export default function ShiftStartScreen() {
   const insets = useSafeAreaInsets();
   const { guardId, shiftStart } = useSession(useShallow(({ activeUser, shiftStart }) => ({ guardId: activeUser?.id ?? null, shiftStart })));
   const info = useShiftStartInfo(guardId);
-  const [readiness, recheck] = useReadiness();
-
-  const fix = (item: ReadinessItem) => {
-    if (readiness === null) return;
-    fixReadiness(item, readiness).then(recheck, (error: unknown) => __DEV__ && console.warn(`Fixing ${item} failed`, error));
-  };
 
   const goOn = () => {
     useSession.setState({ shiftStart: null });
@@ -91,14 +93,6 @@ export default function ShiftStartScreen() {
   const time = (at: string) => (info === null ? '' : localTimeOf(parseTimestamp(at), info.timezone));
   const handover = shiftStart?.handover ?? null;
   const day = info?.day ?? null;
-
-  const rowText = (row: ReadinessRow) => {
-    const text = ROW_TEXT[row.item];
-    if (row.ok) return { label: t(text.ok) };
-    // Without NFC hardware there is nothing to switch on.
-    const detail = row.item === 'nfc' && !row.fixable ? t('shiftStart.nfcMissing') : t(text.detail);
-    return { label: t(text.label), detail, actionLabel: row.fixable ? t('shiftStart.fix') : undefined };
-  };
 
   return (
     <View style={[styles.screen, { backgroundColor: color.bg }]}>
@@ -113,49 +107,62 @@ export default function ShiftStartScreen() {
           <Text style={[typography.bodyRegular, { color: color.text2 }]}>{t('shiftStart.onDuty')}</Text>
         </View>
 
-        {day === null ? (
-          <InfoBanner variant="info" text={t('shiftStart.noRounds')} />
-        ) : (
-          <Card>
-            <ShiftRow
-              label={t('shiftStart.shift')}
-              value={t('shiftStart.shiftTimes', { from: time(day.first_at), to: time(day.last_at) })}
-              large
-            />
-            {day.routes.map((route) => (
-              <View key={route.route_id} style={{ gap: space.m }}>
-                <ShiftRow
-                  label={t('shiftStart.route')}
-                  value={t('shiftStart.routeValue', { name: route.name, count: route.checkpoints })}
-                />
-                <ShiftRow label={t('shiftStart.rounds')} value={roundsLine(route.rounds, route.schedules)} />
-              </View>
-            ))}
-          </Card>
-        )}
+        {day === null ? <InfoBanner variant="info" text={t('shiftStart.noRounds')} /> : <ShiftDayCard day={day} time={time} />}
 
         {handover !== null && (
           <InfoBanner variant="info" text={t('shiftStart.handover', { name: handover.guard_name, time: time(handover.at) })} />
         )}
 
-        <Text
-          style={[typography.label, { color: color.text2, paddingHorizontal: space.xs, paddingTop: space.s }]}
-          accessibilityRole="header"
-        >
-          {t('shiftStart.readiness')}
-        </Text>
-        {readiness !== null && (
-          <Card divided>
-            {readinessRows(readiness).map((row) => (
-              <CheckRow key={row.item} ok={row.ok} {...rowText(row)} onAction={() => fix(row.item)} />
-            ))}
-          </Card>
-        )}
+        <ReadinessSection />
 
         <View style={[styles.spacer, { minHeight: space.l }]} />
         <Button label={t('shiftStart.start')} onPress={goOn} />
       </ScrollView>
     </View>
+  );
+}
+
+function ShiftDayCard({ day, time }: { day: NonNullable<ShiftStartInfo['day']>; time: (at: string) => string }) {
+  const { space } = useTheme();
+  return (
+    <Card>
+      <ShiftRow
+        label={t('shiftStart.shift')}
+        value={t('shiftStart.shiftTimes', { from: time(day.first_at), to: time(day.last_at) })}
+        large
+      />
+      {day.routes.map((route) => (
+        <View key={route.route_id} style={{ gap: space.m }}>
+          <ShiftRow label={t('shiftStart.route')} value={t('shiftStart.routeValue', { name: route.name, count: route.checkpoints })} />
+          <ShiftRow label={t('shiftStart.rounds')} value={roundsLine(route.rounds, route.schedules)} />
+        </View>
+      ))}
+    </Card>
+  );
+}
+
+function ReadinessSection() {
+  const { color, typography, space } = useTheme();
+  const [readiness, recheck] = useReadiness();
+
+  const fix = (item: ReadinessItem) => {
+    if (readiness === null) return;
+    fixReadiness(item, readiness).then(recheck, (error: unknown) => __DEV__ && console.warn(`Fixing ${item} failed`, error));
+  };
+
+  return (
+    <>
+      <Text style={[typography.label, { color: color.text2, paddingHorizontal: space.xs, paddingTop: space.s }]} accessibilityRole="header">
+        {t('shiftStart.readiness')}
+      </Text>
+      {readiness !== null && (
+        <Card divided>
+          {readinessRows(readiness).map((row) => (
+            <CheckRow key={row.item} ok={row.ok} {...rowText(row)} onAction={() => fix(row.item)} />
+          ))}
+        </Card>
+      )}
+    </>
   );
 }
 

@@ -17,8 +17,6 @@ import { useTheme } from '@/theme/theme-provider';
 import { parseTimestamp } from '@/time/timestamp';
 import { DAY_MS, localTimeOf, naiveOf } from '@/time/zone';
 
-/** The line above the keypad and below the dots after a try. */
-
 /** The time and the shift change while the screen is open (and the trusted time comes with a sync). */
 const INFO_REFRESH_MS = 30_000;
 
@@ -80,13 +78,11 @@ export default function PinScreen() {
   const { color, typography, space } = useTheme();
   const insets = useSafeAreaInsets();
   const info = usePinScreenInfo();
-  const permissions = useAlarmPermissions();
   const entry = usePinEntry((pin) => signInWithPin(getDatabase(), pin), 'pin.failed');
   const { pin, shakeKey, checking, locked, messageText } = entry;
   const [supervisorHint, setSupervisorHint] = useState(false);
 
   const enabled = info !== null && !locked && !checking;
-  const line = shiftLine(info);
 
   return (
     <ScrollView
@@ -101,25 +97,8 @@ export default function PinScreen() {
         <SyncStatusIndicator />
       </View>
 
-      {permissions !== null && !allAlarmPermissionsGranted(permissions) && (
-        <InfoBanner
-          variant="warn"
-          title={t('pin.alarmsTitle')}
-          text={t('pin.alarmsMissing', { missing: missingAlarmSettings(permissions) })}
-          style={styles.wide}
-        />
-      )}
-
-      <View style={[styles.centre, { gap: space.s }]}>
-        {info !== null && info.site_name !== '' && (
-          <Text style={[typography.siteName, styles.text, { color: color.text2 }]}>{info.site_name}</Text>
-        )}
-        <Text style={[typography.title1, styles.text, { color: color.text }]} accessibilityRole="header">
-          {/* Before the first pull the site's clock is not known. */}
-          {info === null ? t('pin.title') : t(greeting(info))}
-        </Text>
-        {line !== null && <Text style={[typography.bodyRegular, styles.text, styles.tabular, { color: color.text2 }]}>{line}</Text>}
-      </View>
+      <AlarmSettingsWarning />
+      <PinGreeting info={info} />
 
       {info === null && <InfoBanner variant="info" text={t('pin.notPulled')} style={styles.wide} />}
 
@@ -159,6 +138,36 @@ export default function PinScreen() {
         style={styles.wide}
       />
     </ScrollView>
+  );
+}
+
+function AlarmSettingsWarning() {
+  const permissions = useAlarmPermissions();
+  if (permissions === null || allAlarmPermissionsGranted(permissions)) return null;
+  return (
+    <InfoBanner
+      variant="warn"
+      title={t('pin.alarmsTitle')}
+      text={t('pin.alarmsMissing', { missing: missingAlarmSettings(permissions) })}
+      style={styles.wide}
+    />
+  );
+}
+
+function PinGreeting({ info }: { info: PinScreenInfo | null }) {
+  const { color, typography, space } = useTheme();
+  const line = shiftLine(info);
+  return (
+    <View style={[styles.centre, { gap: space.s }]}>
+      {info !== null && info.site_name !== '' && (
+        <Text style={[typography.siteName, styles.text, { color: color.text2 }]}>{info.site_name}</Text>
+      )}
+      <Text style={[typography.title1, styles.text, { color: color.text }]} accessibilityRole="header">
+        {/* Before the first pull the site's clock is not known. */}
+        {info === null ? t('pin.title') : t(greeting(info))}
+      </Text>
+      {line !== null && <Text style={[typography.bodyRegular, styles.text, styles.tabular, { color: color.text2 }]}>{line}</Text>}
+    </View>
   );
 }
 
