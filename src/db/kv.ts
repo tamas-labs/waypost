@@ -1,4 +1,4 @@
-import type { DeviceDiagnosticRequest } from '@waypost/schema';
+import type { DeviceDiagnosticRequest, ErrorCode, ErrorResponse } from '@waypost/schema';
 import { eq } from 'drizzle-orm';
 
 // Types only: what the keys hold. The database does not depend on the domain or the theme when it runs.
@@ -15,6 +15,21 @@ export interface TimeReference {
   boot_id: string;
 }
 
+/** An outbox call the server refused with a 4xx (sync/outbox.ts), for the supervisor. */
+export interface OutboxRejection {
+  /** outbox.id of the call. */
+  call_id: string;
+  method: string;
+  path: string;
+  status: number;
+  code: ErrorCode;
+  /** The server's message (Hungarian, safe to show). */
+  message: string;
+  details: NonNullable<ErrorResponse['error']['details']> | null;
+  /** Device wall clock. */
+  at: string;
+}
+
 /** Every key of the kv table and the type of its value. */
 export interface KvValues {
   /** Cursor of the next pull; absent before the first one. */
@@ -29,6 +44,8 @@ export interface KvValues {
   'sync.pending_diagnostic': DeviceDiagnosticRequest;
   /** Trusted time of the last local cleanup (sync/cleanup.ts). */
   'sync.last_cleanup_at': string;
+  /** The outbox calls the server refused, until the supervisor has seen them (sync/outbox.ts). */
+  'outbox.rejected': OutboxRejection[];
   /** Wrong PINs and the running lock (domain/pin-lockout.ts). */
   'pin.lockout': PinLockout;
   /** ID of this phone as the site phone (devices.id); absent while not enrolled. */

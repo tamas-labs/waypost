@@ -3,7 +3,7 @@
 // they come. Timestamps are ISO 8601 UTC text with milliseconds (sortable as text). There are no foreign keys: the
 // server owns referential integrity, and a pulled deletion must never cascade into data created on the device.
 // After changing this file run `npm run db:generate` and commit the new migration.
-import type { ChainEntryType, ChainPayloadMap, LocalTime } from '@waypost/schema';
+import type { ChainEntryType, ChainPayloadMap, LocalTime, SchemaPath } from '@waypost/schema';
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 const id = () => text().primaryKey();
@@ -266,17 +266,23 @@ export const media = sqliteTable(
 
 // --- Local only ---
 
-/** REST calls of supervisor actions waiting to be sent, in id (UUIDv7) order (M5). */
+/** REST calls of supervisor actions waiting to be sent, in id (UUIDv7) order (sync/outbox.ts). */
 export const outbox = sqliteTable('outbox', {
   id: id(),
   method: text({ enum: ['POST', 'PUT', 'PATCH', 'DELETE'] }).notNull(),
   path: text().notNull(),
   body: text({ mode: 'json' }).$type<unknown>(),
+  /** Schemas of the body and of the 2xx response (@waypost/schema SchemaPath); the default is only for the migration. */
+  body_schema: text().$type<SchemaPath>(),
+  response_schema: text().$type<SchemaPath>().notNull().default('api/deleted.response'),
+  /** The local records the call changes: neither a pull nor another call's response overwrites them while it waits. */
+  record_ids: text({ mode: 'json' }).$type<string[]>().notNull().default([]),
   idempotency_key: text().notNull(),
   /** X-Acting-User on the site phone; null with a supervisor token. */
   acting_user_id: text(),
   created_at: timestamp().notNull(),
   attempts: integer().notNull().default(0),
+  /** Not sent before this time (device wall clock); null: at the next sync. */
   next_attempt_at: timestamp(),
   last_error: text(),
 });

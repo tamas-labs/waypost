@@ -26,7 +26,7 @@ src/
   navigation/ # melyik csoport nyitott az állapot szerint (Stack.Protected), kezdőképernyő
   hooks/      # képernyők közös hookjai: useLiveQuery (élő betöltés az adatbázisból), usePinEntry (PIN-beírás és ellenőrzés), useRecordForm (űrlap: helyadat, mentés), useScanRecorder (leolvasás rögzítése és visszajelzése), usePinLock (a PIN zárolása)
   components/ # közös UI-komponensek (DESIGN_HANDOFF 5); ikon: icon.tsx (lucide, ikononként importálva); képernyőfejléc: screen-header.tsx (jobbra a szinkronjelző); rövid üzenet: toast.tsx (`showToast`)
-  api/        # API-kliens: client.ts (token, Idempotency-Key, típusos hibák, __DEV__ Ajv), endpoints.ts
+  api/        # API-kliens: client.ts (token, Idempotency-Key, típusos hibák, __DEV__ Ajv), endpoints.ts, config-calls.ts (a supervisorműveletek hívásai az outboxnak)
   auth/       # indulási állapot, munkamenet (Zustand), hozzárendelés, PIN
   db/         # expo-sqlite + Drizzle: schema.ts, migrations/ (generált), kv.ts, testing.ts (better-sqlite3 a tesztekhez)
   id/         # uuidv7()
@@ -35,7 +35,7 @@ src/
   guard/      # a domain és az adatbázis között: a GuardState betöltése, az ütemező futtató; testing.ts (a domain-fixture az adatbázisban)
   device/     # a telefon saját adatai és állapota, a domaintól függetlenül: tokenek és eszköztitok a secure store-ban (credentials.ts), készenlét (readiness.ts), előtér-figyelés és intervallum (foreground.ts)
   schema/     # JSON Schema-ellenőrzés fejlesztői módban (validation.ts, Ajv)
-  sync/       # pull, push (push.ts: kötegek, elutasítás, diagnosztika), média (media.ts), visszavont telefon (revocation.ts), helyi takarítás (cleanup.ts); outbox (M5); testing.ts: hamis API a tesztekhez
+  sync/       # pull, push (push.ts: kötegek, elutasítás, diagnosztika), média (media.ts), visszavont telefon (revocation.ts), helyi takarítás (cleanup.ts), outbox (outbox.ts: supervisorműveletek, visszatartás, elutasítás); testing.ts: hamis API a tesztekhez
   chain/      # láncbejegyzés: kanonikus JSON, HMAC
   nfc/        # olvasás (reader.ts), Androidon az app-szintű figyelés (tag-events.ts), useTagReader a kör és a betanítás képernyőjére
   qr/ alarms/

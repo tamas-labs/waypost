@@ -502,10 +502,11 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
 
 ### App – infrastruktúra
 
-- [ ] **M5-03 Outbox**
+- [x] **M5-03 Outbox**
   - Mit: minden supervisorművelet a helyi adatbázist frissíti és outbox-sort hoz létre (metódus, útvonal, törzs, idempotencia-kulcs; az ID-t az app generálja); FIFO kiküldés; 4xx (kivéve 401 és 429) esetén jelzés a supervisornak, és a következő pull felülírja a helyi állapotot; hálózati hibánál és 5xx-nél exponenciális visszatartás 5 mp-től 10 percig, jitterrel; telephelyi telefonon `X-Acting-User` fejléc.
   - Kész, ha: Jest tesztek (sorrend, visszatartás, 4xx, 401, 429).
   - Spec: Szinkron protokoll / Outbox.
+  - Megjegyzés (2026-11-02): `src/sync/outbox.ts` (`queueAction`, `sendOutbox`), a hívások leírói: `src/api/config-calls.ts`. A sikeres válasz rekordjai a helyi adatbázisba kerülnek; a várakozó hívás rekordját a pull nem írja felül; 4xx után a következő pull teljes. A szerver a még futó kérés `409`-éhez `Retry-After`-t ad (laravel-waypost). Az elutasítás azonnal rövid üzenetként jelenik meg a supervisor-képernyőkön, a lista a `useSyncStatus.rejectedCalls`-ban marad – **az M5-07-nek** meg kell mutatnia, és a supervisor törölheti (`dismissOutboxRejections`). **Az M5-09-nek** a hozzárendelés előtt ki kell küldenie az outboxot. **Az M5-14-nek** kezelnie kell a helyben becsült verziószám ütközését. Döntés: „Az outbox”.
 
 - [ ] **M5-04 Supervisor mód a telephelyi telefonon PIN-nel**
   - Mit: ha a PIN egy hozzárendelt supervisoré, supervisor módba lép; az ő nevében mennek a kérések; a fejlécben „Supervisor” jelvény.

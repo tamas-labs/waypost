@@ -20,6 +20,7 @@ import { trustedTime } from '@/time/trusted-time';
 import { cleanUpIfDue } from './cleanup';
 import { createSyncController, type SyncController, type SyncOutcome, type SyncStep, type SyncTrigger } from './controller';
 import { uploadPhotos } from './media';
+import { onOutboxQueued, outboxRejections, resetOutboxBackoff, sendOutbox } from './outbox';
 import { countPending } from './pending';
 import { pullConfiguration } from './pull';
 import { pushChainEntries, sendPendingDiagnostic, type SendBatch } from './push';
@@ -57,8 +58,8 @@ export async function syncContext(db: Database): Promise<SyncContext | null> {
 }
 
 /**
- * The steps in the controller's order; the outbox comes in M5. On a revoked phone they are its last upload: the batches
- * go to push-final, the photos as always, its outbox calls cannot go any more, and instead of a pull the upload closes.
+ * The steps in the controller's order. On a revoked phone they are its last upload: the batches go to push-final, the
+ * photos as always, its outbox calls cannot go any more, and instead of a pull the upload closes.
  */
 export const syncSteps: Record<SyncStep, (context: SyncContext) => Promise<void>> = {
   push: async ({ db, api, token, deviceId, revoked, mediaMissing }) => {
@@ -71,7 +72,9 @@ export const syncSteps: Record<SyncStep, (context: SyncContext) => Promise<void>
   media: async ({ db, api, token, deviceId, mediaMissing }) => {
     if (deviceId !== null) await uploadPhotos({ db, api, token, deviceId, mediaMissing });
   },
-  outbox: async () => {},
+  outbox: async ({ db, api, token, revoked }) => {
+    if (!revoked) await sendOutbox({ db, api, token });
+  },
   pull: async ({ db, api, token, deviceId, revoked }) => {
     if (revoked && deviceId !== null) {
       await closeUpload(api, token, deviceId);
@@ -154,13 +157,18 @@ export function startSync(db: Database): () => void {
     },
   });
   controller = sync;
-  setSyncNowHandler(() => sync.sync('manual'));
+  // "Sync now" and the network coming back send the waiting supervisor actions at once, whatever their backoff.
+  setSyncNowHandler(() => {
+    resetOutboxBackoff(db);
+    return sync.sync('manual');
+  });
   useSyncStatus.setState({
     running: false,
     pendingCount: countPending(db).total,
     lastSuccessAt: getKv(db, 'sync.last_success_at'),
     lastError: null,
     replaced: false,
+    rejectedCalls: outboxRejections(db),
   });
 
   const stopForeground = whileInForeground(
@@ -173,7 +181,10 @@ export function startSync(db: Database): () => void {
     const online = isOnline(state);
     const wasOnline = useSyncStatus.getState().online;
     useSyncStatus.setState({ online });
-    if (online && wasOnline === false) void sync.sync('online');
+    if (online && wasOnline === false) {
+      resetOutboxBackoff(db);
+      void sync.sync('online');
+    }
   });
 
   // Enrollment, login and logout change the token: the new one starts with a sync (after enrollment the full pull).
@@ -187,6 +198,12 @@ export function startSync(db: Database): () => void {
     sync.syncSoon('chain_entry');
   });
 
+  // After a supervisor action: like after a chain entry.
+  const unsubscribeOutbox = onOutboxQueued(() => {
+    refreshPendingCount();
+    sync.syncSoon('outbox');
+  });
+
   void sync.sync('start');
 
   const stop = () => {
@@ -195,6 +212,7 @@ export function startSync(db: Database): () => void {
     unsubscribeNetInfo();
     unsubscribeSession();
     unsubscribeChainEntries();
+    unsubscribeOutbox();
     if (controller === sync) controller = null;
     if (stopSync === stop) stopSync = null;
     setSyncNowHandler(() => Promise.resolve({ status: 'skipped' }));

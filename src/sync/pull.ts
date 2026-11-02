@@ -1,8 +1,9 @@
 // Pull (specification, Szinkron protokoll / Pull): the configuration changes since the saved cursor, page by page
 // while has_more is true, applied in one transaction together with the new cursor and the server time. Either the
-// whole pull is applied or nothing, so the guard never works with half of a new configuration.
+// whole pull is applied or nothing, so the guard never works with half of a new configuration. A record with a
+// supervisor action still waiting in the outbox keeps its local state: the server's copy comes after the call.
 import type { SyncPullResponse } from '@waypost/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, notInArray } from 'drizzle-orm';
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 
 import type { ApiClient } from '@/api/client';
@@ -13,6 +14,7 @@ import { getKv, setKv } from '@/db/kv';
 import {
   checkpoints,
   devices,
+  outbox,
   reportSubscriptions,
   rounds,
   routes,
@@ -99,13 +101,26 @@ function removeCheckpoints(tx: Database, ids: readonly string[]): void {
   if (gone.length > 0) tx.delete(checkpoints).where(inArray(checkpoints.id, gone)).run();
 }
 
+/** The local records with an outbox call waiting (sync/outbox.ts): the server's copy does not overwrite them yet. */
+function waitingRecordIds(tx: Database): ReadonlySet<string> {
+  return new Set(
+    tx
+      .select({ ids: outbox.record_ids })
+      .from(outbox)
+      .all()
+      .flatMap((row) => row.ids),
+  );
+}
+
 /** How one list of a pull page goes to the database. */
 interface SyncedList<K extends keyof Changes> {
+  /** The local record of a row, as an outbox call names it. */
+  recordId: (row: Changes[K][number]) => string;
   upsert: (tx: Database, row: Changes[K][number]) => void;
   /** Deletes by the IDs under "deleted"; null for a list that has none there. */
   remove: K extends keyof Deleted ? (tx: Database, ids: readonly string[]) => void : null;
-  /** Deletes everything before a full state; null for what a full state keeps. */
-  clear: ((tx: Database) => void) | null;
+  /** Deletes everything but the kept records before a full state; null for what a full state keeps. */
+  clear: ((tx: Database, keep: ReadonlySet<string>) => void) | null;
 }
 
 type TableWithId = SQLiteTable & { id: SQLiteColumn };
@@ -124,12 +139,19 @@ const removeFrom =
       .run();
   };
 
-const clearOf = (table: SQLiteTable) => (tx: Database) => {
-  tx.delete(table).run();
-};
+const clearOf =
+  <T extends TableWithId>(table: T, column: SQLiteColumn = table.id) =>
+  (tx: Database, keep: ReadonlySet<string>) => {
+    tx.delete(table)
+      .where(keep.size === 0 ? undefined : notInArray(column, [...keep]))
+      .run();
+  };
+
+const byId = (row: { id: string }) => row.id;
 
 /** A list whose rows are one table's rows, by their id. */
 const plainList = <T extends TableWithId>(table: T) => ({
+  recordId: byId,
   upsert: upsertOn(table, table.id),
   remove: removeFrom(table),
   clear: clearOf(table),
@@ -150,6 +172,7 @@ const SYNCED_LISTS: { [K in keyof Changes]: SyncedList<K> } = {
     },
   },
   users: {
+    recordId: byId,
     upsert: (tx, { site_ids, ...row }) => {
       upsertOn(users, users.id)(tx, row);
       tx.delete(siteUser).where(eq(siteUser.user_id, row.id)).run();
@@ -161,28 +184,33 @@ const SYNCED_LISTS: { [K in keyof Changes]: SyncedList<K> } = {
         .where(inArray(siteUser.user_id, [...ids]))
         .run();
     },
-    clear: (tx) => {
-      clearOf(users)(tx);
-      clearOf(siteUser)(tx);
+    clear: (tx, keep) => {
+      clearOf(users)(tx, keep);
+      tx.delete(siteUser)
+        .where(keep.size === 0 ? undefined : notInArray(siteUser.user_id, [...keep]))
+        .run();
     },
   },
   devices: plainList(devices),
   checkpoints: {
+    recordId: byId,
     upsert: upsertOn(checkpoints, checkpoints.id),
     remove: removeCheckpoints,
-    clear: (tx) =>
+    clear: (tx, keep) =>
       removeCheckpoints(
         tx,
         tx
           .select({ id: checkpoints.id })
           .from(checkpoints)
           .all()
-          .map((row) => row.id),
+          .map((row) => row.id)
+          .filter((id) => !keep.has(id)),
       ),
   },
   routes: plainList(routes),
-  route_versions: { upsert: upsertOn(routeVersions, routeVersions.id), remove: null, clear: null },
+  route_versions: { recordId: byId, upsert: upsertOn(routeVersions, routeVersions.id), remove: null, clear: null },
   route_version_checkpoints: {
+    recordId: (row) => row.route_version_id,
     upsert: upsertOn(routeVersionCheckpoints, [routeVersionCheckpoints.route_version_id, routeVersionCheckpoints.position]),
     remove: null,
     clear: null,
@@ -193,27 +221,35 @@ const SYNCED_LISTS: { [K in keyof Changes]: SyncedList<K> } = {
 
 const LISTS = Object.keys(SYNCED_LISTS) as (keyof Changes)[];
 
-/** Deletes the local configuration: before a full state, and when the phone stops being a site phone. */
-export function deleteConfiguration(tx: Database): void {
-  for (const list of LISTS) SYNCED_LISTS[list].clear?.(tx);
+/**
+ * Deletes the local configuration but the kept records: before a full state (keeping those with an outbox call
+ * waiting), and when the phone stops being a site phone or the supervisor logs out (keeping nothing).
+ */
+export function deleteConfiguration(tx: Database, keep: ReadonlySet<string> = new Set()): void {
+  for (const list of LISTS) SYNCED_LISTS[list].clear?.(tx, keep);
 }
 
-function upsertList<K extends keyof Changes>(tx: Database, list: K, rows: readonly Changes[K][number][]): void {
-  const { upsert } = SYNCED_LISTS[list];
-  for (const row of rows) upsert(tx, row);
+function upsertList<K extends keyof Changes>(tx: Database, list: K, rows: readonly Changes[K][number][], keep: ReadonlySet<string>): void {
+  const { recordId, upsert } = SYNCED_LISTS[list];
+  for (const row of rows) if (!keep.has(recordId(row))) upsert(tx, row);
 }
 
-function applyChanges(tx: Database, changes: Changes): void {
-  for (const list of LISTS) upsertList(tx, list, changes[list]);
+function applyChanges(tx: Database, changes: Partial<Changes>, keep: ReadonlySet<string>): void {
+  for (const list of LISTS) upsertList(tx, list, changes[list] ?? [], keep);
 }
 
-function applyDeleted(tx: Database, deleted: Deleted): void {
+function applyDeleted(tx: Database, deleted: Deleted, keep: ReadonlySet<string>): void {
   for (const list of LISTS) {
     const { remove } = SYNCED_LISTS[list];
     if (remove === null) continue;
-    const ids = deleted[list as keyof Deleted];
+    const ids = deleted[list as keyof Deleted].filter((id) => !keep.has(id));
     if (ids.length > 0) remove(tx, ids);
   }
+}
+
+/** Stores records the server returned to an outbox call, but not those another waiting call still changes. */
+export function storeServerRecords(tx: Database, changes: Partial<Changes>): void {
+  applyChanges(tx, changes, waitingRecordIds(tx));
 }
 
 /** Adds the length of every list to the counts (the lists of a page always have every key). */
@@ -225,23 +261,24 @@ function addCounts<K extends string>(lists: Record<K, readonly unknown[]>, into:
 
 /**
  * Applies the pages in order in one transaction: a reset page first deletes the local configuration, then upserts
- * its changes and deletes its deleted IDs; at the end the last cursor and server time are saved. If anything throws,
+ * its changes and deletes its deleted IDs, all but the records with an outbox call waiting; at the end the last cursor and server time are saved. If anything throws,
  * the transaction rolls back and the cursor stays where it was.
  */
 export function applyPullPages(db: Database, pages: readonly ReceivedPage[]): PullSummary {
   const last = pages.at(-1);
   if (last === undefined) throw new Error('Pull: no page to apply');
   return db.transaction((tx) => {
+    const keep = waitingRecordIds(tx);
     let reset = false;
     let changed: Partial<PullSummary['changed']> = {};
     let deleted: Partial<PullSummary['deleted']> = {};
     for (const { page } of pages) {
       if (page.reset === true) {
-        deleteConfiguration(tx);
+        deleteConfiguration(tx, keep);
         reset = true;
       }
-      applyChanges(tx, page.changes);
-      applyDeleted(tx, page.deleted);
+      applyChanges(tx, page.changes, keep);
+      applyDeleted(tx, page.deleted, keep);
       changed = addCounts(page.changes, changed);
       deleted = addCounts(page.deleted, deleted);
     }

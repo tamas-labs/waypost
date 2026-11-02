@@ -520,7 +520,9 @@
     "guards": "Őrök és PIN-kódok",
     "reports": "Jelentések",
     "sitePhone": "Telephelyi telefon",
-    "roundDetails": "{{date}} · {{guard}} · indult {{start}} · {{minutes}} perc"
+    "roundDetails": "{{date}} · {{guard}} · indult {{start}} · {{minutes}} perc",
+    "rejected": "A szerver nem fogadta el a módosítást: {{message}}",
+    "rejectedMany": "{{count}} módosítást nem fogadott el a szerver."
   },
   "training": {
     "label": "Betanítás · supervisor",

@@ -2,14 +2,18 @@ import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import { AppState, type AppStateStatus } from 'react-native';
 
 import { emitChainEntries } from '@/chain/events';
+import { createApiClient } from '@/api/client';
+import { configCalls } from '@/api/config-calls';
 import { ApiError } from '@/api/errors';
 import { deleteDeviceCredentials, deleteSupervisorToken, setDeviceCredentials, setSupervisorToken } from '@/device/credentials';
 import { useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
 import { deleteKv, getKv, setKv } from '@/db/kv';
+import { outbox } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 
 import * as cleanup from './cleanup';
+import { queueAction } from './outbox';
 import { FOREGROUND_SYNC_INTERVAL_MS, requestSync, startSync, syncContext, syncSteps, type SyncContext } from './runtime';
 import { useSyncStatus } from './status';
 
@@ -204,6 +208,57 @@ describe('sync runtime', () => {
     await expect(requestSync('shift_closed')).resolves.toEqual({ status: 'ok' });
     await expect(useSyncStatus.getState().syncNow()).resolves.toEqual({ status: 'ok' });
     expect(pulls).toHaveLength(4);
+  });
+
+  it('syncs 2 s after a supervisor action, and counts its calls as waiting', async () => {
+    jest.spyOn(syncSteps, 'outbox').mockResolvedValue();
+    stop = startSync(db);
+    await settle();
+    queueAction(db, { calls: [configCalls.deleteCheckpoint('019a2b3c-4d5e-7f00-8a00-000000000005')] }, 'supervisor');
+    expect(useSyncStatus.getState().pendingCount).toBe(1);
+    await jest.advanceTimersByTimeAsync(1999);
+    expect(pulls).toHaveLength(1);
+    await jest.advanceTimersByTimeAsync(1);
+    expect(pulls).toHaveLength(2);
+  });
+
+  it('sends the waiting calls at once when the network comes back, and on Sync now', async () => {
+    jest.spyOn(syncSteps, 'outbox').mockResolvedValue();
+    const later = () => db.update(outbox).set({ next_attempt_at: '2026-10-27T20:10:00.000Z' }).run();
+    const nextAttempt = () => db.select({ at: outbox.next_attempt_at }).from(outbox).get()?.at;
+    stop = startSync(db);
+    await settle();
+    queueAction(db, { calls: [configCalls.deleteCheckpoint('019a2b3c-4d5e-7f00-8a00-000000000005')] }, null);
+    later();
+
+    netInfoListener(network(false));
+    netInfoListener(network(true));
+    expect(nextAttempt()).toBeNull();
+
+    later();
+    await useSyncStatus.getState().syncNow();
+    expect(nextAttempt()).toBeNull();
+  });
+
+  it('sends the outbox with the sync token, and not from a revoked phone', async () => {
+    queueAction(db, { calls: [configCalls.deleteCheckpoint('019a2b3c-4d5e-7f00-8a00-000000000005')] }, 'supervisor');
+    const fetchMock = jest.fn(async () => new Response(JSON.stringify({ server_time: '2026-10-27T20:00:00.000Z' }), { status: 200 }));
+    const context: SyncContext = {
+      db,
+      api: createApiClient({ baseUrl: BASE_URL, fetch: fetchMock, validate: true }),
+      token: 'device-token',
+      mode: 'site_phone',
+      deviceId: 'd',
+      revoked: true,
+      mediaMissing: new Set(),
+    };
+
+    await syncSteps.outbox(context);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await syncSteps.outbox({ ...context, revoked: false });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(db.select().from(outbox).all()).toEqual([]);
   });
 
   it('stops every trigger', async () => {

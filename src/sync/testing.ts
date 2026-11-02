@@ -13,8 +13,8 @@ export interface RecordedRequest {
   file: unknown;
 }
 
-/** An answer: a JSON body with 200, a [status, body] pair, or an Error to throw as a network failure would. */
-export type FakeAnswer = object | [number, unknown] | Error;
+/** An answer: a JSON body with 200, a [status, body] pair (with headers), or an Error to throw as a network failure would. */
+export type FakeAnswer = object | [number, unknown] | [number, unknown, Record<string, string>] | Error;
 
 export function fakeApi(answer: (request: RecordedRequest) => FakeAnswer) {
   const requests: RecordedRequest[] = [];
@@ -35,8 +35,8 @@ export function fakeApi(answer: (request: RecordedRequest) => FakeAnswer) {
     requests.push(request);
     const next = answer(request);
     if (next instanceof Error) throw next;
-    const [status, body] = Array.isArray(next) ? next : [200, next];
-    return new Response(JSON.stringify(body), { status });
+    const [status, body, headers] = Array.isArray(next) ? next : [200, next];
+    return new Response(JSON.stringify(body), { status, headers });
   });
   return { api: createApiClient({ baseUrl: BASE_URL, fetch: fetchMock, validate: true }), requests, fetchMock };
 }

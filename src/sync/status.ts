@@ -4,6 +4,7 @@ import type { Timestamp } from '@waypost/schema';
 import { create } from 'zustand';
 
 import { ApiError, InvalidResponseError, NetworkError } from '@/api/errors';
+import type { OutboxRejection } from '@/db/kv';
 
 import type { SyncOutcome, SyncStep } from './controller';
 
@@ -41,6 +42,8 @@ export interface SyncStatus {
   lastError: SyncError | null;
   /** This phone has just stopped being the site phone, because another one replaced it (M4-11). */
   replaced: boolean;
+  /** Supervisor actions the server refused (outbox, M5-03), until the supervisor has seen them. */
+  rejectedCalls: OutboxRejection[];
   /** "Sync now": a sync right away (after the running one, if any). */
   syncNow: () => Promise<SyncOutcome>;
 }
@@ -59,6 +62,7 @@ export const useSyncStatus = create<SyncStatus>(() => ({
   lastSuccessAt: null,
   lastError: null,
   replaced: false,
+  rejectedCalls: [],
   syncNow: () => syncNowHandler(),
 }));
 

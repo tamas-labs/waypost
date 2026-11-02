@@ -9,7 +9,7 @@ export const SYNC_STEPS: readonly SyncStep[] = ['push', 'media', 'outbox', 'pull
 
 /** Why a sync was requested (for logs and tests; every trigger runs the same sync). */
 export type SyncTrigger =
-  'start' | 'foreground' | 'online' | 'interval' | 'chain_entry' | 'shift_closed' | 'session' | 'manual' | 'revoked';
+  'start' | 'foreground' | 'online' | 'interval' | 'chain_entry' | 'outbox' | 'shift_closed' | 'session' | 'manual' | 'revoked';
 
 export type SyncOutcome =
   | { status: 'ok' }
