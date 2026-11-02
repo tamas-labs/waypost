@@ -640,9 +640,10 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
 - **Indok:** Specifikáció *Push és média*, *Adatmegőrzés*; M3-21.
 - **Érintett:** `src/sync/cleanup.ts`, `src/sync/runtime.ts`, M4-12.
 
-## 2026-11-02 – Az M4-13 pipája
+## 2026-11-02 – Az M4-13 pipája a telefonos futás előtt
 
-- **Kérdés:** Lezárható-e az M4 a telefonos futás nélkül?
-- **Döntés:** Az M4-13 nyitva marad, amíg a `device-test.md` „M4 – Elfogadás” részét nem futtatták. Az automatikus rész kész: az app és a backend tesztjei a gap, fork, bad_hmac és idempotencia esetekre, és a valódi backend elleni futás. Ez egy Node-folyamatból, HTTP-n át ment, ezért a natív részt nem érinti. Ezt egy emulátoros futás (2026-11-02) részben pótolta: hozzárendelés a `/dev/enroll`-lal, pull, PIN-belépés, műszak, esemény fotóval, push (8/8 `ok`), a fotó feltöltése (a szerveren a fájl és a lenyomat egyezik). Ez találta meg a fenti `FormData`-hibát. A repülőgép-üzemmód, a visszavonás és a több napos takarítás a telefonon még hátravan.
-- **Indok:** A feladat a 2 órás repülőgép-üzemmódot kéri, valódi eszközön. Az M3-40-nél a gazda döntött az előzetes lezárásról; ezt itt is csak ő teheti meg.
+- **Kérdés:** Az M4-13 a 2 órás repülőgép-üzemmódot és a telefoncserét valódi telefonon kéri, ez még nincs meg. Lezárható-e az M4 addig?
+- **Döntés:** A gazda döntése szerint igen, az M4 egyelőre kész (mint az M3-40-nél, 2026-11-01). A telefonos futást a gazda végzi el (`device-test.md`, „M4 – Elfogadás”, R1–R7, T1–T4). Ami ott hibásnak bizonyul, új feladatként javítjuk.
+- **Ami lefutott:** az app és a backend tesztjei a gap, fork, bad_hmac és idempotencia esetekre; egy Node-folyamatból, HTTP-n át futtatott próba a valódi backend ellen (431 bejegyzés és 7 fotó mind `ok`, `push-final`, a három elutasítás egy-egy diagnosztikával); egy emulátoros futás (hozzárendelés a `/dev/enroll`-lal, pull, PIN-belépés, műszak, esemény fotóval, push 8/8 `ok`, a fotó feltöltve, a szerveren a fájl és a lenyomat egyezik). Az emulátoros futás találta meg a `FormData`-hibát (lásd „Médiafeltöltés az appban”).
+- **Indok:** A munka a szombati telefonos próbáig nem várhat; a hálózati protokoll a valódi backend ellen, a natív feltöltés az emulátoron lefutott. Kockázat: a hosszú offline utáni feltöltés, a visszavonás és a takarítás valódi telefonon még nem futott, ezért az M4 elfogadása addig ezekre a próbákra épül.
 - **Érintett:** `docs/tasks.md`, `docs/device-test.md`, M4-13.

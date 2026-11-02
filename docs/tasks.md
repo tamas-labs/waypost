@@ -480,8 +480,8 @@ Cél: az eszköz adatai hibátlanul a szerverre kerülnek, és a szerver ellenő
   - Spec: Szinkron protokoll / Push és média; Adatmegőrzés.
   - Megjegyzés (2026-11-02): `src/sync/cleanup.ts`, sikeres szinkron után, legfeljebb naponta. Döntés: „Helyi takarítás”.
 
-- [ ] **M4-13 Elfogadás**: tesztek a gap, fork, bad_hmac és idempotencia esetekre (backend és app); 2 óra repülőgép-üzemmód után minden adat hibátlanul a szerverre kerül, `verify_status = ok`; `device-test.md` frissítve (repülőgép-üzemmód, telefoncsere).
-  - Megjegyzés (2026-11-02): **nyitott a telefonos vagy emulátoros futás** (`device-test.md`, „M4 – Elfogadás”, R1–R7, T1–T4). Kész: az app és a backend tesztjei, a `device-test.md`, és egy Node-folyamatból, HTTP-n át futtatott próba a valódi backend ellen (431 bejegyzés és 7 fotó mind `ok`; `push-final`; `bad_hmac`, `chain_fork`, `chain_gap`). Döntés: „Az M4-13 pipája”.
+- [x] **M4-13 Elfogadás**: tesztek a gap, fork, bad_hmac és idempotencia esetekre (backend és app); 2 óra repülőgép-üzemmód után minden adat hibátlanul a szerverre kerül, `verify_status = ok`; `device-test.md` frissítve (repülőgép-üzemmód, telefoncsere).
+  - Megjegyzés (2026-11-02): a gazda döntése szerint egyelőre késznek vesszük, **a telefonos futás nélkül**. Ellenőrizve: az app és a backend tesztjei; egy Node-folyamatból, HTTP-n át futtatott próba a valódi backend ellen (431 bejegyzés és 7 fotó mind `ok`; `push-final`; `bad_hmac`, `chain_fork`, `chain_gap`); egy emulátoros futás (hozzárendelés, PIN-belépés, műszak, esemény fotóval, push 8/8 `ok`, a fotó feltöltve, a lenyomata egyezik), ez találta meg és javította a fotófeltöltés hibáját. **Nyitott:** a telefonos futás (`device-test.md`, „M4 – Elfogadás”, R1–R7, T1–T4: a 2 órás repülőgép-üzemmód, a telefoncsere, a több napos takarítás) a gazdánál van. Ha ott hiba jön elő, új feladatként javítjuk. Döntés: „Az M4-13 pipája a telefonos futás előtt”.
 
 ---
 
