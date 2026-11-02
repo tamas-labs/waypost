@@ -1,4 +1,4 @@
-import type { CheckpointResponse, RouteResponse, SyncPullResponse } from '@waypost/schema';
+import type { CheckpointResponse, RouteResponse, RouteVersionResponse, SyncPullResponse } from '@waypost/schema';
 import { eq } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -8,7 +8,7 @@ import { ApiError, NetworkError } from '@/api/errors';
 import { useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
 import { getKv, setKv } from '@/db/kv';
-import { checkpoints, outbox, routes, siteUser, users } from '@/db/schema';
+import { checkpoints, outbox, routes, routeVersionCheckpoints, routeVersions, siteUser, users } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import type { ClockReading } from '@/time/clock';
 
@@ -210,6 +210,23 @@ describe('sendOutbox', () => {
     // The server's record replaces the local one, with what only the server knew.
     expect(db.select().from(checkpoints).get()).toMatchObject({ name: 'Raktár hátsó ajtó', tag_uid: '04A1B2C3D4E580' });
     expect(db.select().from(routes).get()).toMatchObject({ id: ROUTE, current_version_id: ROUTE_RESPONSE.route.current_version_id });
+  });
+
+  it('stores the route, the version and its checkpoints of a new route version', async () => {
+    const version = example<RouteVersionResponse>('route-version.response', 'measured');
+    const call = configCalls.createRouteVersion(version.route.id, {
+      id: version.route_version.id,
+      checkpoints: [{ checkpoint_id: version.route_version_checkpoints[0]!.checkpoint_id }],
+    });
+    expect(call.recordIds).toEqual([version.route_version.id, version.route.id]);
+    queueAction(db, { calls: [call] }, SUPERVISOR);
+    const { api } = server({ [`POST /routes/${version.route.id}/versions`]: [[201, version]] });
+
+    await sendOutbox({ db, api, token: 't' }, options());
+
+    expect(db.select().from(routes).get()).toMatchObject({ id: version.route.id, current_version_id: version.route.current_version_id });
+    expect(db.select().from(routeVersions).get()).toMatchObject({ id: version.route_version.id, version: version.route_version.version });
+    expect(db.select().from(routeVersionCheckpoints).all()).toHaveLength(version.route_version_checkpoints.length);
   });
 
   it('sends without X-Acting-User with a supervisor token', async () => {
