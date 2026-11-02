@@ -495,9 +495,10 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
   - Mit: kérés- és válaszsémák a `/sites`, `/sites/{id}/users`, `/checkpoints`, `/routes`, `/routes/{id}/versions`, `/schedules`, `/users`, `/report-subscriptions` végpontokhoz; az `X-Acting-User` fejléc dokumentálása; minor verzió.
   - Kész, ha: a backend M2-es CRUD-tesztjei a sémaellenőrzéssel is zöldek.
 
-- [ ] **M5-02 Backend: szerveroldali UUID elfogadása**
+- [x] **M5-02 Backend: szerveroldali UUID elfogadása**
   - Mit: az összes létrehozó végpont elfogadja az app által generált UUID-t (az outbox miatt), és ugyanarra az ID-ra idempotens.
   - Kész, ha: feature tesztek.
+  - Megjegyzés (2026-11-02): `Controller::existing()` (laravel-waypost), tesztek: `tests/Feature/Api/RepeatedCreateTest.php`; a sémaleírás a `waypost-schema` 0.4.0-ban. Ugyanazzal az `id`-val, ugyanazzal a szülővel megismételt létrehozás: `200` a rekord jelenlegi állapotával; törölt vagy más rekord `id`-ja: `409`. **Az M5-03-nak** a `200`-at is sikernek kell vennie. **Az M5-18-nak** a PIN-t az appban kell generálnia, mert az ismétlés a szerver generálta PIN-t nem adja vissza. Döntés: laravel-waypost `docs/decisions.md`, „Az ismételt létrehozás”.
 
 ### App – infrastruktúra
 
