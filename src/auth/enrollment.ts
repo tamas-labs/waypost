@@ -13,11 +13,16 @@ import { devices } from '@/db/schema';
 import { deleteSupervisorToken, setDeviceCredentials } from '@/device/credentials';
 import { loadSession } from './session';
 
+/** The phone's name, for its enrollment and for the supervisor's token (device_name of the login). */
+export function phoneName(): string {
+  return (Device.deviceName ?? Device.modelName ?? 'Waypost').slice(0, 255);
+}
+
 /** The enrollment request of this phone for a site. */
 export function enrollmentRequest(siteId: string): DevicesEnrollRequest {
   return {
     site_id: siteId,
-    name: (Device.deviceName ?? Device.modelName ?? 'Waypost').slice(0, 255),
+    name: phoneName(),
     platform: Platform.OS === 'ios' ? 'ios' : 'android',
     app_version: Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? '0.0.0',
   };

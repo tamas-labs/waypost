@@ -94,6 +94,11 @@ export function refreshPendingCount(): void {
   if (database !== null) useSyncStatus.setState({ pendingCount: countPending(database).total });
 }
 
+/** Resolves when no sync runs (e.g. before the local data is deleted, so that a pull cannot write it back). */
+export function whenSyncIdle(): Promise<void> {
+  return controller?.idle() ?? Promise.resolve();
+}
+
 /** A sync now (or right after the running one); skipped before startSync(). */
 export function requestSync(trigger: SyncTrigger): Promise<SyncOutcome> {
   return controller?.sync(trigger) ?? Promise.resolve({ status: 'skipped' });

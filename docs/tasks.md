@@ -512,8 +512,9 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
   - Mit: ha a PIN egy hozzárendelt supervisoré, supervisor módba lép; az ő nevében mennek a kérések; a fejlécben „Supervisor” jelvény.
   - Megjegyzés (2026-11-02): a műveletek a `queueSupervisorAction`-nel kerülnek az outboxba, az `X-Acting-User` a belépett supervisor (`actingUserId`); a jelvényt a `ScreenHeader` mutatja supervisor módban. A kilépés a PIN-képernyőre egyelőre a telephelylista helyőrzőjén van – **az M5-07-nek** át kell vennie. Döntés: „Supervisor mód a telephelyi telefonon”.
 
-- [ ] **M5-05 Supervisor saját telefonja**
+- [x] **M5-05 Supervisor saját telefonja**
   - Mit: fiókkal, eszközhozzárendelés nélkül; nincs őr mód és nincs lánc; a pull a hozzárendelt telephelyeket hozza; kijelentkezés.
+  - Megjegyzés (2026-11-02): `src/auth/supervisor.ts`: `signInSupervisor` (a token mentése, teljes pull) és `signOutSupervisor` (a token törlése a szerveren és a telefonon, a futó szinkron megvárása, a fiók minden helyi adatának törlése). **Az M5-06** a belépőképernyőn a `signInSupervisor`-t hívja. A „Kijelentkezés” (megerősítéssel, ha az outboxban van hívás) egyelőre a telephelylista helyőrzőjén van – **az M5-07-nek** át kell vennie. **Az M5-13-nak** kell a supervisor telefonján készült fotó feltöltése. Döntés: „A supervisor saját telefonja”.
 
 ### App – képernyők
 

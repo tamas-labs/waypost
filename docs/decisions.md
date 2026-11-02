@@ -673,3 +673,15 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
 - **Indok:** Specifikáció *Azonosítás / PIN-kód*: a telephelyi telefonon a supervisor mód műveletei a kimenő sorba kerülnek, és a szerver az eszköz tokenjével, az `X-Acting-User`-ben megadott supervisor nevében fogadja el őket.
 - **Ismert korlát:** a supervisor mód tétlenség után nem lép ki magától (a specifikáció nem kéri); ha kell, a próbaidőszak dönt róla.
 - **Érintett:** `src/auth/session.ts`, `src/sync/outbox.ts`, `src/components/screen-header.tsx`, `src/components/supervisor-badge.tsx`, `src/components/placeholder-screen.tsx`, `src/app/(supervisor)/sites.tsx`, M5-04, M5-07.
+
+## 2026-11-02 – A supervisor saját telefonja (M5-05)
+
+- **Kérdés:** Mi történik a belépéskor és a kijelentkezéskor a supervisor saját telefonján, és mi marad a telefonon a fiókból?
+- **Döntés:**
+  - **Belépés** (`signInSupervisor`, `src/auth/supervisor.ts`): csak hozzárendeletlen telefonon. `POST /auth/login` a telefon nevével (`device_name`, ugyanaz, mint a hozzárendelésnél: `phoneName`); a token a secure store-ba kerül, a munkamenet `supervisor_phone` lesz, és a mód váltása elindítja a szinkront, amelynek első pullja teljes. A belépés előtt a fiók esetleg ottmaradt adatai törlődnek (egy megszakadt kijelentkezésből). Hibás e-mail-cím vagy jelszó: az API hibája (`401 unauthenticated`, a szerver magyar üzenetével), és semmi nem tárolódik. A képernyő az M5-06 feladata.
+  - **A telefonon:** nincs őr mód (a navigáció csak a telephelyi telefonon nyitja), nincs lánc (a láncírónak eszköz kell), az ütemező és az ébresztések nem futnak (eszköz nélkül nincs őrállapot). A pull a supervisortokennel a hozzárendelt telephelyeket hozza, PIN-ellenőrző nélkül. A műveletek az outboxon mennek, `X-Acting-User` nélkül (M5-04).
+  - **Kijelentkezés** (`signOutSupervisor`): `POST /auth/logout`, ha a telefon online (a hiba nem akadályoz: a token legfeljebb a supervisor tokenjei között marad); a token törlése a telefonról, így új szinkron már nem indul; **megvárja a futó szinkront** (`whenSyncIdle`), mert annak a pullja még visszaírhatná a fiók adatait; végül egy tranzakcióban törlődik a konfiguráció az útvonalverziókkal együtt (itt nincs kör, amely használná őket), az outbox és az elutasítások, a pull kurzora és az utolsó szinkron ideje, és a telefon újra hozzárendeletlen (belépőképernyő).
+  - **El nem küldött műveletek:** a kijelentkezés elveszíti őket, ezért ha az outboxban van hívás, a képernyő előbb megerősítést kér („N módosítás még nem jutott el a szerverre…”). Amíg az S2 nincs kész, a „Kijelentkezés” a telephelylista helyőrzőjén van (M5-07: fiók gomb).
+- **Indok:** Specifikáció *Azonosítás / Supervisor fiók*: a token kijelentkezéskor törlődik; a telefonon egy másik supervisor nem láthatja az előző telephelyeit.
+- **Ismert korlát:** a supervisor saját telefonján készült pontfotó feltöltése (a médialépés most csak eszközzel fut) az M5-13 feladata.
+- **Érintett:** `src/auth/supervisor.ts`, `src/auth/enrollment.ts`, `src/sync/controller.ts` (`idle`), `src/sync/runtime.ts` (`whenSyncIdle`), `src/app/(supervisor)/sites.tsx`, M5-05, M5-06, M5-07, M5-13.

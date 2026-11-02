@@ -496,6 +496,10 @@
   "supervisor": {
     "badge": "Supervisor",
     "exit": "Kilépés a supervisor módból",
+    "logout": "Kijelentkezés",
+    "logoutUnsentTitle": "Nem elküldött módosítások",
+    "logoutUnsent": "{{count}} módosítás még nem jutott el a szerverre. Ha most kijelentkezel, elvesznek.",
+    "logoutFailed": "A kijelentkezés nem sikerült: {{message}}",
     "loginTitle": "Supervisor belépés",
     "loginSubtitle": "Telephelyek, útvonalak és jelentések kezelése",
     "email": "E-mail-cím",

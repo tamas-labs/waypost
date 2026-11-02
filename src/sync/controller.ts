@@ -37,6 +37,8 @@ export interface SyncController {
   /** sync() after the debounce delay; every call within the delay restarts it, and they are merged into one sync. */
   syncSoon(trigger: SyncTrigger): void;
   readonly running: boolean;
+  /** Resolves when no sync runs and none is queued after it (a pending syncSoon() is not waited for). */
+  idle(): Promise<void>;
   /** Cancels a pending syncSoon(); a running sync finishes. */
   dispose(): void;
 }
@@ -107,6 +109,10 @@ export function createSyncController<C>({
     syncSoon,
     get running() {
       return current !== null;
+    },
+    async idle() {
+      // sync() never rejects; a sync queued meanwhile is waited for too.
+      for (let pending = next ?? current; pending !== null; pending = next ?? current) await pending;
     },
     dispose() {
       if (timer !== null) clearTimeout(timer);

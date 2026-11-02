@@ -27,7 +27,7 @@ src/
   hooks/      # képernyők közös hookjai: useLiveQuery (élő betöltés az adatbázisból), usePinEntry (PIN-beírás és ellenőrzés), useRecordForm (űrlap: helyadat, mentés), useScanRecorder (leolvasás rögzítése és visszajelzése), usePinLock (a PIN zárolása)
   components/ # közös UI-komponensek (DESIGN_HANDOFF 5); ikon: icon.tsx (lucide, ikononként importálva); képernyőfejléc: screen-header.tsx (jobbra a szinkronjelző); rövid üzenet: toast.tsx (`showToast`)
   api/        # API-kliens: client.ts (token, Idempotency-Key, típusos hibák, __DEV__ Ajv), endpoints.ts, config-calls.ts (a supervisorműveletek hívásai az outboxnak)
-  auth/       # indulási állapot, munkamenet (Zustand), hozzárendelés, PIN
+  auth/       # indulási állapot, munkamenet (Zustand), hozzárendelés, PIN, supervisor belépés és kijelentkezés a saját telefonon (supervisor.ts)
   db/         # expo-sqlite + Drizzle: schema.ts, migrations/ (generált), kv.ts, testing.ts (better-sqlite3 a tesztekhez)
   id/         # uuidv7()
   time/       # időbélyeg, readClock() (waypost-clock), megbízható idő

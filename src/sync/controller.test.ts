@@ -93,6 +93,25 @@ describe('sync controller', () => {
     expect(log.filter((line) => line.startsWith('start:'))).toEqual(['start:start', 'start:online', 'start:manual']);
   });
 
+  it('is idle once the running sync and the one queued after it have finished', async () => {
+    const { controller, log, waits } = setup();
+    await expect(controller.idle()).resolves.toBeUndefined();
+    const pull = deferred();
+    waits.set('pull', pull);
+    void controller.sync('start');
+    void controller.sync('online');
+    let idle = false;
+    void controller.idle().then(() => (idle = true));
+
+    await Promise.resolve();
+    expect(idle).toBe(false);
+    pull.resolve();
+    await controller.idle();
+    expect(idle).toBe(true);
+    expect(log.filter((line) => line.startsWith('start:'))).toEqual(['start:start', 'start:online']);
+    expect(controller.running).toBe(false);
+  });
+
   it('starts the merged sync even if the running one failed', async () => {
     const { controller, log, failures } = setup();
     failures.set('push', new Error('offline'));

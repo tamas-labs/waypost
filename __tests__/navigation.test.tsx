@@ -1,5 +1,6 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
 import { renderRouter } from 'expo-router/testing-library';
+import { Alert } from 'react-native';
 import { useSyncStatus } from '@/sync/status';
 
 import { raiseAlarm, useActiveAlarms } from '@/alarms/active-alarms';
@@ -23,6 +24,7 @@ import DevLayout from '@/app/dev/_layout';
 import DevToolsScreen from '@/app/dev/index';
 import Index from '@/app/index';
 import { useSession, type SessionState } from '@/auth/session';
+import { signOutSupervisor, unsentSupervisorActions } from '@/auth/supervisor';
 import { appendChainEntries } from '@/chain/writer';
 import type { Database } from '@/db/database';
 import { getDatabase } from '@/db/open';
@@ -71,6 +73,8 @@ const ROUTES = {
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
 jest.mock('@/sync/runtime', () => ({ requestSync: jest.fn() }));
+// The logout itself is tested in src/auth/supervisor.test.ts.
+jest.mock('@/auth/supervisor', () => ({ signOutSupervisor: jest.fn(), unsentSupervisorActions: jest.fn(() => 0) }));
 jest.mock('expo-keep-awake', () => ({ useKeepAwake: jest.fn() }));
 jest.mock('expo-camera', () => ({ useCameraPermissions: () => [null, jest.fn()] }));
 // The tag reader is native.
@@ -125,6 +129,26 @@ describe('navigation by start state', () => {
     await start({ mode: 'supervisor_phone', activeUser: null });
     expect(screen).toHavePathname('/sites');
     expect(screen.getByText('Supervisor')).toBeOnTheScreen();
+  });
+
+  it('logs the supervisor out of their own phone, asking first if actions are not sent yet', async () => {
+    jest.mocked(signOutSupervisor).mockImplementation(async () => useSession.setState({ mode: 'unassigned' }));
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    jest.mocked(unsentSupervisorActions).mockReturnValueOnce(2);
+    await start({ mode: 'supervisor_phone', activeUser: null });
+
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Kijelentkezés' })));
+    expect(signOutSupervisor).not.toHaveBeenCalled();
+    expect(alert).toHaveBeenCalledWith(
+      'Nem elküldött módosítások',
+      '2 módosítás még nem jutott el a szerverre. Ha most kijelentkezel, elvesznek.',
+      expect.any(Array),
+    );
+    const buttons = alert.mock.calls[0]![2]!;
+    await act(async () => buttons.find((button) => button.text === 'Kijelentkezés')!.onPress!());
+    expect(signOutSupervisor).toHaveBeenCalledTimes(1);
+    expect(screen).toHavePathname('/login');
+    alert.mockRestore();
   });
 
   it('opens the guard mode after a guard PIN login, and leaves it at logout', async () => {
