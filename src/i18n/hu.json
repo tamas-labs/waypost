@@ -6,9 +6,6 @@
     "failed": "Az app nem tudott elindulni",
     "retry": "Újrapróbálás"
   },
-  "placeholder": {
-    "notReady": "Ez a képernyő még készül."
-  },
   "dev": {
     "title": "Fejlesztői eszközök",
     "subtitle": "Csak fejlesztői buildben látszik.",
@@ -528,6 +525,23 @@
     "backToPin": "Vissza a PIN-belépéshez",
     "sites": "Telephelyek",
     "newSite": "Új telephely",
+    "sitesEmpty": "Még nincs telephely.",
+    "sitesEmptyCreate": "Az Új telephely gombbal hozhatsz létre egyet.",
+    "routeOne": "{{name}} · {{points}} pont",
+    "routeMany": "{{count}} útvonal · {{points}} pont",
+    "noRoute": "Még nincs útvonal",
+    "phoneName": "Telefon: {{name}}",
+    "noPhone": "Nincs telefon",
+    "sitePending": "Feltöltésre vár",
+    "account": "Fiók: {{name}}",
+    "accountUnknown": "Fiók",
+    "accountSitePhone": "PIN-kóddal belépve ezen a telephelyi telefonon.",
+    "siteName": "Telephely neve",
+    "siteAddress": "Cím",
+    "siteNameMissing": "Add meg a telephely nevét.",
+    "siteCreated": "Telephely létrehozva: {{name}}",
+    "siteOfflineNote": "Offline is menthető: a kapcsolat visszatérésekor feltöltődik.",
+    "saveFailed": "A mentés nem sikerült: {{message}}",
     "tonightRounds": "Ma éjjel {{done}} / {{total}} kör",
     "phoneSynced": "Telefon: {{ago}} szinkronizált",
     "lastData": "Utolsó adat: {{time}}",
@@ -544,7 +558,8 @@
     "sitePhone": "Telephelyi telefon",
     "roundDetails": "{{date}} · {{guard}} · indult {{start}} · {{minutes}} perc",
     "rejected": "A szerver nem fogadta el a módosítást: {{message}}",
-    "rejectedMany": "{{count}} módosítást nem fogadott el a szerver."
+    "rejectedMany": "{{count}} módosítást nem fogadott el a szerver.",
+    "rejectedDismiss": "Rendben"
   },
   "training": {
     "label": "Betanítás · supervisor",

@@ -21,6 +21,7 @@ import { outbox } from '@/db/schema';
 import { uuidv7 } from '@/id/uuidv7';
 import { nowTimestamp, toTimestamp } from '@/time/timestamp';
 
+import { emitOutboxQueued } from './events';
 import { storeServerRecords } from './pull';
 import { useSyncStatus } from './status';
 
@@ -49,15 +50,6 @@ export interface SupervisorAction {
   apply?: (tx: Database) => void;
   /** Sent in this order. */
   calls: readonly ConfigCall[];
-}
-
-type QueuedListener = () => void;
-const listeners = new Set<QueuedListener>();
-
-/** Called after an action's calls have been queued (the sync counts them and starts soon). Returns the unsubscribe function. */
-export function onOutboxQueued(listener: QueuedListener): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
 }
 
 /**
@@ -92,13 +84,7 @@ export function queueAction(
       return id;
     });
   });
-  for (const listener of [...listeners]) {
-    try {
-      listener();
-    } catch (error) {
-      console.error('An outbox listener failed', error);
-    }
-  }
+  emitOutboxQueued();
   return ids;
 }
 

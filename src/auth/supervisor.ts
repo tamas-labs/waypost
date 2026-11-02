@@ -4,7 +4,7 @@
 import type { ApiClient } from '@/api/client';
 import { login, logout } from '@/api/endpoints';
 import type { Database } from '@/db/database';
-import { deleteDeviceSyncState, deleteKv } from '@/db/kv';
+import { deleteDeviceSyncState, deleteKv, setKv } from '@/db/kv';
 import { routeVersionCheckpoints, routeVersions } from '@/db/schema';
 import { deleteSupervisorToken, getSupervisorToken, setSupervisorToken } from '@/device/credentials';
 import { clearOutbox } from '@/sync/outbox';
@@ -16,7 +16,7 @@ import { useSyncStatus } from '@/sync/status';
 import { phoneName } from './enrollment';
 import { loadSession, useSession } from './session';
 
-/** Deletes what the phone keeps of a supervisor account: the configuration, the pull cursor, the outbox. */
+/** Deletes what the phone keeps of a supervisor account: the configuration, the pull cursor, the outbox, who it is. */
 function deleteAccountData(db: Database): void {
   db.transaction((tx) => {
     deleteConfiguration(tx);
@@ -26,6 +26,7 @@ function deleteAccountData(db: Database): void {
     clearOutbox(tx);
     deleteDeviceSyncState(tx);
     deleteKv(tx, 'sync.last_success_at');
+    deleteKv(tx, 'supervisor.account');
   });
   useSyncStatus.setState({ rejectedCalls: [], lastSuccessAt: null, lastError: null });
   refreshPendingCount();
@@ -38,9 +39,10 @@ function deleteAccountData(db: Database): void {
  */
 export async function signInSupervisor(db: Database, api: ApiClient, credentials: { email: string; password: string }): Promise<void> {
   if (useSession.getState().mode !== 'unassigned') throw new Error('Only a phone that is not enrolled has a supervisor login');
-  const { token } = await login(api, { email: credentials.email, password: credentials.password, device_name: phoneName() });
+  const { token, user } = await login(api, { email: credentials.email, password: credentials.password, device_name: phoneName() });
   // Left over by an interrupted logout, if anything.
   deleteAccountData(db);
+  setKv(db, 'supervisor.account', { id: user.id, name: user.name, email: user.email });
   await setSupervisorToken(token);
   // The phone is the supervisor's now: what the login screen told about a replaced site phone is over.
   useSyncStatus.setState({ replaced: false });

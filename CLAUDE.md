@@ -24,7 +24,7 @@ A Waypost mobilapp (Expo / React Native, TypeScript): az őrök a telephelyi tel
 src/
   app/        # expo-router képernyők – csak route-fájl lehet benne (teszt, segéd nem); (auth)/ (guard)/ (supervisor)/, dev/ és prototype/ (M1 eszközpróbák) csak fejlesztői buildben
   navigation/ # melyik csoport nyitott az állapot szerint (Stack.Protected), kezdőképernyő
-  hooks/      # képernyők közös hookjai: useLiveQuery (élő betöltés az adatbázisból), usePinEntry (PIN-beírás és ellenőrzés), useRecordForm (űrlap: helyadat, mentés), useScanRecorder (leolvasás rögzítése és visszajelzése), usePinLock (a PIN zárolása)
+  hooks/      # képernyők közös hookjai: useLiveQuery (élő betöltés az adatbázisból), usePinEntry (PIN-beírás és ellenőrzés), useRecordForm (űrlap: helyadat, mentés), useScanRecorder (leolvasás rögzítése és visszajelzése), usePinLock (a PIN zárolása), useAccountMenu (a supervisor fiókmenüje: kijelentkezés, kilépés)
   components/ # közös UI-komponensek (DESIGN_HANDOFF 5); ikon: icon.tsx (lucide, ikononként importálva); képernyőfejléc: screen-header.tsx (jobbra a szinkronjelző); rövid üzenet: toast.tsx (`showToast`)
   api/        # API-kliens: client.ts (token, Idempotency-Key, típusos hibák, __DEV__ Ajv), endpoints.ts, config-calls.ts (a supervisorműveletek hívásai az outboxnak)
   auth/       # indulási állapot, munkamenet (Zustand), hozzárendelés, PIN, supervisor belépés és kijelentkezés a saját telefonon (supervisor.ts), a belépés hibáinak szövege (login-error.ts)
@@ -33,6 +33,7 @@ src/
   time/       # időbélyeg, readClock() (waypost-clock), megbízható idő
   domain/     # üzleti szabályok (menetrend → körök, műszak, kör, leolvasás) és a képernyők nézetmodelljei (shift-view.ts) – UI és I/O nélkül
   guard/      # a domain és az adatbázis között: a GuardState betöltése, az ütemező futtató; testing.ts (a domain-fixture az adatbázisban)
+  supervisor/ # a supervisor mód képernyőinek adatai az adatbázisból és a műveletei az outboxon át (sites.ts: telephelylista, új telephely)
   device/     # a telefon saját adatai és állapota, a domaintól függetlenül: tokenek és eszköztitok a secure store-ban (credentials.ts), készenlét (readiness.ts), előtér-figyelés és intervallum (foreground.ts)
   schema/     # JSON Schema-ellenőrzés fejlesztői módban (validation.ts, Ajv)
   sync/       # pull, push (push.ts: kötegek, elutasítás, diagnosztika), média (media.ts), visszavont telefon (revocation.ts), helyi takarítás (cleanup.ts), outbox (outbox.ts: supervisorműveletek, visszatartás, elutasítás); testing.ts: hamis API a tesztekhez

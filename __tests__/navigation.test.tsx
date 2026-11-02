@@ -19,7 +19,7 @@ import ScanResultScreen from '@/app/(guard)/scan-result';
 import ShiftCloseScreen from '@/app/(guard)/shift/close';
 import ShiftStartScreen from '@/app/(guard)/shift-start';
 import SupervisorLayout from '@/app/(supervisor)/_layout';
-import SitesScreen from '@/app/(supervisor)/sites';
+import SitesScreen from '@/app/(supervisor)/sites/index';
 import DevLayout from '@/app/dev/_layout';
 import DevToolsScreen from '@/app/dev/index';
 import Index from '@/app/index';
@@ -62,7 +62,7 @@ const ROUTES = {
   '(guard)/shift/close': ShiftCloseScreen,
   '(guard)/shift-start': ShiftStartScreen,
   '(supervisor)/_layout': SupervisorLayout,
-  '(supervisor)/sites': SitesScreen,
+  '(supervisor)/sites/index': SitesScreen,
   'dev/_layout': DevLayout,
   'dev/index': DevToolsScreen,
   'prototype/_layout': DevLayout,
@@ -137,14 +137,17 @@ describe('navigation by start state', () => {
     jest.mocked(unsentSupervisorActions).mockReturnValueOnce(2);
     await start({ mode: 'supervisor_phone', activeUser: null });
 
-    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Kijelentkezés' })));
+    // The logout is in the account menu (no account stored: "Fiók").
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Fiók' })));
+    const menu = alert.mock.calls[0]![2]!;
+    await act(async () => menu.find((button) => button.text === 'Kijelentkezés')!.onPress!());
     expect(signOutSupervisor).not.toHaveBeenCalled();
-    expect(alert).toHaveBeenCalledWith(
+    expect(alert).toHaveBeenLastCalledWith(
       'Nem elküldött módosítások',
       '2 módosítás még nem jutott el a szerverre. Ha most kijelentkezel, elvesznek.',
       expect.any(Array),
     );
-    const buttons = alert.mock.calls[0]![2]!;
+    const buttons = alert.mock.calls[1]![2]!;
     await act(async () => buttons.find((button) => button.text === 'Kijelentkezés')!.onPress!());
     expect(signOutSupervisor).toHaveBeenCalledTimes(1);
     expect(screen).toHavePathname('/login');
@@ -165,7 +168,12 @@ describe('navigation by start state', () => {
     await act(() => useSession.setState({ activeUser: { id: '01900000-0000-7000-8000-0000000000b1', role: 'supervisor' } }));
     expect(screen).toHavePathname('/sites');
     expect(screen.getByText('Supervisor')).toBeOnTheScreen();
-    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Kilépés a supervisor módból' })));
+    // The way back is in the account menu.
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Fiók' })));
+    const menu = alert.mock.calls[0]![2]!;
+    await act(async () => menu.find((button) => button.text === 'Kilépés a supervisor módból')!.onPress!());
+    alert.mockRestore();
     expect(screen).toHavePathname('/pin');
     expect(useSession.getState().activeUser).toBeNull();
   });

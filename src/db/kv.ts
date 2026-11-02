@@ -1,4 +1,4 @@
-import type { DeviceDiagnosticRequest, ErrorCode, ErrorResponse } from '@waypost/schema';
+import type { AuthLoginResponse, DeviceDiagnosticRequest, ErrorCode, ErrorResponse } from '@waypost/schema';
 import { eq } from 'drizzle-orm';
 
 // Types only: what the keys hold. The database does not depend on the domain or the theme when it runs.
@@ -30,6 +30,12 @@ export interface OutboxRejection {
   at: string;
 }
 
+/**
+ * The supervisor using the supervisor mode: on their own phone as POST /auth/login answered (auth/supervisor.ts); on the
+ * site phone from the users table, without the e-mail address, which the phone does not get.
+ */
+export type SupervisorAccount = Pick<AuthLoginResponse['user'], 'id' | 'name'> & { email: string | null };
+
 /** Every key of the kv table and the type of its value. */
 export interface KvValues {
   /** Cursor of the next pull; absent before the first one. */
@@ -48,6 +54,8 @@ export interface KvValues {
   'outbox.rejected': OutboxRejection[];
   /** Wrong PINs and the running lock (domain/pin-lockout.ts). */
   'pin.lockout': PinLockout;
+  /** On a supervisor's own phone: whose it is (the account button, created_by of a new site); absent otherwise. */
+  'supervisor.account': SupervisorAccount;
   /** ID of this phone as the site phone (devices.id); absent while not enrolled. */
   'device.id': string;
   /** The server answered device_revoked: no more chain entries, the last upload is running (sync/revocation.ts). */

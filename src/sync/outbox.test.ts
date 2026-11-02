@@ -12,10 +12,11 @@ import { checkpoints, outbox, routes, routeVersionCheckpoints, routeVersions, si
 import { createTestDatabase } from '@/db/testing';
 import type { ClockReading } from '@/time/clock';
 
+import { onOutboxQueued } from './events';
+
 import {
   clearOutbox,
   dismissOutboxRejections,
-  onOutboxQueued,
   OUTBOX_BACKOFF_MAX_MS,
   OUTBOX_BACKOFF_MIN_MS,
   outboxBackoffMs,

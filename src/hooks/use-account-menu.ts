@@ -5,9 +5,8 @@ import { createApiClient } from '@/api/client';
 import { apiBaseUrl } from '@/api/config';
 import { logOut, useSession } from '@/auth/session';
 import { signOutSupervisor, unsentSupervisorActions } from '@/auth/supervisor';
-import { Button } from '@/components/button';
-import { PlaceholderScreen } from '@/components/placeholder-screen';
 import { showToast } from '@/components/toast';
+import type { SupervisorAccount } from '@/db/kv';
 import { getDatabase } from '@/db/open';
 import { t } from '@/i18n';
 
@@ -39,16 +38,28 @@ function useSupervisorLogout(): [() => void, boolean] {
   return [logout, busy];
 }
 
-// Sites (S2): M5-07. Until then the way out is here: on the site phone back to the PIN login, on the supervisor's own
-// phone the logout.
-export default function SitesScreen() {
+/**
+ * The account button's menu (S2): who is logged in, and the way out – on the supervisor's own phone the logout, on the
+ * site phone back to the PIN login (an open shift stays open). Returns the function that opens it, and whether a
+ * logout runs.
+ */
+export function useAccountMenu(account: SupervisorAccount | null): [() => void, boolean] {
   const mode = useSession((state) => state.mode);
-  const [logout, loggingOut] = useSupervisorLogout();
-  const actions =
-    mode === 'site_phone' ? (
-      <Button label={t('supervisor.exit')} variant="secondary" onPress={logOut} />
-    ) : (
-      <Button label={t('supervisor.logout')} variant="secondary" onPress={logout} disabled={loggingOut} />
-    );
-  return <PlaceholderScreen title={t('supervisor.sites')} actions={actions} />;
+  const [logout, busy] = useSupervisorLogout();
+  const open = () => {
+    if (busy) return;
+    const title = account?.name ?? t('supervisor.accountUnknown');
+    if (mode === 'site_phone') {
+      Alert.alert(title, t('supervisor.accountSitePhone'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('supervisor.exit'), onPress: logOut },
+      ]);
+      return;
+    }
+    Alert.alert(title, account?.email ?? undefined, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('supervisor.logout'), style: 'destructive', onPress: logout },
+    ]);
+  };
+  return [open, busy];
 }

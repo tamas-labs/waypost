@@ -57,6 +57,7 @@ function seedAccountData() {
   setKv(db, 'sync.cursor', 'Y3Vyc29yLTE');
   setKv(db, 'sync.last_success_at', SERVER_TIME.server_time);
   setKv(db, 'outbox.rejected', []);
+  setKv(db, 'supervisor.account', { id: LOGGED_IN.user.id, name: 'Előző supervisor', email: null });
 }
 
 function expectNoAccountData() {
@@ -66,6 +67,7 @@ function expectNoAccountData() {
   expect(getKv(db, 'sync.cursor')).toBeNull();
   expect(getKv(db, 'sync.last_success_at')).toBeNull();
   expect(getKv(db, 'outbox.rejected')).toBeNull();
+  expect(getKv(db, 'supervisor.account')).toBeNull();
 }
 
 describe('signInSupervisor', () => {
@@ -87,7 +89,10 @@ describe('signInSupervisor', () => {
     await expect(getSupervisorToken()).resolves.toBe(LOGGED_IN.token);
     expect(useSession.getState()).toMatchObject({ mode: 'supervisor_phone', deviceId: null, activeUser: null });
     // Left over by an interrupted logout: the first pull is a full one.
-    expectNoAccountData();
+    expect(db.select().from(sites).all()).toEqual([]);
+    expect(getKv(db, 'sync.cursor')).toBeNull();
+    // Whose phone it is: the account button and a new site's created_by.
+    expect(getKv(db, 'supervisor.account')).toEqual({ id: LOGGED_IN.user.id, name: LOGGED_IN.user.name, email: LOGGED_IN.user.email });
     // The login screen no longer tells that the phone was replaced.
     expect(useSyncStatus.getState().replaced).toBe(false);
   });

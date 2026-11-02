@@ -34,3 +34,24 @@ export function emitConfigurationPulled(summary: PullSummary): void {
     }
   }
 }
+
+type OutboxQueuedListener = () => void;
+
+const queuedListeners = new Set<OutboxQueuedListener>();
+
+/** Called after a supervisor action's calls have been queued (the sync counts them and starts soon; the screens reload). */
+export function onOutboxQueued(listener: OutboxQueuedListener): () => void {
+  queuedListeners.add(listener);
+  return () => queuedListeners.delete(listener);
+}
+
+/** Calls every listener; one that throws does not stop the others (the action is committed either way). */
+export function emitOutboxQueued(): void {
+  for (const listener of [...queuedListeners]) {
+    try {
+      listener();
+    } catch (error) {
+      console.error('An outbox listener failed', error);
+    }
+  }
+}

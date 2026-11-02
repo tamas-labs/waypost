@@ -164,6 +164,8 @@ export const typography = {
   mapMarker: { fontSize: 12, lineHeight: 16, fontFamily: fontFamily.extrabold }, // pontjelölő sorszáma
   mapCapsule: { fontSize: 14, lineHeight: 18, fontFamily: fontFamily.bold }, // „Megtett út” kapszula
   micro: { fontSize: 11, lineHeight: 14, fontFamily: fontFamily.bold }, // idővonal óra-feliratok (minimum)
+  monogram: { fontSize: 15, lineHeight: 20, fontFamily: fontFamily.extrabold }, // fiók és őr monogramja (44)
+  cardTitle: { fontSize: 18, lineHeight: 24, fontFamily: fontFamily.extrabold }, // telephelykártya neve
 } as const;
 
 /** Térközök (px / dp) */
@@ -240,6 +242,7 @@ export const size = {
   categoryTileWide: 56, // esemény kategória
   alarmRing: [232, 180, 128], // ébresztés koncentrikus körök
   logoTile: 72, // logó-csempe a supervisor belépésen (radius card)
+  avatar: 44, // monogram: fiók gomb, őr sora
 } as const;
 
 /** Ikonméretek (lucide, 24-es rács) */
