@@ -518,7 +518,8 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
 
 ### App – képernyők
 
-- [ ] **M5-06 Supervisor belépés (S1, `B-Login`)**: e-mail, jelszó, hibakezelés, a token mentése.
+- [x] **M5-06 Supervisor belépés (S1, `B-Login`)**: e-mail, jelszó, hibakezelés, a token mentése.
+  - Megjegyzés (2026-11-02): `src/app/(auth)/login.tsx`, a hibák szövege: `src/auth/login-error.ts`; a belépés a `signInSupervisor` (M5-05). Offline és API-cím nélkül a gomb le van tiltva; a `replaced` sáv megmarad, a sikeres belépés törli. Az „Elfelejtett jelszó?” csak tájékoztat (nincs visszaállító végpont), a „Vissza a PIN-belépéshez” elmarad (hozzárendeletlen telefonon nincs PIN-belépés). Döntés: „Supervisor belépés”.
 
 - [ ] **M5-07 Telephelyek (S2, `S-Telephelyek`)**: lista, új telephely.
 

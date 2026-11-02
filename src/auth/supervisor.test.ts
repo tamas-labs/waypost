@@ -71,6 +71,7 @@ function expectNoAccountData() {
 describe('signInSupervisor', () => {
   it("logs in with the phone's name, stores the token and makes the phone the supervisor's own", async () => {
     seedAccountData();
+    useSyncStatus.setState({ replaced: true });
     const { api, requests } = fakeApi(() => LOGGED_IN);
 
     await signInSupervisor(db, api, { email: 'nagy.anna@example.com', password: 'titkos-jelszo' });
@@ -87,6 +88,8 @@ describe('signInSupervisor', () => {
     expect(useSession.getState()).toMatchObject({ mode: 'supervisor_phone', deviceId: null, activeUser: null });
     // Left over by an interrupted logout: the first pull is a full one.
     expectNoAccountData();
+    // The login screen no longer tells that the phone was replaced.
+    expect(useSyncStatus.getState().replaced).toBe(false);
   });
 
   it('stores nothing when the server refuses the login', async () => {

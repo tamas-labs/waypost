@@ -1,5 +1,15 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
+import { useState, type Ref } from 'react';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type StyleProp,
+  type TextInputInstance,
+  type TextInputProps,
+  type ViewStyle,
+} from 'react-native';
 
 import { t } from '@/i18n';
 import { useTheme } from '@/theme/theme-provider';
@@ -17,6 +27,8 @@ export interface TextFieldProps extends Omit<TextInputProps, 'style' | 'secureTe
   /** A message under the field, in the error colour. */
   error?: string;
   style?: StyleProp<ViewStyle>;
+  /** The input itself, e.g. to move the focus to it from the previous field. */
+  ref?: Ref<TextInputInstance>;
 }
 
 /** Labelled input (DESIGN_HANDOFF 5.13): 56 dp, radius 18; focused → 2 dp accent border. */

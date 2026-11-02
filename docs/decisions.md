@@ -685,3 +685,19 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
 - **Indok:** Specifikáció *Azonosítás / Supervisor fiók*: a token kijelentkezéskor törlődik; a telefonon egy másik supervisor nem láthatja az előző telephelyeit.
 - **Ismert korlát:** a supervisor saját telefonján készült pontfotó feltöltése (a médialépés most csak eszközzel fut) az M5-13 feladata.
 - **Érintett:** `src/auth/supervisor.ts`, `src/auth/enrollment.ts`, `src/sync/controller.ts` (`idle`), `src/sync/runtime.ts` (`whenSyncIdle`), `src/app/(supervisor)/sites.tsx`, M5-05, M5-06, M5-07, M5-13.
+
+## 2026-11-02 – Supervisor belépés (M5-06)
+
+- **Kérdés:** Mit mutat a belépőképernyő, mi történik hibánál és offline, és mi legyen a design „Elfelejtett jelszó?” és „Vissza a PIN-belépéshez” elemével?
+- **Döntés:**
+  - **Képernyő** (`(auth)/login`, a B-Login szerint): szinkronjelző, logó-csempe (`size.logoTile`, `shieldCheck` ikon), cím és alcím; kártyában az e-mail-cím és a jelszó (`TextField`, a jelszónál szem gombbal; az e-mail-cím „Tovább” gombja a jelszóra visz, a jelszóé belép), alatta „Elfelejtett jelszó?”; alul a megjegyzés („Az első belépéshez internet kell…”) és a „Belépés”. Siker után a `signInSupervisor` (M5-05) a telefont a supervisor sajátjává teszi, a navigáció a telephelylistára visz.
+  - **Ellenőrzés a kérés előtt** (`checkLoginForm`): üres mező vagy nyilvánvalóan hibás e-mail-cím → üzenet a mező alatt, kérés nem megy; a mező üzenete gépeléskor eltűnik. Az e-mail-cím a szélső szóközök nélkül megy, a jelszó úgy, ahogy beírták.
+  - **Hibák** (`loginError`, `src/auth/login-error.ts`), a beírt adatok megmaradnak: `401` → a szerver magyar üzenete (hibás adatok vagy inaktív fiók; ha a válasz nem a hibaformátumban jött: „Hibás e-mail-cím vagy jelszó.”); `429` → „Próbáld újra N perc múlva” a `Retry-After` szerint (a backend e-mail-cím és IP szerint percenként 5 próbát enged); `422` → a mezők alatt (az űrlapon nem látható mező hibájánál a szerver üzenete is); hálózati hiba és időtúllépés külön üzenettel; `5xx`, nem a hibaformátumú válasz és szerződésellenes válasz → általános szerverhiba, a belső üzenet nélkül.
+  - **Offline** (NetInfo): `offline` sáv, a gomb letiltva (DESIGN_HANDOFF S1). Ha nincs API-cím (sem `EXPO_PUBLIC_WAYPOST_API_URL`, sem a fejlesztői beállítás): hibasáv, a gomb letiltva.
+  - **„Elfelejtett jelszó?”:** jelszó-visszaállító végpont nincs (a specifikációban regisztráció sincs), ezért a koppintás csak egy sávot nyit: új jelszót a Waypost üzemeltetője tud beállítani.
+  - **„Vissza a PIN-belépéshez”: nincs.** A belépőképernyő csak hozzárendeletlen telefonon nyílik, ahol PIN-belépés nincs; a telephelyi telefonon a supervisor a PIN-jével lép be (M3-29, pajzsgomb).
+  - **A lecserélt telefon sávja** (`replaced`, M4-11) megmarad a cím alatt; a sikeres belépés törli.
+  - Fejlesztői buildben alul „Fejlesztői eszközök” gomb, mert a `/dev/enroll` (az API-cím megadása) a hozzárendeletlen telefonról is kell; az API-címet a képernyő visszatéréskor újraolvassa.
+- **Indok:** Specifikáció *Azonosítás / Supervisor fiók* (online belépés, regisztráció nincs) és *Mobilapp / Képernyők*; DESIGN_HANDOFF S1.
+- **Ismert korlát:** az elfelejtett jelszó pótlásához a backendnek sincs parancsa (csak `waypost:create-supervisor` van); az API-n egy supervisor-társ módosíthatja (`PATCH /users/{id}`, ha minden telephelye közös), de az app felülete ezt nem kínálja. Ha a próbaidőszak igényli, `waypost:set-password` parancs vagy visszaállító végpont kell.
+- **Érintett:** `src/app/(auth)/login.tsx`, `src/auth/login-error.ts`, `src/auth/supervisor.ts`, `src/components/text-field.tsx` (`ref`), `src/components/icon.tsx`, `src/theme/tokens.ts`, M5-06.

@@ -239,6 +239,7 @@ export const size = {
   categoryTile: 76,
   categoryTileWide: 56, // esemény kategória
   alarmRing: [232, 180, 128], // ébresztés koncentrikus körök
+  logoTile: 72, // logó-csempe a supervisor belépésen (radius card)
 } as const;
 
 /** Ikonméretek (lucide, 24-es rács) */
@@ -252,6 +253,7 @@ export const iconSize = {
   buttonHero: 26, // hero gomb
   large: 28, // nagy ikon gomb (72), PIN-billentyűzet ikonjai
   result: 72, // leolvasás eredménye
+  logo: 36, // logó-csempe (72) közepe
 } as const;
 
 /** Vonalvastagságok: keret és ikon */

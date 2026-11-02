@@ -42,6 +42,8 @@ export async function signInSupervisor(db: Database, api: ApiClient, credentials
   // Left over by an interrupted logout, if anything.
   deleteAccountData(db);
   await setSupervisorToken(token);
+  // The phone is the supervisor's now: what the login screen told about a replaced site phone is over.
+  useSyncStatus.setState({ replaced: false });
   await loadSession(db);
 }
 
