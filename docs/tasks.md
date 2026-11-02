@@ -508,8 +508,9 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
   - Spec: Szinkron protokoll / Outbox.
   - Megjegyzés (2026-11-02): `src/sync/outbox.ts` (`queueAction`, `sendOutbox`), a hívások leírói: `src/api/config-calls.ts`. A sikeres válasz rekordjai a helyi adatbázisba kerülnek; a várakozó hívás rekordját a pull nem írja felül; 4xx után a következő pull teljes. A szerver a még futó kérés `409`-éhez `Retry-After`-t ad (laravel-waypost). Az elutasítás azonnal rövid üzenetként jelenik meg a supervisor-képernyőkön, a lista a `useSyncStatus.rejectedCalls`-ban marad – **az M5-07-nek** meg kell mutatnia, és a supervisor törölheti (`dismissOutboxRejections`). **Az M5-09-nek** a hozzárendelés előtt ki kell küldenie az outboxot. **Az M5-14-nek** kezelnie kell a helyben becsült verziószám ütközését. Döntés: „Az outbox”.
 
-- [ ] **M5-04 Supervisor mód a telephelyi telefonon PIN-nel**
+- [x] **M5-04 Supervisor mód a telephelyi telefonon PIN-nel**
   - Mit: ha a PIN egy hozzárendelt supervisoré, supervisor módba lép; az ő nevében mennek a kérések; a fejlécben „Supervisor” jelvény.
+  - Megjegyzés (2026-11-02): a műveletek a `queueSupervisorAction`-nel kerülnek az outboxba, az `X-Acting-User` a belépett supervisor (`actingUserId`); a jelvényt a `ScreenHeader` mutatja supervisor módban. A kilépés a PIN-képernyőre egyelőre a telephelylista helyőrzőjén van – **az M5-07-nek** át kell vennie. Döntés: „Supervisor mód a telephelyi telefonon”.
 
 - [ ] **M5-05 Supervisor saját telefonja**
   - Mit: fiókkal, eszközhozzárendelés nélkül; nincs őr mód és nincs lánc; a pull a hozzárendelt telephelyeket hozza; kijelentkezés.

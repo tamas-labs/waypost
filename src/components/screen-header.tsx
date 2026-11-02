@@ -2,10 +2,13 @@ import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useSession } from '@/auth/session';
 import { t } from '@/i18n';
+import { routeAccess } from '@/navigation/access';
 import { useTheme } from '@/theme/theme-provider';
 
 import { IconButton } from './icon-button';
+import { SupervisorBadge } from './supervisor-badge';
 import { SyncStatusIndicator } from './sync-status-indicator';
 
 export interface ScreenHeaderProps {
@@ -21,7 +24,11 @@ export interface ScreenHeaderProps {
   right?: ReactNode;
 }
 
-/** The header of a screen (DESIGN_HANDOFF 6): below the safe area, back button, title (20/800) and subtitle (13/600), sync indicator at the right. */
+/**
+ * The header of a screen (DESIGN_HANDOFF 6): below the safe area, back button, title (20/800) and subtitle (13/600), sync
+ * indicator at the right. In supervisor mode the "Supervisor" badge comes at the left, after the back button, so the mode
+ * is always clear (DESIGN_HANDOFF Supervisor mód).
+ */
 export function ScreenHeader({
   overline,
   title,
@@ -32,9 +39,11 @@ export function ScreenHeader({
 }: ScreenHeaderProps) {
   const { color, typography, space, size } = useTheme();
   const insets = useSafeAreaInsets();
+  const supervisor = useSession((session) => routeAccess(session).supervisor);
   return (
     <View style={[styles.header, { paddingTop: insets.top + space.s, paddingHorizontal: space.l, paddingBottom: space.s, gap: space.m }]}>
       {onBack !== undefined && <IconButton icon="back" accessibilityLabel={backLabel} onPress={onBack} />}
+      {supervisor && <SupervisorBadge />}
       {/* As high as the back button, with or without it. */}
       <View style={[styles.titles, { minHeight: size.touchMin }]}>
         {overline !== undefined && <Text style={[typography.small, { color: color.text2 }]}>{overline}</Text>}

@@ -12,6 +12,7 @@ import type { SchemaTypes, SyncPullResponse, Timestamp } from '@waypost/schema';
 import { eq, sql } from 'drizzle-orm';
 
 import type { ApiClient } from '@/api/client';
+import { actingUserId, useSession } from '@/auth/session';
 import type { ConfigCall, ConfigResponseSchema } from '@/api/config-calls';
 import { ApiError, InvalidResponseError } from '@/api/errors';
 import type { Database } from '@/db/database';
@@ -99,6 +100,11 @@ export function queueAction(
     }
   }
   return ids;
+}
+
+/** Queues an action of the supervisor using the phone now, in their name (auth/session.ts, actingUserId). */
+export function queueSupervisorAction(db: Database, action: SupervisorAction): string[] {
+  return queueAction(db, action, actingUserId(useSession.getState()));
 }
 
 // --- Sending ---

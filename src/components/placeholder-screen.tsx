@@ -7,8 +7,21 @@ import { useTheme } from '@/theme/theme-provider';
 
 import { ScreenHeader } from './screen-header';
 
-/** A screen of the navigation skeleton whose content comes in a later task; in development builds it links to the developer tools. */
-export function PlaceholderScreen({ title, notice, onBack }: { title: string; notice?: ReactNode; onBack?: () => void }) {
+/**
+ * A screen of the navigation skeleton whose content comes in a later task; in development builds it links to the
+ * developer tools. actions: what the screen can already do (below the text).
+ */
+export function PlaceholderScreen({
+  title,
+  notice,
+  onBack,
+  actions,
+}: {
+  title: string;
+  notice?: ReactNode;
+  onBack?: () => void;
+  actions?: ReactNode;
+}) {
   const { color, typography, space, radius, size } = useTheme();
   return (
     <View style={[styles.container, { backgroundColor: color.bg }]}>
@@ -19,6 +32,7 @@ export function PlaceholderScreen({ title, notice, onBack }: { title: string; no
           {title}
         </Text>
         <Text style={[typography.bodyRegular, { color: color.text2 }]}>{t('placeholder.notReady')}</Text>
+        {actions}
         {__DEV__ && (
           <Link href="/dev" asChild>
             <Pressable

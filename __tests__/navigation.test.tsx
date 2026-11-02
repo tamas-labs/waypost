@@ -121,9 +121,10 @@ describe('navigation by start state', () => {
     expect(screen.getByText('PIN-belépés')).toBeOnTheScreen();
   });
 
-  it("sends a supervisor's own phone to the site list", async () => {
+  it("sends a supervisor's own phone to the site list, with the badge", async () => {
     await start({ mode: 'supervisor_phone', activeUser: null });
     expect(screen).toHavePathname('/sites');
+    expect(screen.getByText('Supervisor')).toBeOnTheScreen();
   });
 
   it('opens the guard mode after a guard PIN login, and leaves it at logout', async () => {
@@ -132,6 +133,17 @@ describe('navigation by start state', () => {
     expect(screen).toHavePathname('/home');
     await act(() => useSession.setState({ activeUser: null }));
     expect(screen).toHavePathname('/pin');
+  });
+
+  it('opens the supervisor mode after a supervisor PIN login, with the badge, and leaves it to the PIN login', async () => {
+    await start({ mode: 'site_phone', activeUser: null });
+    expect(screen.queryByText('Supervisor')).toBeNull();
+    await act(() => useSession.setState({ activeUser: { id: '01900000-0000-7000-8000-0000000000b1', role: 'supervisor' } }));
+    expect(screen).toHavePathname('/sites');
+    expect(screen.getByText('Supervisor')).toBeOnTheScreen();
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Kilépés a supervisor módból' })));
+    expect(screen).toHavePathname('/pin');
+    expect(useSession.getState().activeUser).toBeNull();
   });
 
   it('shows the shift start after a login that started a shift, then the shift home', async () => {

@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 
 import { configCalls } from '@/api/config-calls';
 import { ApiError, NetworkError } from '@/api/errors';
+import { useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
 import { getKv, setKv } from '@/db/kv';
 import { checkpoints, outbox, routes, siteUser, users } from '@/db/schema';
@@ -20,6 +21,7 @@ import {
   outboxBackoffMs,
   outboxRejections,
   queueAction,
+  queueSupervisorAction,
   resetOutboxBackoff,
   sendOutbox,
 } from './outbox';
@@ -154,6 +156,35 @@ describe('queueAction', () => {
     expect(fail).toThrow('Invalid action');
     expect(localName()).toBeUndefined();
     expect(rows()).toEqual([]);
+  });
+});
+
+describe('queueSupervisorAction', () => {
+  const session = (state: Partial<ReturnType<typeof useSession.getState>>) =>
+    useSession.setState({ mode: null, deviceId: null, activeUser: null, shiftStart: null, ...state });
+  afterEach(() => session({}));
+
+  it('queues in the name of the supervisor logged in with a PIN on the site phone', () => {
+    session({ mode: 'site_phone', deviceId: 'd', activeUser: { id: SUPERVISOR, role: 'supervisor' } });
+    queueSupervisorAction(db, { calls: [createRoute] });
+    expect(rows()[0]!.acting_user_id).toBe(SUPERVISOR);
+  });
+
+  it("queues with nobody acting on a supervisor's own phone, whose token is their own", () => {
+    session({ mode: 'supervisor_phone' });
+    queueSupervisorAction(db, { calls: [createRoute] });
+    expect(rows()[0]!.acting_user_id).toBeNull();
+  });
+
+  it.each([
+    ['a guard on the site phone', { mode: 'site_phone' as const, activeUser: { id: SUPERVISOR, role: 'guard' as const } }],
+    ['nobody on the site phone', { mode: 'site_phone' as const }],
+    ['a phone that is not enrolled', { mode: 'unassigned' as const }],
+  ])('refuses an action of %s, and queues nothing', (_name, state) => {
+    session(state);
+    expect(() => queueSupervisorAction(db, { apply: (tx) => localCheckpoint(tx), calls: [createRoute] })).toThrow('Not in supervisor mode');
+    expect(rows()).toEqual([]);
+    expect(localName()).toBeUndefined();
   });
 });
 

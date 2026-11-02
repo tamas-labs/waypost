@@ -42,6 +42,17 @@ export function logOut(): void {
   useSession.setState({ activeUser: null, shiftStart: null });
 }
 
+/**
+ * In whose name a supervisor action's calls go (specification, PIN-kód): on the site phone the supervisor logged in with
+ * their PIN (X-Acting-User with the device token), on a supervisor's own phone nobody (their own token). Throws outside
+ * the supervisor mode: nobody may configure then.
+ */
+export function actingUserId({ mode, activeUser }: Pick<SessionState, 'mode' | 'activeUser'>): string | null {
+  if (mode === 'supervisor_phone') return null;
+  if (mode === 'site_phone' && activeUser?.role === 'supervisor') return activeUser.id;
+  throw new Error('Not in supervisor mode');
+}
+
 /** The guard has gone on from the shift start screen. */
 export function clearShiftStart(): void {
   useSession.setState({ shiftStart: null });

@@ -495,6 +495,7 @@
   },
   "supervisor": {
     "badge": "Supervisor",
+    "exit": "Kilépés a supervisor módból",
     "loginTitle": "Supervisor belépés",
     "loginSubtitle": "Telephelyek, útvonalak és jelentések kezelése",
     "email": "E-mail-cím",
