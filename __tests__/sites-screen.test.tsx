@@ -4,13 +4,14 @@ import { Alert } from 'react-native';
 
 import SupervisorLayout from '@/app/(supervisor)/_layout';
 import SitesScreen from '@/app/(supervisor)/sites/index';
+import SiteScreen from '@/app/(supervisor)/sites/[id]';
 import NewSiteScreen from '@/app/(supervisor)/sites/new';
 import Index from '@/app/index';
 import { useSession, type SessionState } from '@/auth/session';
 import type { Database } from '@/db/database';
 import { getKv, setKv, type OutboxRejection } from '@/db/kv';
 import { getDatabase } from '@/db/open';
-import { devices, outbox, sites, users } from '@/db/schema';
+import { devices, outbox, routes, siteUser, sites, users } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import { AppStack } from '@/navigation/app-stack';
 import { useSyncStatus } from '@/sync/status';
@@ -38,6 +39,7 @@ const ROUTES = {
   '(supervisor)/_layout': SupervisorLayout,
   '(supervisor)/sites/index': SitesScreen,
   '(supervisor)/sites/new': NewSiteScreen,
+  '(supervisor)/sites/[id]': SiteScreen,
   'dev/_layout': () => null,
   'prototype/_layout': () => null,
 };
@@ -55,8 +57,11 @@ beforeEach(async () => {
   useSyncStatus.setState({ online: true, rejectedCalls: [] });
 });
 
-async function start(session: Pick<SessionState, 'mode' | 'activeUser'> = { mode: 'supervisor_phone', activeUser: null }) {
-  useSession.setState({ ...session, deviceId: null, shiftStart: null });
+async function start(
+  session: Pick<SessionState, 'mode' | 'activeUser'> = { mode: 'supervisor_phone', activeUser: null },
+  deviceId: string | null = null,
+) {
+  useSession.setState({ ...session, deviceId, shiftStart: null });
   await renderRouter(ROUTES, { initialUrl: '/' });
   expect(screen).toHavePathname('/sites');
 }
@@ -184,4 +189,71 @@ it('lists the refused actions until the supervisor has seen them', async () => {
   await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Rendben' })));
   expect(screen.queryByText(/nem fogadott el a szerver/)).toBeNull();
   expect(getKv(db, 'outbox.rejected')).toBeNull();
+});
+
+describe('site details', () => {
+  const PHONE = '019a2b3c-4d5e-7f00-8a00-000000000004';
+
+  function seedDetails() {
+    seedSite();
+    db.insert(users).values({ id: ME.id, name: ME.name, role: 'supervisor', active: true, created_at: AT, updated_at: AT }).run();
+    db.insert(siteUser).values({ site_id: SITE, user_id: ME.id }).run();
+    db.insert(routes)
+      .values({
+        id: '019a2b3c-4d5e-7f00-8a00-0000000000d1',
+        site_id: SITE,
+        name: 'Éjszakai kör',
+        order_mode: 'free',
+        current_version_id: null,
+        active: true,
+        created_at: AT,
+        updated_at: AT,
+      })
+      .run();
+    db.insert(devices)
+      .values({ id: PHONE, site_id: SITE, name: 'Porta', platform: 'android', app_version: '0.1.0', enrolled_by: ME.id, enrolled_at: AT })
+      .run();
+  }
+
+  it('opens from the site list with the routes, the settings and the site phone', async () => {
+    seedDetails();
+    await start();
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: /Raktár/ })));
+
+    expect(screen).toHavePathname(`/sites/${SITE}`);
+    expect(screen.getByRole('header', { name: 'Raktár' })).toBeOnTheScreen();
+    expect(screen.getByText('1 supervisor · Kovács Anna')).toBeOnTheScreen();
+    expect(screen.getByText('Éjszakai kör')).toBeOnTheScreen();
+    expect(screen.getByText('Még nincs betanítva · szabad sorrend')).toBeOnTheScreen();
+    expect(screen.getByText('Nincs menetrend')).toBeOnTheScreen();
+    expect(screen.getByText('Még nincs őr')).toBeOnTheScreen();
+    expect(screen.getByText('Nincs feliratkozás')).toBeOnTheScreen();
+    expect(screen.getByText('Porta · Android')).toBeOnTheScreen();
+    expect(screen.getByText('Hozzárendelve: 2026. 10. 27. · v0.1.0')).toBeOnTheScreen();
+
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Vissza' })));
+    expect(screen).toHavePathname('/sites');
+  });
+
+  it("shows the site phone's own sync state on the site phone", async () => {
+    seedDetails();
+    useSyncStatus.setState({ online: false, lastSuccessAt: null, pendingCount: 3 });
+    await start({ mode: 'site_phone', activeUser: { id: ME.id, role: 'supervisor' } }, PHONE);
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: /Raktár/ })));
+    expect(screen.getByText('Ez a telefon · Offline · még nem szinkronizált · 3 tétel vár')).toBeOnTheScreen();
+  });
+
+  it('tells when the site is no longer on the phone', async () => {
+    useSession.setState({ mode: 'supervisor_phone', activeUser: null, deviceId: null, shiftStart: null });
+    await renderRouter(ROUTES, { initialUrl: `/sites/${SITE}` });
+    expect(screen.getByText('Ez a telephely már nincs meg ezen a telefonon.')).toBeOnTheScreen();
+  });
+
+  it('tells how a site without a phone gets one', async () => {
+    seedSite();
+    await start();
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: /Raktár/ })));
+    expect(screen.getByText('Nincs hozzárendelt telefon')).toBeOnTheScreen();
+    expect(screen.getByText('A telephelyi telefonon, a fiókoddal belépve rendelheted hozzá.')).toBeOnTheScreen();
+  });
 });

@@ -28,6 +28,7 @@ import Plus from 'lucide-react-native/icons/plus';
 import QrCode from 'lucide-react-native/icons/qr-code';
 import RefreshCw from 'lucide-react-native/icons/refresh-cw';
 import Shield from 'lucide-react-native/icons/shield';
+import Smartphone from 'lucide-react-native/icons/smartphone';
 import TriangleAlert from 'lucide-react-native/icons/triangle-alert';
 import User from 'lucide-react-native/icons/user';
 import X from 'lucide-react-native/icons/x';
@@ -79,6 +80,7 @@ const ICONS = {
   cloudOff: CloudOff,
   cloudUpload: CloudUpload,
   shield: Shield,
+  phone: Smartphone,
   // the logo tile of the supervisor login (B-Login)
   shieldCheck: pathIcon(['M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6l8-3z', 'M8.5 12l2.5 2.5 4.5-5']),
   back: ChevronLeft,

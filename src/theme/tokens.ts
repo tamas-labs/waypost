@@ -243,6 +243,7 @@ export const size = {
   alarmRing: [232, 180, 128], // ébresztés koncentrikus körök
   logoTile: 72, // logó-csempe a supervisor belépésen (radius card)
   avatar: 44, // monogram: fiók gomb, őr sora
+  iconTile: 36, // ikoncsempe a beállítássorok elején (radius tile)
 } as const;
 
 /** Ikonméretek (lucide, 24-es rács) */

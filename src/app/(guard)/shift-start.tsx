@@ -15,24 +15,16 @@ import type { ScheduleOfRoute } from '@/domain/schedule';
 import { loadShiftStartInfo, type ShiftStartInfo } from '@/guard/login-screens';
 import { fixReadiness, getReadiness, readinessRows, type Readiness, type ReadinessItem, type ReadinessRow } from '@/device/readiness';
 import { t, type TranslationKey } from '@/i18n';
+import { scheduleCadence } from '@/i18n/schedule';
 import { onConfigurationPulled } from '@/sync/events';
 import { useTheme } from '@/theme/theme-provider';
 import { tabular } from '@/theme/tokens';
 import { parseTimestamp } from '@/time/timestamp';
 import { localTimeOf } from '@/time/zone';
 
-/** "óránként", "2 óránként", "30 percenként"; a list schedule by its number of times. */
-function cadence(schedule: ScheduleOfRoute): string {
-  if (schedule.mode === 'list') return t('shiftStart.timesCount', { count: schedule.start_times?.length ?? 0 });
-  const every = schedule.interval_every_min ?? 0;
-  if (every === 60) return t('shiftStart.everyHour');
-  if (every > 0 && every % 60 === 0) return t('shiftStart.everyHours', { hours: every / 60 });
-  return t('shiftStart.everyMinutes', { minutes: every });
-}
-
 /** "13 · óránként · 25 perc": the rounds of the night, how often, and the time limit when the schedules share one. */
 function roundsLine(rounds: number, schedules: readonly ScheduleOfRoute[]): string {
-  const parts = [String(rounds), ...schedules.map(cadence)];
+  const parts = [String(rounds), ...schedules.map(scheduleCadence)];
   const limits = new Set(schedules.map((schedule) => schedule.time_limit_min));
   const [limit] = limits;
   if (limits.size === 1 && limit !== null && limit !== undefined) parts.push(t('shiftStart.limit', { minutes: limit }));

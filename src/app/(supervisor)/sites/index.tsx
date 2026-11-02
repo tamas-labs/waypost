@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSession } from '@/auth/session';
@@ -30,7 +30,7 @@ function routeLine(routes: SiteListItem['routes']): string {
 
 const loadSites = () => loadSiteList(getDatabase());
 
-// Sites (S2, S-Telephelyek): the supervisor's sites (on the site phone its own), the account button with the way out,
+// Sites (S2, S-Telephelyek): the supervisor's sites (on the site phone its own), each opening its details (S3), the account button with the way out,
 // the actions the server refused, and "Új telephely" on the supervisor's own phone (the site phone cannot create one).
 export default function SitesScreen() {
   const { color, typography, space } = useTheme();
@@ -86,27 +86,33 @@ export default function SitesScreen() {
   );
 }
 
-/** A site card (DESIGN_HANDOFF S2) with what the phone knows: the name, the routes, the site phone. */
+/** A site card (DESIGN_HANDOFF S2) with what the phone knows: the name, the routes, the site phone; it opens the site. */
 function SiteCard({ site }: { site: SiteListItem }) {
-  const { color, typography, space } = useTheme();
+  const { color, typography, space, press } = useTheme();
   return (
-    <Card>
-      <View style={[styles.row, styles.top, { gap: space.m }]}>
-        <View style={[styles.grow, { gap: space.xs / 2 }]}>
-          <Text style={[typography.cardTitle, { color: color.text }]}>{site.name}</Text>
-          <Text style={[typography.rowLabel, tabular, { color: color.text2 }]}>{routeLine(site.routes)}</Text>
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => router.push({ pathname: '/sites/[id]', params: { id: site.id } })}
+      style={({ pressed }) => pressed && { opacity: press.opacity, transform: [{ scale: press.scale }] }}
+    >
+      <Card>
+        <View style={[styles.row, styles.top, { gap: space.m }]}>
+          <View style={[styles.grow, { gap: space.xs / 2 }]}>
+            <Text style={[typography.cardTitle, { color: color.text }]}>{site.name}</Text>
+            <Text style={[typography.rowLabel, tabular, { color: color.text2 }]}>{routeLine(site.routes)}</Text>
+          </View>
+          {site.phone === null && <StatusBadge status="pending" label={t('supervisor.noPhone')} />}
         </View>
-        {site.phone === null && <StatusBadge status="pending" label={t('supervisor.noPhone')} />}
-      </View>
-      {(site.phone !== null || site.pending) && (
-        <View style={[styles.row, styles.between, { gap: space.m }]}>
-          <Text style={[typography.small, styles.shrink, { color: color.text2 }]}>
-            {site.phone === null ? '' : t('supervisor.phoneName', { name: site.phone.name })}
-          </Text>
-          {site.pending && <Text style={[typography.small, { color: color.offFg }]}>{t('supervisor.sitePending')}</Text>}
-        </View>
-      )}
-    </Card>
+        {(site.phone !== null || site.pending) && (
+          <View style={[styles.row, styles.between, { gap: space.m }]}>
+            <Text style={[typography.small, styles.shrink, { color: color.text2 }]}>
+              {site.phone === null ? '' : t('supervisor.phoneName', { name: site.phone.name })}
+            </Text>
+            {site.pending && <Text style={[typography.small, { color: color.offFg }]}>{t('supervisor.sitePending')}</Text>}
+          </View>
+        )}
+      </Card>
+    </Pressable>
   );
 }
 

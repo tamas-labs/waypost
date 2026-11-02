@@ -715,3 +715,17 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
 - **Indok:** DESIGN_HANDOFF S2; specifikáció *Mobilapp / Képernyők* (`(supervisor)/sites`: lista, új telephely) és *Szinkron protokoll / Outbox*. Hamis állapotjelzés rosszabb a hiányzónál.
 - **Ismert korlát:** a telephely adatai (név, cím, időzóna, küszöb) létrehozás után az appban nem módosíthatók; a specifikáció S3-a sem kéri.
 - **Érintett:** `src/app/(supervisor)/sites/index.tsx`, `src/app/(supervisor)/sites/new.tsx`, `src/supervisor/sites.ts`, `src/hooks/use-account-menu.ts`, `src/hooks/use-live-query.ts`, `src/sync/events.ts`, `src/sync/outbox.ts`, `src/auth/supervisor.ts`, `src/db/kv.ts`, `src/components/account-button.tsx`, `src/theme/tokens.ts`, `src/components/placeholder-screen.tsx` (törölve: nincs több helyőrző képernyő), M5-07, M5-08, M5-20, Q15.
+
+## 2026-11-02 – Telephely részletei (M5-08, Q15)
+
+- **Kérdés:** Mit mutat az S3, ha a design figyelmeztető sora köradatot kér, a sorok célképernyői még nincsenek meg, és a telephelyi telefon állapota a supervisor telefonjára nem jut el?
+- **Döntés:**
+  - **Fejléc:** a telephely neve, alatta az aktív supervisorai („2 supervisor · Kovács Anna, Szabó Dávid”). A **figyelmeztető sor** a legutóbbi problémás körről **elmarad** (köradat nincs, Q15, M5-20).
+  - **Útvonalak:** minden útvonal, előbb az aktívak, név szerint: „9 pont · szabad sorrend · v4 · bejárás 16:20” (az aktuális verzióé; mérés nélkül a bejárás kimarad; betanítás előtt „Még nincs betanítva”); a kikapcsolt halványan, „kikapcsolva” jelzéssel.
+  - **Beállítások**, egy-egy sor betűcsempével (a design szerint a cím első betűje): **Menetrend** – az egyetlen aktív menetrend egy sorban („H–P · 20:00–08:00 óránként · 25 perc”; lista: legfeljebb 3 időpont, különben a számuk; időkorlát nélkül „nincs időkorlát”), több aktívnál a számuk; **Őrök és PIN-kódok** – „3 őr · nevek”; **Jelentések** – a telefont használó supervisor feliratkozásai ennél a telephelynél („Műszak és heti · e-mail-cím”; a telephelyi telefonon e-mail-cím nélkül).
+  - **Telephelyi telefon:** név · platform. A telephelyi telefonon, ha ez az a telefon: a saját szinkronállapota („Ez a telefon · Online · szinkron 21:03 · 0 tétel vár”); más telefonon a hozzárendelés napja és az appverzió, mert az utolsó jelentkezése nem jut el ide (Q15). Telefon nélkül: „Nincs hozzárendelt telefon”, és hogy a telephelyi telefonon, a fiókkal belépve lehet hozzárendelni.
+  - **A sorok még nem nyomhatók**, és nincs „Új útvonal betanítása” és „Telefon hozzárendelése” gomb: a célképernyőik saját feladatai kötik be őket (M5-09, M5-12, M5-15, M5-17 – M5-19). Működés nélküli gombot nem teszünk ki.
+  - A telephelylista kártyája ide visz; ha a telephely közben eltűnt a telefonról (pull), a képernyő ezt mondja.
+  - A menetrend szöveges alakja közös (`src/i18n/schedule.ts`), a Műszakkezdés is ezt használja; a napok rövid nevei (`schedule.dayShort`) tömb helyett kulcsos objektum lettek, hogy a kulcsuk típusos legyen.
+- **Indok:** DESIGN_HANDOFF S3; specifikáció *Mobilapp / Képernyők* (`(supervisor)/sites/[id]`). Hamis vagy elavult állapot helyett a biztos adat.
+- **Érintett:** `src/app/(supervisor)/sites/[id].tsx`, `src/app/(supervisor)/sites/index.tsx`, `src/supervisor/site-detail.ts`, `src/i18n/schedule.ts`, `src/app/(guard)/shift-start.tsx`, `src/components/icon.tsx` (`phone`), `src/theme/tokens.ts` (`iconTile`), M5-08, M5-09, M5-12, M5-15, M5-17, M5-18, M5-19, Q15.
