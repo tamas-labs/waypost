@@ -1,0 +1,134 @@
+// Push (specification, Szinkron protokoll / Push és média): the entries the server has not acknowledged, by seq, in
+// batches of 200, until none is left. An acknowledged entry gets synced_at. The server rejects an entry only after a
+// bug or tampering, and sending it again would not help: it is not sent again, the entries after it still go up (the
+// server keeps them, as they wait for the hole), and one report goes to the server, outside the chain. A sync does not
+// fail because of it: the configuration must keep coming.
+import type { ChainEntry, SyncPushRequest, SyncPushResponse } from '@waypost/schema';
+import { and, asc, eq, gt, inArray, isNull } from 'drizzle-orm';
+
+import type { ApiClient } from '@/api/client';
+import { reportDiagnostic } from '@/api/endpoints';
+import { ApiError, isApiError } from '@/api/errors';
+import type { Database } from '@/db/database';
+import { deleteKv, getKv, setKv } from '@/db/kv';
+import { chainEntries } from '@/db/schema';
+import { uuidv7 } from '@/id/uuidv7';
+
+export const PUSH_BATCH_SIZE = 200;
+
+export interface PushContext {
+  db: Database;
+  deviceId: string;
+  /** Collects the photos the server asks for, for the media step. */
+  mediaMissing: Set<string>;
+}
+
+/** Sends a batch: POST /sync/push, or on a revoked phone POST /sync/push-final. */
+export type SendBatch = (entries: SyncPushRequest['entries']) => Promise<SyncPushResponse>;
+
+function nextBatch(db: Database, deviceId: string): ChainEntry[] {
+  return db
+    .select()
+    .from(chainEntries)
+    .where(
+      and(
+        eq(chainEntries.device_id, deviceId),
+        isNull(chainEntries.synced_at),
+        gt(chainEntries.seq, getKv(db, 'sync.rejected_through_seq') ?? 0),
+      ),
+    )
+    .orderBy(asc(chainEntries.seq))
+    .limit(PUSH_BATCH_SIZE)
+    .all()
+    .map(({ synced_at: _synced_at, ...entry }) => entry as ChainEntry);
+}
+
+/**
+ * Remembers what the response rejected: up to which seq, so it is not sent again, and for the first rejection of a
+ * chain the report. What the server rejects after that is only the consequence of the first one.
+ */
+function recordRejected(tx: Database, deviceId: string, response: SyncPushResponse): void {
+  const seqs = new Map(
+    tx
+      .select({ id: chainEntries.id, seq: chainEntries.seq })
+      .from(chainEntries)
+      .where(
+        inArray(
+          chainEntries.id,
+          response.rejected.map((rejected) => rejected.id),
+        ),
+      )
+      .all()
+      .map((row) => [row.id, row.seq]),
+  );
+  const rejected = response.rejected.flatMap((entry) => {
+    const seq = seqs.get(entry.id);
+    return seq === undefined ? [] : [{ ...entry, seq }];
+  });
+  const first = rejected.reduce<(typeof rejected)[number] | null>(
+    (lowest, entry) => (lowest === null || entry.seq < lowest.seq ? entry : lowest),
+    null,
+  );
+  if (first === null) return;
+
+  const through = getKv(tx, 'sync.rejected_through_seq');
+  if (through === null) {
+    setKv(tx, 'sync.pending_diagnostic', {
+      id: uuidv7(),
+      device_id: deviceId,
+      code: first.code,
+      entry_id: first.id,
+      seq: first.seq,
+      expected_seq: first.expected_seq,
+      server_last_seq: response.last_seq,
+      rejected_count: response.rejected.length,
+      occurred_at: response.server_time,
+    });
+  }
+  setKv(tx, 'sync.rejected_through_seq', Math.max(through ?? 0, ...rejected.map((entry) => entry.seq)));
+}
+
+function applyResponse(db: Database, deviceId: string, response: SyncPushResponse): void {
+  db.transaction((tx) => {
+    if (response.accepted.length > 0) {
+      tx.update(chainEntries)
+        .set({ synced_at: response.server_time })
+        .where(and(inArray(chainEntries.id, response.accepted), isNull(chainEntries.synced_at)))
+        .run();
+    }
+    if (response.rejected.length > 0) recordRejected(tx, deviceId, response);
+  });
+}
+
+/** Sends the batches until nothing is left to send. A failed request (network, 5xx …) throws; the next sync goes on from there. */
+export async function pushChainEntries({ db, deviceId, mediaMissing }: PushContext, send: SendBatch): Promise<void> {
+  for (;;) {
+    const batch = nextBatch(db, deviceId);
+    const [first, ...rest] = batch;
+    if (first === undefined) return;
+    const response = await send([first, ...rest]);
+    applyResponse(db, deviceId, response);
+    for (const id of response.media_missing) mediaMissing.add(id);
+    // Every answer moves the first entry forward. If it did not, the next sync tries again, not this loop.
+    if (nextBatch(db, deviceId)[0]?.id === first.id) return;
+  }
+}
+
+/**
+ * Sends the report of the rejected entries, if one is waiting. Only a revocation stops the sync: the next sync sends
+ * a report the network or the server did not take, and one the server refuses is dropped, as it would be refused again.
+ */
+export async function sendPendingDiagnostic(db: Database, api: ApiClient, token: string): Promise<void> {
+  const diagnostic = getKv(db, 'sync.pending_diagnostic');
+  if (diagnostic === null) return;
+  try {
+    await reportDiagnostic(api, token, diagnostic);
+    deleteKv(db, 'sync.pending_diagnostic');
+  } catch (error) {
+    if (isApiError(error, 'device_revoked')) throw error;
+    if (__DEV__) console.warn('Reporting the rejected chain entries failed', error);
+    if (error instanceof ApiError && error.status < 500 && error.status !== 401 && error.status !== 429) {
+      deleteKv(db, 'sync.pending_diagnostic');
+    }
+  }
+}

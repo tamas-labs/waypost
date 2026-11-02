@@ -13,6 +13,7 @@ import {
   type NotificationRequestInput,
 } from 'expo-notifications';
 
+import { useSession } from '@/auth/session';
 import { onChainEntries } from '@/chain/events';
 import type { Database } from '@/db/database';
 import { routes } from '@/db/schema';
@@ -164,7 +165,7 @@ export function requestAlarmReschedule(): Promise<void> {
 
 /**
  * Starts the round alarms: the rounds channel, alarms shown in the foreground too, and the reschedule triggers –
- * start, pull, shift start and close, round start and close, every notification, coming to the foreground.
+ * start, pull, a change of the device mode, shift start and close, round start and close, every notification, coming to the foreground.
  * Returns the function that stops them; a second call restarts them.
  */
 export function startRoundAlarms(db: Database): () => void {
@@ -173,6 +174,10 @@ export function startRoundAlarms(db: Database): () => void {
   showAlarmsInForeground();
 
   const unsubscribePull = onConfigurationPulled(() => void requestAlarmReschedule());
+  // A revoked phone rings no more; a phone just enrolled has no shift yet.
+  const unsubscribeSession = useSession.subscribe((state, previous) => {
+    if (state.mode !== previous.mode) void requestAlarmReschedule();
+  });
   const unsubscribeChain = onChainEntries((entries) => {
     if (entries.some(changesPlan)) void requestAlarmReschedule();
   });
@@ -188,6 +193,7 @@ export function startRoundAlarms(db: Database): () => void {
 
   const stop = () => {
     unsubscribePull();
+    unsubscribeSession();
     unsubscribeChain();
     received.remove();
     response.remove();

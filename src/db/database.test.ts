@@ -15,6 +15,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { migrateDatabase } from './database';
+import migrations from './migrations/migrations';
 import { deleteKv, getKv, setKv } from './kv';
 import * as schema from './schema';
 import { createTestDatabase } from './testing';
@@ -85,7 +86,7 @@ describe('local database', () => {
     await migrateDatabase(db);
     expect(getKv(db, 'sync.cursor')).toBe('c1');
     const applied = sqlite.prepare('SELECT COUNT(*) AS n FROM __drizzle_migrations').get() as { n: number };
-    expect(applied.n).toBe(1);
+    expect(applied.n).toBe(Object.keys(migrations.migrations).length);
   });
 
   it('has no e-mail or password for users, and no secret for devices', async () => {

@@ -54,6 +54,8 @@ async function writeDrafts(db: Database, drafts: readonly ChainEntryDraft[], opt
   const written = db.transaction((tx) => {
     const deviceId = getKv(tx, 'device.id');
     if (deviceId === null) throw new ChainWriteError('No device ID: the phone is not enrolled');
+    // In the transaction: once the flag is set, the last upload has seen the last entry.
+    if (getKv(tx, 'device.revoked') !== null) throw new ChainWriteError('The phone is revoked: its chain is closed');
     const last = tx
       .select({ seq: chainEntries.seq, hash: chainEntries.hash })
       .from(chainEntries)

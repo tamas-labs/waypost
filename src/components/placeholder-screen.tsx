@@ -1,4 +1,5 @@
 import { Link } from 'expo-router';
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { t } from '@/i18n';
@@ -7,12 +8,13 @@ import { useTheme } from '@/theme/theme-provider';
 import { ScreenHeader } from './screen-header';
 
 /** A screen of the navigation skeleton whose content comes in a later task; in development builds it links to the developer tools. */
-export function PlaceholderScreen({ title, onBack }: { title: string; onBack?: () => void }) {
+export function PlaceholderScreen({ title, notice, onBack }: { title: string; notice?: ReactNode; onBack?: () => void }) {
   const { color, typography, space, radius, size } = useTheme();
   return (
     <View style={[styles.container, { backgroundColor: color.bg }]}>
       <ScreenHeader onBack={onBack} />
       <View style={{ padding: space.l, gap: space.m }}>
+        {notice}
         <Text style={[typography.title1, { color: color.text }]} accessibilityRole="header">
           {title}
         </Text>

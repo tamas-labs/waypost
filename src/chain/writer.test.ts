@@ -405,7 +405,7 @@ describe('chain projections', () => {
     });
     await appendChainEntries(db, [manual, damaged], { ...options, photos });
     expect(db.select().from(media).orderBy(asc(media.id)).all()).toEqual(
-      photos.map((p) => ({ ...p, owner_type: 'scan', owner_id: scanId, uploaded_at: null })),
+      photos.map((p) => ({ ...p, device_id: DEVICE, owner_type: 'scan', owner_id: scanId, uploaded_at: null })),
     );
     const incidentPhoto = photo('c');
     await appendChainEntries(

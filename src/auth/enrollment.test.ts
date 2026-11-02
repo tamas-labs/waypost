@@ -49,6 +49,8 @@ describe('enrollThisPhone', () => {
   it('stores the credentials and the device, logs the supervisor out and becomes the site phone', async () => {
     const { db } = await createTestDatabase();
     setKv(db, 'sync.cursor', 'old-cursor');
+    setKv(db, 'device.revoked', true);
+    setKv(db, 'sync.rejected_through_seq', 12);
     await setSupervisorToken('1|supervisor');
     const { api, fetchMock } = fakeApi();
 
@@ -65,6 +67,9 @@ describe('enrollThisPhone', () => {
     expect(getKv(db, 'device.id')).toBe(ENROLLED.device.id);
     // The next pull is a full one.
     expect(getKv(db, 'sync.cursor')).toBeNull();
+    // A new chain: nothing of the earlier one holds it back.
+    expect(getKv(db, 'device.revoked')).toBeNull();
+    expect(getKv(db, 'sync.rejected_through_seq')).toBeNull();
     expect(useSession.getState()).toMatchObject({ mode: 'site_phone', deviceId: ENROLLED.device.id });
   });
 

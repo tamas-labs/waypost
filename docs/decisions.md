@@ -591,3 +591,58 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
 - **Döntés:** A gazda döntése szerint igen, az M3 egyelőre kész. A telefonos futást a gazda végzi el (`device-test.md`, „M3 – Elfogadás”, F1–F9 és a korábbi M3-as tételek), és addig a J-19 nyitott marad. Ami ott hibásnak bizonyul, új feladatként javítjuk.
 - **Indok:** Az automatikus rész (közös vektorok, typecheck, lint, formázás, teszt) zöld, a munka ezen a részen nem várhat a telefonra. Kockázat: az ébresztés, az NFC és a teljes offline műszak valódi telefonon még nem futott, ezért az M3 elfogadása addig csak a tesztekre épül.
 - **Érintett:** `docs/tasks.md`, `docs/audit-m1-m3-javitasi-terv.md`.
+
+## 2026-11-02 – Push az appban és az elutasított bejegyzés (M4-09, Q2)
+
+- **Kérdés:** A specifikáció szerint `chain_gap` és `chain_fork` esetén az app nem próbálja újra ugyanazt, és diagnosztikai eseményt küld. Mi történik a többi bejegyzéssel, és hol marad meg, hogy mit nem kell újraküldeni?
+- **Döntés:**
+  - **Kötegek:** a nyugtázatlan bejegyzések `seq` szerint, 200-asával, amíg el nem fogynak. A `synced_at` a válasz `server_time`-ja. A köteg után a válasz `accepted` listája számít, a `last_seq` nem: a levágott lista (backend, „A push feldolgozása”) bejegyzései az újraküldéskor kapnak nyugtát.
+  - **Elutasításnál** (`chain_gap`, `chain_fork`, és a `bad_hmac` is, mert azt sem javítja az újraküldés) a legmagasabb elutasított `seq` a `kv` táblába kerül (`sync.rejected_through_seq`), és az addigi bejegyzések nem mennek ki újra. A **későbbi bejegyzések továbbra is felmennek**: a szerver `gap`-ként eltárolja őket, így az adat nem csak a telefonon van meg. A szinkron nem bukik el, a pull fut tovább, mert a konfigurációnak érkeznie kell. Az elutasított bejegyzés a feltöltésre várók közt marad, és a takarítás sem törli.
+  - **Diagnosztika:** `POST /devices/diagnostics`, láncon kívül (`waypost-schema` 0.4.0, Q2). Lánconként csak az első elutasítás, mert a többi ennek a következménye. A jelzés a `kv` táblában vár, amíg a szerver át nem veszi: hálózati, 5xx, 401 és 429 hibánál a következő szinkron újraküldi; ha a szerver más 4xx-szel elutasítja, eldobjuk, mert újra is elutasítaná.
+  - **Nincs önjavítás:** ha a szerver állapota visszaáll, a telefon nem küldi újra a korábbi bejegyzéseket. A megoldás ilyenkor az új hozzárendelés.
+- **Indok:** Specifikáció *Push és média*. A `kv` elég: a lánc sorrendje miatt egy szám leírja, mi nem megy ki újra, és nem kell oszlop a `chain_entries`-ben.
+- **Ellenőrizve:** a valódi `laravel-waypost` ellen, HTTP-n át (431 bejegyzés hosszú offline után mind `ok`, teljes vetület; újraküldés; `bad_hmac`, `chain_fork`, `chain_gap`).
+- **Érintett:** `src/sync/push.ts`, `src/api/endpoints.ts`, `src/db/kv.ts`, `src/sync/runtime.ts`, `laravel-waypost` `POST /devices/diagnostics`, `waypost-schema` 0.4.0, M4-09, M6.
+
+## 2026-11-02 – Médiafeltöltés az appban (M4-10)
+
+- **Kérdés:** Mikor melyik fotó megy fel, és mi történik hibánál?
+- **Döntés:**
+  - **Mely fotók:** a helyben fel nem töltöttek és a push `media_missing` listája, `id` szerint, egyesével. A `media_missing` a már feltöltöttnek jelölt fotót is újraküldi, ha a fájl még megvan.
+  - **Csak nyugtázott bejegyzés fotója megy,** mert előtte a szerver csak `404`-et adhatna, és az elutasított bejegyzés fotója minden szinkronnál újra felmenne (a valódi szerver elleni futás mutatta meg). Ha a bejegyzést a takarítás már törölte, az azt jelenti, hogy nyugtázott volt.
+  - **Hibák:** hálózati hiba, 5xx, 401, 429: a lépés megáll, a következő szinkron folytatja. Más 4xx (403, 404, 413, 422): a fotó kimarad, a többi megy, a következő szinkron újra próbálja. Minden kísérlet új `Idempotency-Key`-t kap, mert a szerver a `404`-et is megjegyzi a kulcshoz; a szerver az újrafeltöltést felismeri a fotó azonosítójáról.
+  - **A fájl a fotó azonosítójából adódik** (`src/photo/files.ts`), nem a tárolt `local_uri`-ból: iOS-en az app dokumentummappájának útvonala frissítéskor megváltozik.
+  - **Feltöltés:** a globális `fetch`-csel; a `FormData` fájlrésze maga az `expo-file-system` `File` objektuma (`Blob`), nem kell új natív kód és új build. Időkorlát: 120 mp. A React Native saját `{ uri, name, type }` része **nem működik:** az SDK 58 globális `fetch`-e az `expo/fetch`, ez nem támogatja, és a kérés el sem indul (`Network request failed`). Az emulátoros futás mutatta meg; a Jest-tesztekben a `fetch` hamis, ezért ott nem látszott.
+  - **Új oszlop: `media.device_id`.** Egy korábbi hozzárendelés fotóját a szerver már nem fogadná, ezért nem próbáljuk és nem számoljuk. A régebbi sor (`null`) az aktuális eszközé.
+- **Indok:** Specifikáció *Push és média*; `laravel-waypost/docs/decisions.md`, „A fotó feltöltése és a push-final”.
+- **Érintett:** `src/sync/media.ts`, `src/sync/pending.ts`, `src/photo/files.ts`, `src/api/client.ts`, `src/db/schema.ts`, `src/chain/media.ts`, M4-10, M5-13.
+
+## 2026-11-02 – A visszavont telefon (M4-11)
+
+- **Kérdés:** Mi történik a `device_revoked` válasz után, ha közben a telefon leállhat, megszűnhet a hálózat, és az őr is dolgozhat rajta?
+- **Döntés:**
+  - **Bármelyik lépés** `device_revoked` válasza elindítja: a `device.revoked` jelző a `kv` táblába kerül, és azonnal új szinkron indul. A jelző újraindítás után is megmarad, és a következő szinkron folytatja.
+  - **A jelző után nincs új láncbejegyzés:** a láncíró a tranzakcióján belül ellenőrzi, és elutasítja az írást. Így a feltöltés biztosan a lánc utolsó eleméig ér. Az őr ilyenkor hibajelzést kap a rögzítésre; ez csak a feltöltés idejére szól.
+  - **A visszavont telefon szinkronja ugyanaz a négy lépés:** a kötegek a `push-final`-ra mennek (`done: false`), a fotók a szokásos úton, az outbox kimarad (az `X-Acting-User` itt már nem érvényes), a pull helyett pedig a `done: true` zár. A `done: true` akkor is lezár, ha maradt elutasított bejegyzés vagy hiányzó fotó (`waypost-schema`, 2026-11-01).
+  - **Ha a feltöltés közben újra `device_revoked` jön,** az a feltöltés már lezárult (például a `done: true` válasza veszett el): nincs több teendő.
+  - **Lezárás után** törlődik az `device.id`, a kurzor, a helyi konfiguráció a PIN-ellenőrzőkkel, a tokenek és a titok; az app „nincs hozzárendelve” állapotba lép, az ébresztések megszűnnek, a belépőképernyő megmondja, mi történt. A láncbejegyzések és a fotók maradnak: a feltöltöttek a szokásos 7 nap után törlődnek, a feltöltetlenek nem, de már nem számítanak várakozónak. A leállás a tranzakció után a következő indításkor pótlódik (`resolveStartup`).
+  - **Új hozzárendelésnél** a régi hozzárendelés műszakja és körei nem látszanak, akkor sem, ha ugyanarra a telephelyre kerül (`loadGuardState`), és a lánc 1-től indul.
+- **Ismert korlát:** ha a csere nyitott műszak közben történik, a régi műszakra nem kerül `shift_closed`, így a szerveren nyitva marad. **Az M6-nak** ezt a jelentésben kezelnie kell.
+- **Indok:** Specifikáció *Azonosítás*, 5. pont; a jelző nélkül az utolsó köteg és a `done: true` közé beeső bejegyzés elveszne.
+- **Érintett:** `src/sync/revocation.ts`, `src/sync/runtime.ts`, `src/chain/writer.ts`, `src/guard/state.ts`, `src/alarms/round-alarms.ts`, `src/auth/enrollment.ts`, `src/app/(auth)/login.tsx`, M4-11, M5-06, M6.
+
+## 2026-11-02 – Helyi takarítás (M4-12)
+
+- **Kérdés:** Melyik óra szerint, mikor és mi törlődik?
+- **Döntés:**
+  - **Mi:** a 7 napnál régebben nyugtázott bejegyzés (a `synced_at`, azaz a szerver ideje szerint) és a 7 napnál régebben feltöltött fotó sora és fájlja. Lánconként az utolsó bejegyzés mindig marad, mert a következő ehhez kapcsolódik. A vetületek (`shifts`, `rounds`, `scans`, `incidents`) nem törlődnek: a specifikáció csak a bejegyzéseket és a fotókat említi. Sor nélküli fotófájl egy nap után törlődik; a határ a fájl ideje és az eszközóra.
+  - **Mikor:** sikeres szinkron után, legfeljebb naponta egyszer (`sync.last_cleanup_at`), megbízható idő szerint, mert a telephelyi telefon hetekig futhat újraindítás nélkül. A takarítás hibája nem szinkronhiba.
+- **Indok:** Specifikáció *Push és média*, *Adatmegőrzés*; M3-21.
+- **Érintett:** `src/sync/cleanup.ts`, `src/sync/runtime.ts`, M4-12.
+
+## 2026-11-02 – Az M4-13 pipája
+
+- **Kérdés:** Lezárható-e az M4 a telefonos futás nélkül?
+- **Döntés:** Az M4-13 nyitva marad, amíg a `device-test.md` „M4 – Elfogadás” részét nem futtatták. Az automatikus rész kész: az app és a backend tesztjei a gap, fork, bad_hmac és idempotencia esetekre, és a valódi backend elleni futás. Ez egy Node-folyamatból, HTTP-n át ment, ezért a natív részt nem érinti. Ezt egy emulátoros futás (2026-11-02) részben pótolta: hozzárendelés a `/dev/enroll`-lal, pull, PIN-belépés, műszak, esemény fotóval, push (8/8 `ok`), a fotó feltöltése (a szerveren a fájl és a lenyomat egyezik). Ez találta meg a fenti `FormData`-hibát. A repülőgép-üzemmód, a visszavonás és a több napos takarítás a telefonon még hátravan.
+- **Indok:** A feladat a 2 órás repülőgép-üzemmódot kéri, valódi eszközön. Az M3-40-nél a gazda döntött az előzetes lezárásról; ezt itt is csak ő teheti meg.
+- **Érintett:** `docs/tasks.md`, `docs/device-test.md`, M4-13.

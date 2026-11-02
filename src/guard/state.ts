@@ -84,7 +84,14 @@ export function loadGuardState(db: Database, now: Timestamp): GuardState | null 
     })
     .from(rounds)
     .innerJoin(shifts, eq(shifts.id, rounds.shift_id))
-    .where(and(eq(shifts.site_id, siteId), or(inArray(rounds.status, ['open', 'in_progress']), gte(rounds.scheduled_at, since))))
+    .where(
+      and(
+        eq(shifts.site_id, siteId),
+        // Not the rounds of an earlier enrollment of this phone on the same site: its chain is closed.
+        eq(shifts.device_id, deviceId),
+        or(inArray(rounds.status, ['open', 'in_progress']), gte(rounds.scheduled_at, since)),
+      ),
+    )
     .orderBy(asc(rounds.scheduled_at), asc(rounds.id))
     .all();
 

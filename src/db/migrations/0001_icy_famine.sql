@@ -1,0 +1,1 @@
+ALTER TABLE `media` ADD `device_id` text;

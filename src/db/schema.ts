@@ -242,11 +242,16 @@ export const incidents = sqliteTable(
   (t) => [index('incidents_shift_id').on(t.shift_id)],
 );
 
-/** Photos taken on the device. local_uri: the file on the phone; uploaded_at: null until PUT /media/{id} succeeded. */
+/**
+ * Photos taken on the device. device_id: the enrollment whose entry cites it, the only one that can upload it (null: no
+ * entry, or from before this column). local_uri: the file when it was taken, see photo/files.ts; uploaded_at: null until
+ * PUT /media/{id} succeeded.
+ */
 export const media = sqliteTable(
   'media',
   {
     id: id(),
+    device_id: text(),
     owner_type: text({ enum: ['scan', 'incident', 'checkpoint'] }).notNull(),
     owner_id: text().notNull(),
     sha256: text().notNull(),

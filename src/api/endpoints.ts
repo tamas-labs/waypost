@@ -3,13 +3,24 @@ import type {
   AuthLoginRequest,
   AuthLoginResponse,
   AuthLogoutResponse,
+  DeviceDiagnosticRequest,
+  DeviceDiagnosticResponse,
   DevicesEnrollRequest,
   DevicesEnrollResponse,
+  MediaUploadRequest,
+  MediaUploadResponse,
   SiteListResponse,
   SyncPullResponse,
+  SyncPushFinalRequest,
+  SyncPushFinalResponse,
+  SyncPushRequest,
+  SyncPushResponse,
 } from '@waypost/schema';
 
 import type { ApiClient } from './client';
+
+/** A photo may take long on a slow network. */
+const MEDIA_UPLOAD_TIMEOUT_MS = 120_000;
 
 /** POST /auth/login: supervisor login; wrong credentials are 401 unauthenticated. */
 export async function login(api: ApiClient, body: AuthLoginRequest): Promise<AuthLoginResponse> {
@@ -61,6 +72,65 @@ export async function pull(api: ApiClient, token: string, cursor: string | null)
     query: { cursor },
     token,
     responseSchema: 'api/sync-pull.response',
+  });
+  return data;
+}
+
+/** POST /sync/push: a batch of the device's chain entries. */
+export async function push(api: ApiClient, token: string, body: SyncPushRequest): Promise<SyncPushResponse> {
+  const { data } = await api.request({
+    method: 'POST',
+    path: '/sync/push',
+    token,
+    body,
+    bodySchema: 'api/sync-push.request',
+    responseSchema: 'api/sync-push.response',
+  });
+  return data;
+}
+
+/** POST /sync/push-final: a batch of a revoked device; done closes its upload. */
+export async function pushFinal(api: ApiClient, token: string, body: SyncPushFinalRequest): Promise<SyncPushFinalResponse> {
+  const { data } = await api.request({
+    method: 'POST',
+    path: '/sync/push-final',
+    token,
+    body,
+    bodySchema: 'api/sync-push-final.request',
+    responseSchema: 'api/sync-push-final.response',
+  });
+  return data;
+}
+
+/** PUT /media/{id}: a photo. A new Idempotency-Key at every attempt: the server remembers a 404 for the key too. */
+export async function uploadMedia(
+  api: ApiClient,
+  token: string,
+  id: string,
+  fields: MediaUploadRequest,
+  file: Blob,
+): Promise<MediaUploadResponse> {
+  const { data } = await api.request({
+    method: 'PUT',
+    path: `/media/${id}`,
+    token,
+    form: { fields: { ...fields }, file },
+    bodySchema: 'api/media-upload.request',
+    responseSchema: 'api/media-upload.response',
+    timeoutMs: MEDIA_UPLOAD_TIMEOUT_MS,
+  });
+  return data;
+}
+
+/** POST /devices/diagnostics: the server rejected chain entries of this device. */
+export async function reportDiagnostic(api: ApiClient, token: string, body: DeviceDiagnosticRequest): Promise<DeviceDiagnosticResponse> {
+  const { data } = await api.request({
+    method: 'POST',
+    path: '/devices/diagnostics',
+    token,
+    body,
+    bodySchema: 'api/device-diagnostic.request',
+    responseSchema: 'api/device-diagnostic.response',
   });
   return data;
 }

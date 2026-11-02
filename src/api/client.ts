@@ -15,6 +15,8 @@ export interface ApiRequest<P extends SchemaPath> {
   path: string;
   query?: Record<string, string | null | undefined>;
   body?: unknown;
+  /** A multipart body instead of JSON: its text fields (checked against bodySchema) and the file. */
+  form?: MultipartForm;
   /** Schema of the body, checked in development builds. */
   bodySchema?: SchemaPath;
   /** Schema of the 2xx response; it also gives the result type. */
@@ -25,6 +27,17 @@ export interface ApiRequest<P extends SchemaPath> {
   idempotencyKey?: string;
   /** Supervisor acting on the site phone with the device token (X-Acting-User). */
   actingUserId?: string | null;
+  /** Instead of the client's timeout, e.g. for a file on a slow network. */
+  timeoutMs?: number;
+}
+
+export interface MultipartForm {
+  fields: Record<string, string>;
+  /**
+   * A file of expo-file-system (a Blob), which expo/fetch, the global fetch, reads itself. Not React Native's own
+   * `{ uri, name, type }` part: expo/fetch does not support it, and fails the request.
+   */
+  file: Blob;
 }
 
 export interface ApiResponse<T> {
@@ -74,6 +87,13 @@ function isErrorBody(body: unknown): body is ErrorResponse {
   );
 }
 
+function formData({ fields, file }: MultipartForm): FormData {
+  const form = new FormData();
+  for (const [name, value] of Object.entries(fields)) form.append(name, value);
+  form.append('file', file);
+  return form;
+}
+
 function retryAfter(headers: Headers): number | null {
   const value = headers.get('Retry-After');
   if (value === null) return null;
@@ -92,7 +112,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
 
   async function request<P extends SchemaPath>(req: ApiRequest<P>): Promise<ApiResponse<SchemaTypes[P]>> {
     if (validate && req.bodySchema !== undefined) {
-      const errors = schemaErrors(req.bodySchema, req.body);
+      const errors = schemaErrors(req.bodySchema, req.form?.fields ?? req.body);
       if (errors.length > 0)
         throw new Error(`Request body of ${req.method} ${req.path} is invalid against ${req.bodySchema}: ${errors.join('; ')}`);
     }
@@ -106,14 +126,14 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     if (req.actingUserId) headers['X-Acting-User'] = req.actingUserId;
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(), req.timeoutMs ?? timeoutMs);
     let response: Response;
     let text: string;
     try {
       response = await doFetch(url, {
         method: req.method,
         headers,
-        body: req.body === undefined ? undefined : JSON.stringify(req.body),
+        body: req.form !== undefined ? formData(req.form) : req.body === undefined ? undefined : JSON.stringify(req.body),
         signal: controller.signal,
       });
       text = await response.text();

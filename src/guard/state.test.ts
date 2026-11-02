@@ -115,6 +115,12 @@ describe('guard state from the database', () => {
     expect(loadGuardState(db, NOW)?.rounds.map((r) => r.id)).toEqual([open.id, kept.id]);
   });
 
+  it('leaves out the shifts and rounds of an earlier enrollment of this phone on the same site', () => {
+    addShift('old-shift', OPEN_SHIFT.started_at, { device_id: 'old-device' });
+    addRound(round('A', '20:00', { shift_id: 'old-shift', status: 'open' }));
+    expect(loadGuardState(db, NOW)).toMatchObject({ shift: null, rounds: [] });
+  });
+
   it('leaves out the shifts and rounds of another site', () => {
     addShift('other-shift', OPEN_SHIFT.started_at, { site_id: OTHER_SITE });
     addRound(round('A', '20:00', { shift_id: 'other-shift' }));

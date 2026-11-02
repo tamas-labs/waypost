@@ -420,57 +420,68 @@ Cél: az eszköz adatai hibátlanul a szerverre kerülnek, és a szerver ellenő
 
 ### Backend
 
-- [ ] **M4-02 Láncellenőrző (PHP)**
+- [x] **M4-02 Láncellenőrző (PHP)**
   - Mit: `src/Chain`: `canonical_json` (RFC 8785) és HMAC-SHA256 ellenőrzés.
   - Kész, ha: a `chain/test-vectors.json` minden esete egyezik (Pest unit teszt).
+  - Megjegyzés (2026-11-01): `Waypost\Chain\CanonicalJson`, `EntryHash`.
 
-- [ ] **M4-03 `POST /sync/push`: fogadás és ellenőrzés**
+- [x] **M4-03 `POST /sync/push`: fogadás és ellenőrzés**
   - Mit: legfeljebb 200 bejegyzés `seq` szerint növekvő sorrendben; eszközönkénti zárolt tranzakció; sorrendben: `seq` → `gap`, `prev_hash` → `fork`, HMAC → `bad_hmac`; `ok` esetén a `last_seq` és a `last_hash` frissítése; már elfogadott bejegyzés újraküldése is `accepted`; `rejected` lista kódokkal; `last_seen_at` frissítése.
   - Kész, ha: feature tesztek: jó köteg, újraküldés, gap, fork, bad_hmac, rossz sorrendű köteg, 200 feletti köteg.
   - Spec: Láncolt napló / Szerveroldali ellenőrzés; API-szerződés / Push.
+  - Megjegyzés (2026-11-01): `Waypost\Chain\ChainProcessor`. A rossz sorrendű köteg és az idegen `device_id` kérésszintű `422`. Egy `seq` helyén az új bejegyzés lecseréli a `fork` és `bad_hmac` sort, a már elfogadott `seq`-re érkező más bejegyzés `chain_fork`, tárolás nélkül. Döntés: `laravel-waypost/docs/decisions.md`, „A push feldolgozása”.
 
-- [ ] **M4-04 Hiánypótlás (gap)**
+- [x] **M4-04 Hiánypótlás (gap)**
   - Mit: a hiány után érkező bejegyzés eltárolódik, de nem kerül vetületbe; amikor a hiányzó bejegyzés megérkezik, a várakozó bejegyzések sorrendben feldolgozódnak.
   - Kész, ha: feature teszt: 1, 2, 4, 5, majd 3 → minden `ok`, a vetület teljes.
 
-- [ ] **M4-05 Vetületek**
+- [x] **M4-05 Vetületek**
   - Mit: a hat típus alkalmazása a `shifts`, `rounds`, `scans`, `incidents` és `media` (helyőrző) táblákra, idempotensen a payload ID-k alapján. Az időpontok (`started_at`, `ended_at`, `scanned_at`, `occurred_at`) a bejegyzés megbízható ideje legyenek, ugyanúgy számolva, mint az appban (`entryTrustedTime`, `src/time/trusted-time.ts`), különben a telefon és a jelentés eltérhet.
   - Kész, ha: unit tesztek típusonként és a kétszeri alkalmazásra.
+  - Megjegyzés (2026-11-01): `Waypost\Chain\Projector`, `TrustedTime`. Új oszlop: `chain_entries.projected_at`. A push az outbox előtt megy, ezért a még ismeretlen konfigurációra hivatkozó `ok` bejegyzés nem állítja meg a láncot: a következő push újrapróbálja. **Az M6-nak** a `projected_at = null` sorokat a „nem teljes adat” jelzésbe kell számolnia. Döntés: „Halasztott vetület”.
 
-- [ ] **M4-06 Szerveroldali jelölések**
+- [x] **M4-06 Szerveroldali jelölések**
   - Mit: `time_suspect` (becsült idő vs. `device_time`, illetve `gnss_time` vs. `device_time`, 2 perc); `too_fast` (a betanított gyalogidő 40%-a, csak egymást követő betanított pontokra); `far_from_checkpoint` (haversine, `max(50 m, 3 × pontosság)`, mindkét pontosság 50 m alatt); `late_sync` (a műszak zárása után 12 órán túl).
   - Kész, ha: unit tesztek minden jelölésre a határértékek két oldalán.
   - Spec: Láncolt napló / Jelölések.
+  - Megjegyzés (2026-11-01): `Waypost\Chain\ServerFlags`, `ChainFlag`. A `late_sync` a `shift_closed` feldolgozásakor, visszamenőleg kerül a műszak bejegyzéseire; a `3 × pontosság` a leolvasásé. Döntés: „A szerver jelölései”.
 
-- [ ] **M4-07 `media_missing` és `PUT /media/{id}`**
+- [x] **M4-07 `media_missing` és `PUT /media/{id}`**
   - Mit: a push válaszában azok a hivatkozott fotók, amelyek még nincsenek fent; a feltöltés multipart, a sha256 ellenőrzése a payloadban rögzített lenyomattal, privát lemez, `path` és `uploaded_at` beállítása; idempotens újrafeltöltés. A `PUT` multipart törzsét a PHP nem bontja ki magától (`request_parse_body()`, PHP 8.4). A pont fotója a bejegyzés nélkül is feltölthető, és a pont kérésének `photo_media_id` mezője erre hivatkozik (létezik és ehhez a ponthoz tartozik, különben 422). A visszavont eszköz a lezárásig tölthet fel.
   - Kész, ha: feature tesztek (jó, rossz lenyomat, idegen eszköz, ismételt feltöltés, bejegyzés előtti feltöltés 404, a pont fotója, visszavont eszköz a lezárás előtt és után).
+  - Megjegyzés (2026-11-01): `MediaController`, `ParseMultipartBody`; a valódi multipart `PUT`-ot a `scripts/install-smoke.sh` próbálja ki HTTP-n át. **Az M4-10-nek:** a `404` is tárolódik az `Idempotency-Key`-hez, ezért a bejegyzés elfogadása előtt kapott `404` után új kulccsal kell újrapróbálni. Döntés: „A fotó feltöltése és a push-final”.
 
-- [ ] **M4-08 `POST /sync/push-final`**
+- [x] **M4-08 `POST /sync/push-final`**
   - Mit: visszavont eszköz utolsó feltöltése kötegekben (ugyanaz az ellenőrzés, mint a push-nál); a `done: true` kérés után ez a lehetőség is lezárul.
   - Kész, ha: feature tesztek (kötegek, a `done: true` üres listával is lezár, utána 401, nem visszavont eszköz 403).
+  - Megjegyzés (2026-11-01): `Authenticate::REVOKED`, új oszlop: `devices.upload_closed_at`. A token a lezárás után is megmarad, így a válasz `device_revoked`, nem `unauthenticated`.
 
 ### App
 
-- [ ] **M4-09 Push az appban** `⚠ Q2`
+- [x] **M4-09 Push az appban** `✓ Q2`
   - Mit: a nyugtázatlan bejegyzések `seq` szerint, 200-as kötegekben; nyugtázáskor `synced_at`; `chain_gap` / `chain_fork` esetén nincs újrapróbálás ugyanarra, hanem diagnosztikai jelzés megy a szervernek.
   - Kész, ha: Jest tesztek (kötegelés, nyugtázás, részleges elutasítás).
   - Spec: Szinkron protokoll / Push és média.
+  - Megjegyzés (2026-11-02): `src/sync/push.ts`. A Q2 a javaslat szerint: `POST /devices/diagnostics`, `waypost-schema` 0.4.0, backend `device_diagnostics` tábla. Az elutasított `seq`-ig nem küld újra, a későbbi bejegyzések mennek tovább. **Az M6-nak** a műszakjelentésben ezt is mutatnia kell, és az adatmegőrzésnek törölnie kell a régi sorokat. Döntés: „Push az appban és az elutasított bejegyzés”.
 
-- [ ] **M4-10 Médiafeltöltés az appban**
+- [x] **M4-10 Médiafeltöltés az appban**
   - Mit: a push után, egyesével; a `media_missing` és a helyi feltöltetlen lista alapján; újrapróbálás hálózati hibánál.
   - Kész, ha: Jest tesztek.
+  - Megjegyzés (2026-11-02): `src/sync/media.ts`, `src/photo/files.ts`. Új oszlop: `media.device_id`. A multipart fájlrésze az `expo-file-system` `File`-ja; a React Native `{ uri }` része az `expo/fetch`-csel nem megy (az emulátoros feltöltés mutatta meg, javítva, 2026-11-02). Döntés: „Médiafeltöltés az appban”.
 
-- [ ] **M4-11 Visszavont eszköz kezelése**
+- [x] **M4-11 Visszavont eszköz kezelése**
   - Mit: `device_revoked` válaszra `push-final` kötegekben, majd a fotók, végül a `done: true` kérés; utána a tokenek és a titok törlése, és az app „nincs hozzárendelve” állapotba lép.
   - Kész, ha: Jest teszt a folyamatra.
+  - Megjegyzés (2026-11-02): `src/sync/revocation.ts`. A `device.revoked` jelző után a láncíró nem ír. **Az M5-06-nak** a belépőképernyőn meg kell tartania a `replaced` üzenetet (`useSyncStatus`). **Az M6-nak** kezelnie kell a csere miatt nyitva maradt műszakot. Döntés: „A visszavont telefon”.
 
-- [ ] **M4-12 Helyi takarítás**
+- [x] **M4-12 Helyi takarítás**
   - Mit: a nyugtázott bejegyzések és a feltöltött fotók törlése 7 nap után; a lánc utolsó eleme (`last_hash`) mindig megmarad. A `media` sor nélküli fotófájlok (a dokumentumok `media/` mappájában, pl. az app leállt egy félbehagyott kézi rögzítés közben) is törlődnek, ha legalább egy naposak (M3-21).
   - Kész, ha: Jest teszt.
   - Spec: Szinkron protokoll / Push és média; Adatmegőrzés.
+  - Megjegyzés (2026-11-02): `src/sync/cleanup.ts`, sikeres szinkron után, legfeljebb naponta. Döntés: „Helyi takarítás”.
 
 - [ ] **M4-13 Elfogadás**: tesztek a gap, fork, bad_hmac és idempotencia esetekre (backend és app); 2 óra repülőgép-üzemmód után minden adat hibátlanul a szerverre kerül, `verify_status = ok`; `device-test.md` frissítve (repülőgép-üzemmód, telefoncsere).
+  - Megjegyzés (2026-11-02): **nyitott a telefonos vagy emulátoros futás** (`device-test.md`, „M4 – Elfogadás”, R1–R7, T1–T4). Kész: az app és a backend tesztjei, a `device-test.md`, és egy Node-folyamatból, HTTP-n át futtatott próba a valódi backend ellen (431 bejegyzés és 7 fotó mind `ok`; `push-final`; `bad_hmac`, `chain_fork`, `chain_gap`). Döntés: „Az M4-13 pipája”.
 
 ---
 
@@ -614,7 +625,7 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
 Ezeket célszerű a megfelelő feladat előtt eldönteni és a `decisions.md`-be írni.
 
 - **Q1 – Képernyők és útvonalak eltérése.** A design (`SCREENS.md`) más route-neveket használ (pl. `/(guard)/pin` vs. a specifikáció `(auth)/pin`-je, `/supervisor/...` vs. `(supervisor)/...`), és olyan képernyőket is tartalmaz, amelyek a specifikációban nincsenek: Műszakkezdés (G2), Ébresztés (G4), Kör térképpel (G6), Kör részletei (S4), Betanítás – pont adatai (S6). Melyik a mérvadó, és melyik képernyő tartozik az 1. lépcsőbe? Az S4-hez a szervertől lekért kör- és leolvasásadat is kellene, amire most nincs végpont. **Részben eldöntve (2026-10-28): az útvonalak a specifikáció csoportjai és nevei szerint; a csak a designban szereplő képernyőkről a saját feladatuknál (M3-30, M3-32, M3-34, M5-13, M5-20) születik döntés; részletek: `docs/decisions.md`. A G2 (Műszakkezdés) az 1. lépcsőbe tartozik (2026-10-29, M3-30). A G4 (Ébresztés) is (2026-10-30, M3-32). A G6 (Kör térképpel) is (2026-10-30, M3-34).**
-- **Q2 – Diagnosztikai esemény `chain_gap` / `chain_fork` esetén.** A specifikáció szerint az app „diagnosztikai eseményt küld”, de erre nincs se bejegyzéstípus, se végpont, és maga a lánc a hibás. Javaslat: egy külön, láncon kívüli `POST /devices/diagnostics` végpont (séma: M4-01).
+- **Q2 – Diagnosztikai esemény `chain_gap` / `chain_fork` esetén.** A specifikáció szerint az app „diagnosztikai eseményt küld”, de erre nincs se bejegyzéstípus, se végpont, és maga a lánc a hibás. Javaslat: egy külön, láncon kívüli `POST /devices/diagnostics` végpont (séma: M4-01). **Eldöntve (2026-11-02, M4-09): a javaslat szerint, `waypost-schema` 0.4.0-ban; részletek: `waypost-schema/docs/decisions.md`, `docs/decisions.md`.**
 - **Q3 – Törlések a pullban.** A `deleted` listához tudni kell, mi törlődött. Soft delete (`deleted_at`) csak a `users` és a `sites` táblán van; a `checkpoints`, `routes` és `schedules` táblán csak `active` mező van. Javaslat: `deleted_at` minden szinkronizált táblára, vagy egy közös törlésnapló-tábla. **Eldöntve (2026-10-28): `deleted_at` (soft delete) és `updated_at` minden szinkronizált táblán; részletek: `laravel-waypost/docs/decisions.md`.**
 - **Q4 – Idempotencia-kulcsok tárolása.** Az adatmodellben nincs rá tábla. Javaslat: `waypost_idempotency_keys` (M2-04). **Eldöntve (2026-10-28): a javaslat szerint, hívónként egyedi kulccsal; részletek: `laravel-waypost/docs/decisions.md`.**
 - **Q5 – DST-szabály a menetrendben.** Mi legyen a tavaszi váltáskor nem létező (02:30) és az őszi váltáskor kétszer előforduló helyi időponttal? És az intervallum lépései faliórás időpontok (20:00, 21:00 … helyi idő szerint) vagy valós eltelt percek? Javaslat: faliórás időpontok; a nem létező időpontot a váltás utáni első érvényes időre toljuk, a kétszer előfordulónál az elsőt vesszük. Ez a tesztvektorokat (M0-08) is meghatározza. **Eldöntve (2026-10-27): a javaslat szerint; részletek: `waypost-schema/docs/decisions.md`.**

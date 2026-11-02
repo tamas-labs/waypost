@@ -5,6 +5,8 @@ import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 
 import { createApiClient, type ApiClient } from '@/api/client';
 import { apiBaseUrl } from '@/api/config';
+import { push, pushFinal } from '@/api/endpoints';
+import { isApiError } from '@/api/errors';
 import { getDeviceCredentials, getSupervisorToken } from '@/device/credentials';
 import { whileInForeground } from '@/device/foreground';
 import { useSession } from '@/auth/session';
@@ -15,9 +17,13 @@ import { readClock } from '@/time/clock';
 import { nowTimestamp } from '@/time/timestamp';
 import { trustedTime } from '@/time/trusted-time';
 
+import { cleanUpIfDue } from './cleanup';
 import { createSyncController, type SyncController, type SyncOutcome, type SyncStep, type SyncTrigger } from './controller';
+import { uploadPhotos } from './media';
 import { countPending } from './pending';
 import { pullConfiguration } from './pull';
+import { pushChainEntries, sendPendingDiagnostic, type SendBatch } from './push';
+import { closeUpload, forgetDevice, isRevoked, markRevoked } from './revocation';
 import { setSyncNowHandler, syncErrorKind, useSyncStatus } from './status';
 
 /** Every 5 minutes while the app is in the foreground. */
@@ -29,6 +35,12 @@ export interface SyncContext {
   /** The device token on the site phone (a supervisor acting there too), the supervisor token on their own phone. */
   token: string;
   mode: 'site_phone' | 'supervisor_phone';
+  /** The site phone's ID; null on a supervisor's own phone, which has no chain. */
+  deviceId: string | null;
+  /** The server has revoked this site phone: this sync is part of its last upload (revocation.ts). */
+  revoked: boolean;
+  /** The photos the push responses of this sync asked for. */
+  mediaMissing: Set<string>;
 }
 
 /** The context of a sync; null while the phone is not enrolled or has no API address. */
@@ -39,15 +51,33 @@ export async function syncContext(db: Database): Promise<SyncContext | null> {
   if (baseUrl === null) return null;
   const token = mode === 'site_phone' ? ((await getDeviceCredentials())?.token ?? null) : await getSupervisorToken();
   if (token === null) return null;
-  return { db, api: createApiClient({ baseUrl }), token, mode };
+  const deviceId = mode === 'site_phone' ? getKv(db, 'device.id') : null;
+  if (mode === 'site_phone' && deviceId === null) return null;
+  return { db, api: createApiClient({ baseUrl }), token, mode, deviceId, revoked: isRevoked(db), mediaMissing: new Set() };
 }
 
-/** The steps in the controller's order; push and media come in M4, the outbox in M5. */
+/**
+ * The steps in the controller's order; the outbox comes in M5. On a revoked phone they are its last upload: the batches
+ * go to push-final, the photos as always, its outbox calls cannot go any more, and instead of a pull the upload closes.
+ */
 export const syncSteps: Record<SyncStep, (context: SyncContext) => Promise<void>> = {
-  push: async () => {},
-  media: async () => {},
+  push: async ({ db, api, token, deviceId, revoked, mediaMissing }) => {
+    if (deviceId === null) return;
+    const send: SendBatch = (entries) =>
+      revoked ? pushFinal(api, token, { device_id: deviceId, entries, done: false }) : push(api, token, { device_id: deviceId, entries });
+    await pushChainEntries({ db, deviceId, mediaMissing }, send);
+    await sendPendingDiagnostic(db, api, token);
+  },
+  media: async ({ db, api, token, deviceId, mediaMissing }) => {
+    if (deviceId !== null) await uploadPhotos({ db, api, token, deviceId, mediaMissing });
+  },
   outbox: async () => {},
-  pull: async ({ db, api, token }) => {
+  pull: async ({ db, api, token, deviceId, revoked }) => {
+    if (revoked && deviceId !== null) {
+      await closeUpload(api, token, deviceId);
+      await forgetDevice(db);
+      return;
+    }
     await pullConfiguration(db, api, token);
   },
 };
@@ -72,6 +102,11 @@ function finished(db: Database, outcome: SyncOutcome): void {
     const lastSuccessAt = trustedTime(db, readClock()).time;
     setKv(db, 'sync.last_success_at', lastSuccessAt);
     useSyncStatus.setState({ running: false, pendingCount, lastSuccessAt, lastError: null });
+    try {
+      cleanUpIfDue(db);
+    } catch (error) {
+      console.error('The local cleanup failed', error);
+    }
   } else if (outcome.status === 'failed') {
     const { step, error } = outcome;
     if (__DEV__) console.warn(`Sync failed at ${step ?? 'context'}`, error);
@@ -87,6 +122,20 @@ function finished(db: Database, outcome: SyncOutcome): void {
   }
 }
 
+/**
+ * The server has revoked this site phone. At the first such answer the last upload starts. The same answer during the
+ * upload means it is closed already (an earlier done: true whose response was lost): there is nothing more to send.
+ */
+function followRevocation(db: Database, outcome: SyncOutcome, sync: SyncController): void {
+  if (outcome.status !== 'failed' || !isApiError(outcome.error, 'device_revoked') || useSession.getState().mode !== 'site_phone') return;
+  if (isRevoked(db)) {
+    forgetDevice(db).catch((error: unknown) => console.error('Forgetting the revoked device failed', error));
+  } else {
+    markRevoked(db);
+    void sync.sync('revoked');
+  }
+}
+
 function isOnline(state: NetInfoState): boolean {
   return state.isConnected === true && state.isInternetReachable !== false;
 }
@@ -99,7 +148,10 @@ export function startSync(db: Database): () => void {
     context: () => syncContext(db),
     steps: syncSteps,
     onStart: () => useSyncStatus.setState({ running: true }),
-    onFinish: (outcome) => finished(db, outcome),
+    onFinish: (outcome) => {
+      finished(db, outcome);
+      followRevocation(db, outcome, sync);
+    },
   });
   controller = sync;
   setSyncNowHandler(() => sync.sync('manual'));
@@ -108,6 +160,7 @@ export function startSync(db: Database): () => void {
     pendingCount: countPending(db).total,
     lastSuccessAt: getKv(db, 'sync.last_success_at'),
     lastError: null,
+    replaced: false,
   });
 
   const stopForeground = whileInForeground(

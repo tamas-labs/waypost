@@ -39,6 +39,8 @@ export interface SyncStatus {
   lastSuccessAt: Timestamp | null;
   /** Error of the last sync; cleared by the next successful one. */
   lastError: SyncError | null;
+  /** This phone has just stopped being the site phone, because another one replaced it (M4-11). */
+  replaced: boolean;
   /** "Sync now": a sync right away (after the running one, if any). */
   syncNow: () => Promise<SyncOutcome>;
 }
@@ -56,6 +58,7 @@ export const useSyncStatus = create<SyncStatus>(() => ({
   pendingCount: 0,
   lastSuccessAt: null,
   lastError: null,
+  replaced: false,
   syncNow: () => syncNowHandler(),
 }));
 

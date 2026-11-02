@@ -1,5 +1,6 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
 import { renderRouter } from 'expo-router/testing-library';
+import { useSyncStatus } from '@/sync/status';
 
 import { raiseAlarm, useActiveAlarms } from '@/alarms/active-alarms';
 import { alarmIdentifier, ROUND_ALARM_KIND, type RoundAlarmData } from '@/alarms/round-alarms';
@@ -102,6 +103,16 @@ describe('navigation by start state', () => {
     await start({ mode: 'unassigned', activeUser: null });
     expect(screen).toHavePathname('/login');
     expect(screen.getByText('Supervisor belépés')).toBeOnTheScreen();
+  });
+
+  it('tells a phone that has just been replaced why it is at the login', async () => {
+    useSyncStatus.setState({ replaced: true });
+    await start({ mode: 'unassigned', activeUser: null });
+    expect(screen).toHavePathname('/login');
+    expect(
+      screen.getByText('Ezt a telefont egy másik váltotta fel a telephelyen. Az adatait feltöltötte, és már nincs telephelyhez rendelve.'),
+    ).toBeOnTheScreen();
+    useSyncStatus.setState({ replaced: false });
   });
 
   it('sends the site phone to the PIN login', async () => {

@@ -7,7 +7,7 @@ import { Platform } from 'react-native';
 import type { ApiClient } from '@/api/client';
 import { enrollDevice, logout } from '@/api/endpoints';
 import type { Database } from '@/db/database';
-import { deleteKv, setKv } from '@/db/kv';
+import { deleteDeviceSyncState, setKv } from '@/db/kv';
 import { devices } from '@/db/schema';
 
 import { deleteSupervisorToken, setDeviceCredentials } from '@/device/credentials';
@@ -34,7 +34,7 @@ export async function saveEnrollment(db: Database, { device, token, secret }: De
     tx.delete(devices).run();
     tx.insert(devices).values(device).run();
     setKv(tx, 'device.id', device.id);
-    deleteKv(tx, 'sync.cursor');
+    deleteDeviceSyncState(tx);
   });
 }
 

@@ -1,3 +1,4 @@
+import type { DeviceDiagnosticRequest } from '@waypost/schema';
 import { eq } from 'drizzle-orm';
 
 // Types only: what the keys hold. The database does not depend on the domain or the theme when it runs.
@@ -22,10 +23,18 @@ export interface KvValues {
   'sync.time_ref': TimeReference;
   /** Trusted time (time/trusted-time.ts) when the last sync finished without an error. */
   'sync.last_success_at': string;
+  /** The highest seq the server has rejected (sync/push.ts): the entries up to it are not sent again. */
+  'sync.rejected_through_seq': number;
+  /** The report of the rejected entries until the server has it (sync/push.ts). */
+  'sync.pending_diagnostic': DeviceDiagnosticRequest;
+  /** Trusted time of the last local cleanup (sync/cleanup.ts). */
+  'sync.last_cleanup_at': string;
   /** Wrong PINs and the running lock (domain/pin-lockout.ts). */
   'pin.lockout': PinLockout;
   /** ID of this phone as the site phone (devices.id); absent while not enrolled. */
   'device.id': string;
+  /** The server answered device_revoked: no more chain entries, the last upload is running (sync/revocation.ts). */
+  'device.revoked': true;
   /** The manual theme choice (System / Dark / Light, theme/preference.ts); absent = follow the system. */
   'ui.theme_preference': ThemePreference;
   /** Development builds only: API base URL entered on the developer enrollment screen. */
@@ -45,4 +54,10 @@ export function setKv<K extends KvKey>(db: Database, key: K, value: KvValues[K])
 
 export function deleteKv(db: Database, key: KvKey): void {
   db.delete(kv).where(eq(kv.key, key)).run();
+}
+
+/** Deletes what the sync keeps about the phone's enrollment: the next device, or none, starts over. */
+export function deleteDeviceSyncState(db: Database): void {
+  const keys: KvKey[] = ['device.revoked', 'sync.cursor', 'sync.rejected_through_seq', 'sync.pending_diagnostic'];
+  for (const key of keys) deleteKv(db, key);
 }

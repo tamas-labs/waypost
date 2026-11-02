@@ -193,7 +193,8 @@ const SYNCED_LISTS: { [K in keyof Changes]: SyncedList<K> } = {
 
 const LISTS = Object.keys(SYNCED_LISTS) as (keyof Changes)[];
 
-function deleteConfiguration(tx: Database): void {
+/** Deletes the local configuration: before a full state, and when the phone stops being a site phone. */
+export function deleteConfiguration(tx: Database): void {
   for (const list of LISTS) SYNCED_LISTS[list].clear?.(tx);
 }
 

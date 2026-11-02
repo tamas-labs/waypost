@@ -1,4 +1,5 @@
 import { ApiError, InvalidResponseError, NetworkError } from '@/api/errors';
+import { setKv } from '@/db/kv';
 import { chainEntries, media, outbox } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 
@@ -27,6 +28,7 @@ describe('sync status', () => {
 
   it('counts unacknowledged chain entries, photos not uploaded and outbox calls as pending', async () => {
     const { db } = await createTestDatabase();
+    setKv(db, 'device.id', '019a2b3c-4d5e-7f00-8a00-000000000004');
     expect(countPending(db)).toEqual({ chain_entries: 0, media: 0, outbox: 0, total: 0 });
 
     const entry = {

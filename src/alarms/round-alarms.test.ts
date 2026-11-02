@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { AppState, type AppStateStatus } from 'react-native';
 
+import { useSession } from '@/auth/session';
 import { appendChainEntries } from '@/chain/writer';
 import type { Database } from '@/db/database';
 import { deleteKv, setKv } from '@/db/kv';
@@ -200,6 +201,23 @@ describe('round alarm triggers', () => {
     emitConfigurationPulled({} as PullSummary);
     await flush();
     expect(reschedules()).toBe(before + 4);
+  });
+
+  it('follow the device mode: a revoked phone rings no more', async () => {
+    useSession.setState({ mode: 'site_phone' });
+    const stop = startRoundAlarms(db);
+    await flush();
+    expect(roundAlarms()).toHaveLength(24);
+
+    deleteKv(db, 'device.id');
+    useSession.setState({ activeUser: { id: 'u', role: 'guard' } });
+    await flush();
+    expect(roundAlarms()).toHaveLength(24);
+
+    useSession.setState({ mode: 'unassigned' });
+    await flush();
+    expect(roundAlarms()).toHaveLength(0);
+    stop();
   });
 
   it('merge the requests made while a rescheduling runs into one more', async () => {

@@ -9,6 +9,7 @@ import type { Database } from '@/db/database';
 import { deleteKv, getKv, setKv } from '@/db/kv';
 import { createTestDatabase } from '@/db/testing';
 
+import * as cleanup from './cleanup';
 import { FOREGROUND_SYNC_INTERVAL_MS, requestSync, startSync, syncContext, syncSteps, type SyncContext } from './runtime';
 import { useSyncStatus } from './status';
 
@@ -32,6 +33,7 @@ beforeEach(async () => {
   jest.useFakeTimers({ now: Date.UTC(2026, 9, 27, 20, 0, 0) });
   ({ db } = await createTestDatabase());
   setKv(db, 'dev.api_base_url', BASE_URL);
+  setKv(db, 'device.id', 'd');
   pulls = [];
   jest.spyOn(syncSteps, 'pull').mockImplementation(async (context) => {
     pulls.push(context);
@@ -83,15 +85,15 @@ describe('sync runtime', () => {
   });
 
   it('records a failed sync as the last error', async () => {
-    jest.mocked(syncSteps.pull).mockRejectedValue(new ApiError(401, 'device_revoked', 'A telefont visszavonták.'));
+    jest.mocked(syncSteps.pull).mockRejectedValue(new ApiError(503, 'server_error', 'Karbantartás.'));
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     stop = startSync(db);
     await settle();
     expect(warn).toHaveBeenCalledWith('Sync failed at pull', expect.any(ApiError));
     expect(useSyncStatus.getState().lastError).toEqual({
-      kind: 'device_revoked',
+      kind: 'server',
       step: 'pull',
-      message: 'A telefont visszavonták.',
+      message: 'Karbantartás.',
       at: '2026-10-27T20:00:00.000Z',
     });
     expect(useSyncStatus.getState().lastSuccessAt).toBeNull();
@@ -108,6 +110,9 @@ describe('sync runtime', () => {
   it('has no context without an API address or a token', async () => {
     stop = () => {};
     expect(await syncContext(db)).toMatchObject({ token: 'device-token' });
+    deleteKv(db, 'device.id');
+    expect(await syncContext(db)).toBeNull();
+    setKv(db, 'device.id', 'd');
     await deleteDeviceCredentials();
     expect(await syncContext(db)).toBeNull();
     useSession.setState({ mode: 'supervisor_phone' });
@@ -117,6 +122,27 @@ describe('sync runtime', () => {
     expect(await syncContext(db)).toMatchObject({ token: 'supervisor-token', mode: 'supervisor_phone' });
     deleteKv(db, 'dev.api_base_url');
     expect(await syncContext(db)).toBeNull();
+  });
+
+  it('runs the local cleanup after a good sync, and a failing one does not hurt', async () => {
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(cleanup, 'cleanUpIfDue').mockImplementation(() => {
+      throw new Error('disk full');
+    });
+    stop = startSync(db);
+    await settle();
+    expect(cleanup.cleanUpIfDue).toHaveBeenCalledTimes(1);
+    expect(error).toHaveBeenCalledWith('The local cleanup failed', expect.any(Error));
+    expect(useSyncStatus.getState().lastError).toBeNull();
+  });
+
+  it('does not clean up after a failed sync', async () => {
+    jest.spyOn(cleanup, 'cleanUpIfDue').mockImplementation(() => {});
+    jest.mocked(syncSteps.pull).mockRejectedValue(new ApiError(503, 'server_error', 'Karbantartás.'));
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    stop = startSync(db);
+    await settle();
+    expect(cleanup.cleanUpIfDue).not.toHaveBeenCalled();
   });
 
   it('does not sync for what does not matter: the same app state, or a session with the same mode', async () => {

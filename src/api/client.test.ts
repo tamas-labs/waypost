@@ -1,9 +1,9 @@
-import type { SyncPullResponse } from '@waypost/schema';
+import type { MediaUploadRequest, SyncPullResponse } from '@waypost/schema';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { createApiClient } from './client';
-import { enrollDevice, login, pull } from './endpoints';
+import { enrollDevice, login, pull, uploadMedia } from './endpoints';
 import { ApiError, InvalidResponseError, isApiError, NetworkError } from './errors';
 
 const EXAMPLES = join(dirname(require.resolve('@waypost/schema/package.json')), 'examples', 'api');
@@ -23,6 +23,55 @@ function sentRequest(fetchMock: jest.Mock) {
 }
 
 describe('API client', () => {
+  it('sends a file as multipart, leaves the Content-Type with its boundary to the request, and waits longer', async () => {
+    jest.useFakeTimers();
+    const append = jest.spyOn(FormData.prototype, 'append');
+    const fetchMock = respond(200, example('media-upload.response/valid/uploaded'));
+    const api = createApiClient({ baseUrl: BASE_URL, fetch: fetchMock, validate: true, timeoutMs: 1000 });
+    const fields = example<MediaUploadRequest>('media-upload.request/valid/scan-photo');
+    const file = new Blob(['jpeg'], { type: 'image/jpeg' });
+
+    await uploadMedia(api, 'device-token', 'photo-id', fields, file);
+
+    const { url, init, headers } = sentRequest(fetchMock);
+    expect(url).toBe(`${BASE_URL}/media/photo-id`);
+    expect(init.method).toBe('PUT');
+    expect(init.body).toBeInstanceOf(FormData);
+    expect(headers['Content-Type']).toBeUndefined();
+    expect(headers['Idempotency-Key']).toMatch(UUID_V7);
+    expect(append.mock.calls).toEqual([...Object.entries(fields), ['file', file]]);
+    append.mockRestore();
+    jest.useRealTimers();
+  });
+
+  it('checks the text fields of a multipart body in development builds', async () => {
+    const api = createApiClient({ baseUrl: BASE_URL, fetch: respond(200, {}), validate: true });
+    const fields = { ...example<MediaUploadRequest>('media-upload.request/valid/scan-photo'), sha256: 'short' };
+    await expect(uploadMedia(api, 'token', 'id', fields, new Blob(['jpeg'], { type: 'image/jpeg' }))).rejects.toThrow(
+      /media-upload\.request/,
+    );
+  });
+
+  it("gives a request its own timeout instead of the client's", async () => {
+    jest.useFakeTimers();
+    const fetchMock = jest.fn(
+      (_url: Parameters<typeof fetch>[0], init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(new Error('aborted')))),
+    );
+    const api = createApiClient({ baseUrl: BASE_URL, fetch: fetchMock, validate: false, timeoutMs: 1000 });
+    const file = new Blob(['jpeg'], { type: 'image/jpeg' });
+    const outcome = uploadMedia(api, 'token', 'id', example<MediaUploadRequest>('media-upload.request/valid/scan-photo'), file).catch(
+      (error: unknown) => error,
+    );
+    let settled = false;
+    void outcome.then(() => (settled = true));
+    await jest.advanceTimersByTimeAsync(119_000);
+    expect(settled).toBe(false);
+    await jest.advanceTimersByTimeAsync(1_000);
+    expect(await outcome).toBeInstanceOf(NetworkError);
+    jest.useRealTimers();
+  });
+
   it('sends a GET with the Bearer token and the query, and returns the typed response', async () => {
     const body = example<SyncPullResponse>('sync-pull.response/valid/full-state');
     const fetchMock = respond(200, body);

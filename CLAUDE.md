@@ -35,18 +35,18 @@ src/
   guard/      # a domain és az adatbázis között: a GuardState betöltése, az ütemező futtató; testing.ts (a domain-fixture az adatbázisban)
   device/     # a telefon saját adatai és állapota, a domaintól függetlenül: tokenek és eszköztitok a secure store-ban (credentials.ts), készenlét (readiness.ts), előtér-figyelés és intervallum (foreground.ts)
   schema/     # JSON Schema-ellenőrzés fejlesztői módban (validation.ts, Ajv)
-  sync/       # pull, push, outbox, média
+  sync/       # pull, push (push.ts: kötegek, elutasítás, diagnosztika), média (media.ts), visszavont telefon (revocation.ts), helyi takarítás (cleanup.ts); outbox (M5); testing.ts: hamis API a tesztekhez
   chain/      # láncbejegyzés: kanonikus JSON, HMAC
   nfc/        # olvasás (reader.ts), Androidon az app-szintű figyelés (tag-events.ts), useTagReader a kör és a betanítás képernyőjére
   qr/ alarms/
   location/   # helyadat a leolvasáshoz (location.ts), saját helyzet a térképen (use-position.ts), térkép elérhetősége (maps.ts)
-  photo/      # fotó: tömörítés, SHA-256, fájl a dokumentumok media/ mappájában (a media sort a láncíró írja); use-photo-draft.ts: egy űrlap még nem rögzített fotói
+  photo/      # fotó: tömörítés, SHA-256, fájl a dokumentumok media/ mappájában (a media sort a láncíró írja); files.ts: a fájl helye az azonosítóból; use-photo-draft.ts: egy űrlap még nem rögzített fotói
   feedback/   # leolvasási visszajelzés: rezgés és hang (siker / hiba / figyelmeztetés)
   theme/      # tokens.ts (a design tokenjei), theme-provider.tsx: ThemeProvider, useTheme(), useThemePreference()
   i18n/       # hu.json (minden felirat), index.ts: t(key, params)
 modules/      # saját Expo-modulok: waypost-clock (getUptimeMs, getBootId, getGnssTimeMs), waypost-power (akkumulátor-optimalizálás, Android) – import: @modules/<név>
 __tests__/    # képernyőtesztek; a modulok tesztjei a modul mellett: src/<modul>/*.test.ts
-__mocks__/    # Jest: expo-secure-store memóriában, react-native-maps sima nézetekkel (automatikus); jest.setup.ts: expo-crypto véletlenforrás, NetInfo, react-native-quick-crypto (node:crypto), expo-audio
+__mocks__/    # Jest: expo-secure-store és expo-file-system memóriában, react-native-maps sima nézetekkel (automatikus); jest.setup.ts: expo-crypto véletlenforrás, NetInfo, react-native-quick-crypto (node:crypto), expo-audio
 assets/       # ikon, splash (egyelőre az Expo sablon helyőrzői), sounds/ (az ébresztés és a leolvasás hangjai, helyőrzők)
 ```
 

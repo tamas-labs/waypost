@@ -3,18 +3,18 @@
 // photo is shrunk to 1600 px on its longer side, saved as JPEG at 0.7 in the app's documents, and hashed (SHA-256).
 // Its media row is written with the entry that cites it (ChainWriterOptions.photos), and uploaded later (M4-10).
 import type { CameraView } from 'expo-camera';
-import { Directory, File, Paths } from 'expo-file-system';
+import { File } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 import type { PhotoFile } from '@/chain/payloads';
 import { uuidv7 } from '@/id/uuidv7';
 import { toTimestamp } from '@/time/timestamp';
 
+import { photoDirectory, photoFile } from './files';
+
 export const PHOTO_MAX_SIDE_PX = 1600;
 export const PHOTO_JPEG_QUALITY = 0.7;
 export const PHOTO_MIME = 'image/jpeg';
-/** Under the app's documents: kept until uploaded and cleaned up (M4-12), unlike the cache. */
-export const PHOTO_DIRECTORY = 'media';
 
 /** A picture as the camera saved it. */
 export interface CameraPicture {
@@ -49,10 +49,9 @@ export async function savePhoto(picture: CameraPicture, takenAtMs: number = Date
   deleteIfExists(picture.uri);
 
   const id = uuidv7();
-  const directory = new Directory(Paths.document, PHOTO_DIRECTORY);
-  directory.create({ idempotent: true, intermediates: true });
+  photoDirectory().create({ idempotent: true, intermediates: true });
   const file = new File(saved.uri);
-  file.moveSync(new File(directory, `${id}.jpg`));
+  file.moveSync(photoFile(id));
   return {
     id,
     sha256: await file.digest('SHA-256'),

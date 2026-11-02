@@ -111,7 +111,9 @@ describe('the indicator', () => {
     await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Szinkronhiba · újra' })));
     expect(screen.getByText('Még nem volt szinkron')).toBeOnTheScreen();
     expect(screen.getByText('Nincs feltöltésre váró tétel')).toBeOnTheScreen();
-    expect(screen.getByText('Ezt a telefont egy másik váltotta fel a telephelyen.')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Ezt a telefont egy másik váltotta fel a telephelyen. A rögzített adatok feltöltése folyamatban.'),
+    ).toBeOnTheScreen();
 
     await act(() => useSyncStatus.setState({ running: true }));
     expect(screen.getByRole('button', { name: 'Szinkronizálás…' })).toBeDisabled();

@@ -16,6 +16,8 @@ Hogyan használd:
 | | M1 | iPhone: | | | |
 | | M3 | Android: | | | |
 | | M3 | iPhone: | | | |
+| | M4 | Android: | | | |
+| | M4 | iPhone: | | | |
 
 ## Ellenőrzések
 
@@ -160,7 +162,7 @@ Sablon (egy futáshoz másold le, és a fejlécbe írd a dátumot és a mérföl
 | --- | --- | --- |
 | V1 | Megnyitás egy pont mellett, helyengedéllyel. | A sorban idő, „Legközelebbi pont: …”, „GPS ±N m”. A „Mentés” kategória nélkül inaktív, csak kategóriával is aktív. |
 | V2 | Öt fotó, törlés, megjegyzés nyitott billentyűzettel, iOS-en és Androidon. | Az ötödik után nincs több csempe; a mező és a gomb nem kerül a billentyűzet alá. |
-| V3 | Mentés repülőgép üzemmódban. | Vissza az előző képernyőre, felül „Esemény mentve – feltöltésre vár”, ami kb. 3 mp után eltűnik, és közben nem fog fel érintést. A szinkronjelzőn a várakozó tételek száma nő (a feltöltés az M4-ben készül el). |
+| V3 | Mentés repülőgép üzemmódban. | Vissza az előző képernyőre, felül „Esemény mentve – feltöltésre vár”, ami kb. 3 mp után eltűnik, és közben nem fog fel érintést. A szinkronjelzőn a várakozó tételek száma nő, hálózat után a fotó és a bejegyzés feltöltődik, és a szám lenullázódik. |
 | V4 | Leolvasás után „Esemény ennél a pontnál”. | A sorban „Pont: …” a leolvasott ponttal; mentés után vissza a körre. |
 | V5 | Ébresztés nyitott kameránál; a határidő lejárta a kör képernyőjén. | A kamera bezárul, az űrlap adatai megvannak. A kör képernyője visszalép, és toast mondja a zárult kör állapotát. |
 
@@ -170,7 +172,7 @@ Sablon (egy futáshoz másold le, és a fejlécbe írd a dátumot és a mérföl
 | --- | --- | --- |
 | Z1 | Megnyitás néhány kör után. | Fejléc: név, kezdés – most; a három szám egyezik az idővonallal; az események és a nem igazolt pontok száma helyes. |
 | Z2 | Megnyitás nyitott körrel. | Figyelmeztető sáv a pontok számával és a záró állapottal; zárás után a kör ilyen állapotú. |
-| Z3 | Repülőgép üzemmódban, majd hálózattal. | „N tétel vár feltöltésre” sáv; a szám a szinkronjelzőével azonos. A feltöltés az M4-ben készül el, addig a sáv nem tűnik el. |
+| Z3 | Repülőgép üzemmódban, majd hálózattal. | „N tétel vár feltöltésre” sáv; a szám a szinkronjelzőével azonos. Hálózat után a tételek feltöltődnek, és a sáv eltűnik. |
 | Z4 | Hibás PIN, másik őr PIN-je, több hibás próba. | „Hibás PIN-kód”, rázás, két rövid rezgés; a műszak nem zárul; zárolásnál visszaszámlálás, a számlap tiltott. |
 | Z5 | Saját PIN; ébresztés nyitott PIN-lapnál. | A PIN-képernyő jön, és nem mutat műszakot. Ébresztésnél a lap utat enged, utána visszatér. |
 
@@ -188,7 +190,27 @@ Előtte: friss `waypost-schema` (M3-39), a telefon hozzárendelve, a címkék be
 | F6 | Egy kört félbehagyni, egyet teljesen kihagyni. | A határidőnél „Hiányos”, illetve „Elmaradt”, toast a kör képernyőjén. |
 | F7 | Esemény rögzítése fotóval. | Toast, a záró képernyőn az eseményszám nő. |
 | F8 | Újraindítás műszak közben. Külön figyeld: ha a műszak szerveridővel indult, újraindítás után hálózat nélkül és rossz órával a műszak ideje és a „most” eltérhet (`decisions.md`, 2026-11-01). | A műszak folytatódik, a kimaradt kör eredeti időponttal megnyílik, az ébresztések újraütemeződnek. |
-| F9 | Zárás PIN-nel az óra végén, majd a repülőgép üzemmód kikapcsolása. | Az összegzés egyezik a történtekkel. Hálózat után a pull lefut; a lánc feltöltése az M4-ben készül el, addig a tételek a helyi sorban várnak. |
+| F9 | Zárás PIN-nel az óra végén, majd a repülőgép üzemmód kikapcsolása. | Az összegzés egyezik a történtekkel. Hálózat után a lánc és a fotók feltöltődnek, utána lefut a pull. |
+
+### M4 – Elfogadás: feltöltés hosszú offline után, telefoncsere (M4-13; `laravel-waypost`: `composer serve`, „Demó telephely”)
+
+Előtte: a telefon hozzárendelve, az első pull lefutott. A **szerveren** ellenőrizd (`waypost_chain_entries`, `waypost_media`, `waypost_devices`, `waypost_device_diagnostics`). Figyelem: a `composer serve` törli és újraépíti a `waypost` adatbázist; ha az adataid kellenek, `vendor/bin/testbench migrate` és `vendor/bin/testbench serve`.
+
+Emulátoron az R1–R6 és a T1–T4 futtatható, kézi rögzítéssel és a virtuális kamerával. NFC-hez és az F2-höz valódi telefon kell. Repülőgép-üzemmód emulátoron: `adb shell cmd connectivity airplane-mode enable`, illetve `disable`. A 10.0.2.2 a Windows gép; WSL-ből a Metro `npm start -- --localhost`.
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| R1 | Repülőgép-üzemmód, műszakkezdés, 2 óra körökkel (5 perces menetrend): leolvasás vagy kézi rögzítés, legalább 2 esemény fotóval, zárás PIN-nel. | Minden működik hálózat nélkül; a szinkronjelzőn a várakozó tételek száma nő. |
+| R2 | Repülőgép-üzemmód kikapcsolása, az app előtérben. | Pár másodpercen belül „Feltöltés…”, majd a szám lenullázódik, és a részleteknél friss az utolsó szinkron. |
+| R3 | A szerveren: `SELECT verify_status, COUNT(*) FROM waypost_chain_entries WHERE device_id = '…' GROUP BY verify_status`. | Csak `ok`, a darabszám és a `last_seq` a telefon utolsó `seq`-je. Ha 200-nál több bejegyzés várt, köteg szerint érkeztek. |
+| R4 | A szerveren: `waypost_media` és a fájlok. | Minden fotónál `uploaded_at`, és a `waypost/media/<id>.jpg` fájl lenyomata egyezik a `sha256`-tal. |
+| R5 | A szerveren: `projected_at`, `waypost_shifts`, `waypost_rounds`, `waypost_scans`. | Nincs `projected_at = null`; a műszak zárt, a körök állapota a telefonéval azonos. |
+| R6 | Feltöltés közben szakítsd meg a hálózatot, majd add vissza; külön próbaként állítsd le az appot feltöltés közben. | A feltöltés onnan folytatódik, nincs duplikált sor, a végén minden `ok`. |
+| R7 | Az óra kézi átállítása (Á3) repülőgép-üzemmódban, leolvasás, majd szinkron. | A bejegyzésen `time_suspect`, `ok` állapottal. |
+| T1 | Telefoncsere: a régi telefonon offline rögzítés (fotóval is), közben egy másik telefon hozzárendelése ugyanahhoz a telephelyhez (emulátorban elég a backend: `POST /devices/enroll`), majd a régin hálózat. | A régi telefon a `push-final`-lal feltölti a láncot és a fotókat. A szerveren minden `ok`, a `upload_closed_at` kitöltve. |
+| T2 | A régi telefon a feltöltés után. | A belépőképernyőn: „Ezt a telefont egy másik váltotta fel…”. Nincs több ébresztés, a régi tokennel a szerver `401 device_revoked`-et ad. |
+| T3 | T1 közben szakadjon meg a hálózat, vagy indítsd újra az appot. | A következő szinkron folytatja, és csak utána lép ki. Ezalatt új rögzítés nem megy, a szinkronjelző mutatja az okot. |
+| T4 | Ugyanennek a telefonnak az újbóli hozzárendelése (`/dev/enroll`). | Új lánc 1-től; a régi műszak és körök nem látszanak; a várakozó tételek száma 0-ról indul. |
 
 ### ÉÉÉÉ-HH-NN – M1
 

@@ -8,7 +8,8 @@ export type SyncStep = 'push' | 'media' | 'outbox' | 'pull';
 export const SYNC_STEPS: readonly SyncStep[] = ['push', 'media', 'outbox', 'pull'];
 
 /** Why a sync was requested (for logs and tests; every trigger runs the same sync). */
-export type SyncTrigger = 'start' | 'foreground' | 'online' | 'interval' | 'chain_entry' | 'shift_closed' | 'session' | 'manual';
+export type SyncTrigger =
+  'start' | 'foreground' | 'online' | 'interval' | 'chain_entry' | 'shift_closed' | 'session' | 'manual' | 'revoked';
 
 export type SyncOutcome =
   | { status: 'ok' }
