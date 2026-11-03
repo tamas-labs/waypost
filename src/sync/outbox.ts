@@ -2,7 +2,7 @@
 // its REST calls in the same transaction; the sync sends them one by one in FIFO order, after the push and the photos,
 // before the pull. A call keeps its Idempotency-Key over its retries, and a create carries the id the app generated, so
 // a repeated call is recognised by the server (M5-02). What the server answers decides:
-// - 2xx: the call is done, the records of the response are stored;
+// - 2xx: the call is done, the records of the response are stored (and a full state of the next minute keeps them);
 // - 401: the call waits, the sync fails (the token is not accepted, or the phone is revoked);
 // - 429, network error, 5xx: retried later with exponential backoff, the sync fails;
 // - 409 with Retry-After: the same call is still running on the server, retried after that;
@@ -27,6 +27,7 @@ import { photoFile } from '@/photo/files';
 import { nowTimestamp, toTimestamp } from '@/time/timestamp';
 
 import { emitOutboxQueued } from './events';
+import { rememberConfirmed } from './confirmed';
 import { storeServerRecords } from './pull';
 import { useSyncStatus } from './status';
 
@@ -155,6 +156,7 @@ function succeeded(db: Database, row: OutboxRow, data: unknown): void {
     } else {
       storeServerRecords(tx, responseRecords(row.response_schema, data));
     }
+    rememberConfirmed(tx, row.record_ids, (data as { server_time: Timestamp }).server_time);
   });
 }
 

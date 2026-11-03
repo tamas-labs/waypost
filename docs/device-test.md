@@ -18,6 +18,8 @@ Hogyan használd:
 | | M3 | iPhone: | | | |
 | | M4 | Android: | | | |
 | | M4 | iPhone: | | | |
+| | M5 | Android: | | | |
+| | M5 | iPhone: | | | |
 
 ## Ellenőrzések
 
@@ -163,6 +165,23 @@ Supervisor belépéssel a saját telefonon (ill. a J6-hoz PIN-nel a telephelyi t
 | J26 | (M5-19) A telephely részletein „Jelentések”: kapcsold be a „Napi összesítő”-t, ki a „Műszakjelentés”-t, a „Ha nem jön adat a telephelyről” sorban válassz „4 óra”-t; „Mentés”. Sötét és világos témában, nagy betűmérettel is. | A fejlécben „Címzett: <e-mail cím>”; a „Mentés” csak módosítás után nyomható, mentés nélkül kilépve megerősítést kér. Mentés után vissza a telephelyre, a sorban „Napi · <e-mail cím>”; a szerveren (admin felület) a feliratkozások és a telephely 240 perces figyelmeztetése ugyanaz. |
 | J27 | (M5-19) Kapcsold be a „Havi összesítő”-t (még mentés nélkül), majd ki; egy másik supervisor fiókjával iratkozz fel a havira a webes felületen, és szinkronizálj. | A megőrzési sáv a kapcsolóval együtt vált: „31 nap. Havi jelentésnél 62 napra nő” ↔ „62 nap, mert a telephelyről havi jelentés is megy”; a másik supervisor havi jelentése után a saját kapcsoló kikapcsolva is 62 napot mutat. |
 | J28 | (M5-19) A telephelyi telefonon (PIN-nel belépett supervisor), repülő üzemmódban: kapcsolj be egy jelentést, „Mentés”; utána kapcsold vissza a hálózatot. | A fejlécben „Címzett: <név>”; a mentés hálózat nélkül is megtörténik, a sorban azonnal látszik; a hálózat visszatérése után a szerveren a supervisor nevében megvan. |
+
+### M5 – Elfogadás: telephely csak a telefonról (M5-21; `laravel-waypost` friss telepítése, egy supervisorral; fejlesztői build)
+
+Egy új telephely minden beállítása a supervisor saját telefonján, a webes felület nélkül; a szerveren csak ellenőrzünk. Két telefon kell: a supervisor sajátja, amely a végén telephelyi telefon lesz (L7), és egy második, amelyen ugyanaz a supervisor belép (L6); emulátoron is mehet, NFC helyett QR-címkékkel. Repülőgép-üzemmód emulátoron: `adb shell cmd connectivity airplane-mode enable`, ill. `disable`.
+
+Ugyanez a folyamat a telefon nélkül, a futó backend ellen automatikusan is lefut (a felületet nem nézi, csak az app moduljait és a szerver állapotát): `make e2e E2E_URL=http://localhost:8088/api/waypost/v1` (a `__tests__/e2e/site-setup.e2e.test.ts`; minden futás egy új telephelyet hagy a szerveren, és a supervisor PIN-jét újra cseréli).
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| L1 | Supervisor belépés, majd repülőgép-üzemmód. „Új telephely” névvel és címmel. | A telephely a listán; a szinkronjelzőn a várakozó tételek száma nő. |
+| L2 | Még offline: „Új útvonal betanítása”, három új címke (NFC vagy QR), név, mentés (J1–J5). Utána az útvonal szerkesztése: egy pont utasítása, a sorrend „Kötött” (J10–J16). | Minden hálózat nélkül megy; a betanított pontok és az útvonal a telephely részletein. |
+| L3 | Még offline: menetrend az útvonalhoz (J17), egy új őr PIN-nel (J21), a saját PIN-kód (J24), jelentések: műszak és heti, a figyelmeztetés „4 óra” (J26). | Minden mentés hálózat nélkül megtörténik, a képernyők azonnal az új állapotot mutatják. |
+| L4 | Kapcsold ki a repülőgép-üzemmódot, az app előtérben. | Pár másodpercen belül feltöltődik minden, a várakozó tételek száma 0; elutasítás nincs. **A telephely, az őr és a feliratkozások a szinkron után sem tűnnek el egy pillanatra sem** (a szerver az utolsó 5 mp változásait a következő pullra hagyja, a teljes állapot ezeket nem törli). |
+| L5 | A szerveren (adatbázis vagy admin felület): a telephely, a pontok, az útvonal 2. verziója, a menetrend, az őr a telephelyhez rendelve, a feliratkozások. | Mind megvan, a telefonon megadott adatokkal (a telephely `no_data_alert_after_min` = 240). |
+| L6 | A második telefonon (vagy újratelepítés után) ugyanaz a supervisor belép. | A teljes pull után a telephely ugyanazokkal a pontokkal, útvonallal, menetrenddel, őrrel és feliratkozásokkal látszik. |
+| L7 | Az első telefonon a telephely részletein „Telefon hozzárendelése” → „Hozzárendelés”; majd belépés az őr PIN-jével, kilépés, belépés a saját PIN-nel. | A hozzárendelés után azonnal a „PIN-belépés”, és **már az első pull után** be lehet lépni (nincs „nincs hozzárendelve” hiba); az őr és a supervisor is a hálózat nélkül megadott PIN-jével lép be. |
+| L8 | A telephelyi telefonon, PIN-nel belépett supervisorként, repülőgép-üzemmódban: egy őrnek új PIN-kód (J22), egy jelentés bekapcsolása (J28); utána a hálózat vissza. | Az őr a szinkron előtt is már csak az új PIN-nel lép be; a hálózat után a szerveren az új PIN és a feliratkozás a supervisor nevében (`X-Acting-User`) megvan. |
 
 ## Eredmények
 

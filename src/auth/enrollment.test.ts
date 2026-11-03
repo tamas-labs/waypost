@@ -41,6 +41,8 @@ describe('saveEnrollment', () => {
     // A new chain: nothing of the earlier one holds it back.
     expect(getKv(db, 'device.revoked')).toBeNull();
     expect(getKv(db, 'sync.rejected_through_seq')).toBeNull();
+    // That full pull comes too early to have the new device, which it does not delete then.
+    expect(getKv(db, 'sync.confirmed')).toEqual([{ ids: [ENROLLED.device.id], server_time: ENROLLED.server_time }]);
     expect(await loadSession(db)).toBe('site_phone');
   });
 

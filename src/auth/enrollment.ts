@@ -9,6 +9,7 @@ import { deleteDeviceSyncState, setKv } from '@/db/kv';
 import { devices } from '@/db/schema';
 
 import { setDeviceCredentials } from '@/device/credentials';
+import { rememberConfirmed } from '@/sync/confirmed';
 
 /** The phone's name, for its enrollment and for the supervisor's token (device_name of the login). */
 export function phoneName(): string {
@@ -29,7 +30,7 @@ export function enrollmentRequest(siteId: string): DevicesEnrollRequest {
  * Stores the result of POST /devices/enroll: the token and the secret in the secure store, the device in the database.
  * The next pull is a full one.
  */
-export async function saveEnrollment(db: Database, { device, token, secret }: DevicesEnrollResponse): Promise<void> {
+export async function saveEnrollment(db: Database, { device, token, secret, server_time }: DevicesEnrollResponse): Promise<void> {
   await setDeviceCredentials({ token, secret });
   db.transaction((tx) => {
     // Only this phone is kept (specification, Adatbázis).
@@ -37,5 +38,7 @@ export async function saveEnrollment(db: Database, { device, token, secret }: De
     tx.insert(devices).values(device).run();
     setKv(tx, 'device.id', device.id);
     deleteDeviceSyncState(tx);
+    // The first pull, a full one, is too early to have the new device (sync/confirmed.ts).
+    rememberConfirmed(tx, [device.id], server_time);
   });
 }

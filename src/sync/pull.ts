@@ -1,7 +1,9 @@
 // Pull (specification, Szinkron protokoll / Pull): the configuration changes since the saved cursor, page by page
 // while has_more is true, applied in one transaction together with the new cursor and the server time. Either the
 // whole pull is applied or nothing, so the guard never works with half of a new configuration. A record with a
-// supervisor action still waiting in the outbox keeps its local state: the server's copy comes after the call.
+// supervisor action still waiting in the outbox keeps its local state: the server's copy comes after the call. A full
+// state does not delete what the server confirmed to this phone in the last minute either: the server holds back the
+// changes of the last seconds (laravel-waypost Pull::SETTLE_MS, 5 s), so they come with the next pull (sync/confirmed.ts).
 import type { SyncPullResponse } from '@waypost/schema';
 import { and, eq, inArray, max, ne, notInArray } from 'drizzle-orm';
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
@@ -28,6 +30,7 @@ import {
 import { readClock as defaultReadClock, type ClockReading, type ReadClock } from '@/time/clock';
 import { recordServerTime } from '@/time/trusted-time';
 
+import { confirmedRecordIds } from './confirmed';
 import { emitConfigurationPulled, type PullSummary } from './events';
 
 type Changes = SyncPullResponse['changes'];
@@ -292,9 +295,10 @@ function addCounts<K extends string>(lists: Record<K, readonly unknown[]>, into:
 }
 
 /**
- * Applies the pages in order in one transaction: a reset page first deletes the local configuration, then upserts
- * its changes and deletes its deleted IDs, all but the records with an outbox call waiting; at the end the last cursor and server time are saved. If anything throws,
- * the transaction rolls back and the cursor stays where it was.
+ * Applies the pages in order in one transaction: a reset page first deletes the local configuration (but the records
+ * the server confirmed in the last minute), then upserts its changes and deletes its deleted IDs, all but the records
+ * with an outbox call waiting; at the end the last cursor and server time are saved. If anything throws, the
+ * transaction rolls back and the cursor stays where it was.
  */
 export function applyPullPages(db: Database, pages: readonly ReceivedPage[]): PullSummary {
   const last = pages.at(-1);
@@ -306,7 +310,7 @@ export function applyPullPages(db: Database, pages: readonly ReceivedPage[]): Pu
     let deleted: Partial<PullSummary['deleted']> = {};
     for (const { page } of pages) {
       if (page.reset === true) {
-        deleteConfiguration(tx, keep);
+        deleteConfiguration(tx, new Set([...keep, ...confirmedRecordIds(tx, page.server_time)]));
         reset = true;
       }
       applyChanges(tx, page.changes, keep);

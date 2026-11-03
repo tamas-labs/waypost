@@ -33,7 +33,7 @@ start-clear: ## Metro with a cleared cache (e.g. after a new migration)
 
 ## Checks
 
-.PHONY: typecheck lint format format-check test test-watch coverage check doctor db-generate
+.PHONY: typecheck lint format format-check test test-watch coverage check e2e doctor db-generate
 typecheck: ## tsc --noEmit
 	npm run typecheck
 
@@ -56,6 +56,12 @@ coverage: ## Jest with coverage of src/domain, src/chain and src/sync (M3-39)
 	npm test -- --coverage --collectCoverageFrom='src/{domain,chain,sync}/**/*.ts' --coverageDirectory="$${TMPDIR:-/tmp}/waypost-coverage"
 
 check: typecheck lint format-check test ## typecheck + lint + format + test (what closing a task needs)
+
+E2E_URL ?= http://localhost:8088/api/waypost/v1
+E2E_EMAIL ?= supervisor@waypost.test
+E2E_PASSWORD ?= password
+e2e: ## M5 acceptance against a running backend: make e2e E2E_URL=… (leaves a new site there)
+	WAYPOST_E2E_URL=$(E2E_URL) WAYPOST_E2E_EMAIL=$(E2E_EMAIL) WAYPOST_E2E_PASSWORD=$(E2E_PASSWORD) npx jest __tests__/e2e
 
 doctor: ## expo-doctor: dependencies and configuration
 	npx expo-doctor

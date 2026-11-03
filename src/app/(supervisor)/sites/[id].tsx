@@ -40,7 +40,7 @@ import { localDateOf } from '@/time/zone';
 // the site, to continue), the settings (schedules, guards, reports) in one line each, and the site phone, with "Telefon
 // hozzárendelése" on a supervisor's own phone (M5-09). A route leads to its editing (S7), the schedule row to a route's
 // schedule (S8, a choice of the route if the site has more), the guards row to the guards and PINs (S9), the reports
-// row to the report settings (S10); the design's warning about the last problem round needs round data the phone does not get (Q15, M5-20).
+// row to the report settings (S10); the design's warning about the last problem round needs round data the phone does not get (a later stage).
 export default function SiteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { color, typography, space } = useTheme();

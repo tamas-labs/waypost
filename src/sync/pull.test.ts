@@ -10,6 +10,7 @@ import { outbox, routeVersions, rounds } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import type { ClockReading } from '@/time/clock';
 
+import { rememberConfirmed } from './confirmed';
 import { onConfigurationPulled, type PullSummary } from './events';
 import { applyPullPages, pullConfiguration, storeServerRecords } from './pull';
 
@@ -169,6 +170,39 @@ describe('pull', () => {
     expect(names(sqlite, 'users')).toEqual(['Kiss Péter', 'Nagy Anna']);
     expect(sqlite.prepare('SELECT version FROM route_versions ORDER BY version').all()).toEqual([{ version: 1 }, { version: 9 }]);
     expect(sqlite.prepare('SELECT status FROM rounds').all()).toEqual([{ status: 'open' }]);
+  });
+
+  it('keeps on a reset the records the server confirmed in the last minute, which the server still holds back', async () => {
+    const { db, sqlite } = await fullyPulled();
+    const full = example('full-state');
+    const site = (id: string, name: string) => ({ ...full.changes.sites[0]!, id, name });
+    const OLD = '019a2b3c-4d5e-7f00-8a00-0000000000fe';
+    applyPullPages(db, [
+      { page: page({ cursor: CURSOR_1, changes: { sites: [site(STALE, 'Új telephely'), site(OLD, 'Régi')] } }), clock: fakeClock()() },
+    ]);
+    rememberConfirmed(db, [OLD], '2026-10-27T10:04:12.345Z');
+    rememberConfirmed(db, [STALE], '2026-10-27T10:05:10.000Z');
+    rememberConfirmed(db, [], '2026-10-27T10:05:11.000Z');
+    // A later confirmation drops the entries older than a minute.
+    expect(getKv(db, 'sync.confirmed')).toEqual([
+      { ids: [OLD], server_time: '2026-10-27T10:04:12.345Z' },
+      { ids: [STALE], server_time: '2026-10-27T10:05:10.000Z' },
+    ]);
+
+    const { api } = fakeApi(full);
+    await pullConfiguration(db, api, 'device-token', { readClock: fakeClock() });
+
+    expect(names(sqlite, 'sites')).toEqual(['Telephely A', 'Új telephely']);
+
+    // A confirmed record still takes the server's copy.
+    const { api: renamed } = fakeApi({ ...full, changes: { ...full.changes, sites: [...full.changes.sites, site(STALE, 'Átnevezve')] } });
+    await pullConfiguration(db, renamed, 'device-token', { readClock: fakeClock() });
+    expect(names(sqlite, 'sites')).toEqual(['Telephely A', 'Átnevezve']);
+
+    rememberConfirmed(db, ['019a2b3c-4d5e-7f00-8a00-0000000000fd'], '2026-10-27T10:06:30.000Z');
+    expect(getKv(db, 'sync.confirmed')).toEqual([
+      { ids: ['019a2b3c-4d5e-7f00-8a00-0000000000fd'], server_time: '2026-10-27T10:06:30.000Z' },
+    ]);
   });
 
   it('pulls incrementally from the saved cursor: updates records and replaces the sites of a user', async () => {

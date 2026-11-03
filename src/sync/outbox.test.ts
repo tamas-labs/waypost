@@ -215,6 +215,11 @@ describe('sendOutbox', () => {
     // The server's record replaces the local one, with what only the server knew.
     expect(db.select().from(checkpoints).get()).toMatchObject({ name: 'Raktár hátsó ajtó', tag_uid: '04A1B2C3D4E580' });
     expect(db.select().from(routes).get()).toMatchObject({ id: ROUTE, current_version_id: ROUTE_RESPONSE.route.current_version_id });
+    // A full state of the next minute keeps them: the server's pull holds back its latest changes.
+    expect(getKv(db, 'sync.confirmed')).toEqual([
+      { ids: [CHECKPOINT], server_time: CHECKPOINT_RESPONSE.server_time },
+      { ids: [ROUTE], server_time: ROUTE_RESPONSE.server_time },
+    ]);
   });
 
   it('stores the route, the version and its checkpoints of a new route version', async () => {

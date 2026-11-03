@@ -39,6 +39,12 @@ export interface OutboxRejection {
  */
 export type SupervisorAccount = Pick<AuthLoginResponse['user'], 'id' | 'name'> & { email: string | null };
 
+/** Local records the server confirmed in one answer (an outbox call's 2xx, the enrollment), at its server_time. */
+export interface ConfirmedRecords {
+  ids: string[];
+  server_time: string;
+}
+
 /** Every key of the kv table and the type of its value. */
 export interface KvValues {
   /** Cursor of the next pull; absent before the first one. */
@@ -51,6 +57,8 @@ export interface KvValues {
   'sync.rejected_through_seq': number;
   /** The report of the rejected entries until the server has it (sync/push.ts). */
   'sync.pending_diagnostic': DeviceDiagnosticRequest;
+  /** The records the server confirmed lately, which a full state does not delete yet (sync/pull.ts). */
+  'sync.confirmed': ConfirmedRecords[];
   /** Trusted time of the last local cleanup (sync/cleanup.ts). */
   'sync.last_cleanup_at': string;
   /** The outbox calls the server refused, until the supervisor has seen them (sync/outbox.ts). */
@@ -88,6 +96,6 @@ export function deleteKv(db: Database, key: KvKey): void {
 
 /** Deletes what the sync keeps about the phone's enrollment: the next device, or none, starts over. */
 export function deleteDeviceSyncState(db: Database): void {
-  const keys: KvKey[] = ['device.revoked', 'sync.cursor', 'sync.rejected_through_seq', 'sync.pending_diagnostic'];
+  const keys: KvKey[] = ['device.revoked', 'sync.cursor', 'sync.confirmed', 'sync.rejected_through_seq', 'sync.pending_diagnostic'];
   for (const key of keys) deleteKv(db, key);
 }

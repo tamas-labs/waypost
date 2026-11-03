@@ -1,6 +1,6 @@
 // The site list of the supervisor mode (S2) and a new site: what the screens show from the local database, and the
 // action that creates a site through the outbox. The round status of the design's site card needs data the phone does
-// not get (no endpoint, M5-20), and the site phone's last contact (devices.last_seen_at) does not reach a supervisor's
+// not get (no endpoint: a later stage, decisions: "Kör részletei"), and the site phone's last contact (devices.last_seen_at) does not reach a supervisor's
 // pull, so the card shows the configuration only (decisions: "Telephelyek").
 import type { Timestamp } from '@waypost/schema';
 import { asc, count, eq, inArray, isNull } from 'drizzle-orm';

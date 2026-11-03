@@ -1,6 +1,6 @@
 // The site details of the supervisor mode (S3): what the phone has of a site – its supervisors, routes, schedules,
 // guards, the report subscriptions of the supervisor using the phone, and the site phone – and these in words. The
-// warning about the last problem round of the design needs round data the phone does not get (Q15, M5-20).
+// warning about the last problem round of the design needs round data the phone does not get: a later stage (decisions: "Kör részletei").
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 
 import type { Database } from '@/db/database';
