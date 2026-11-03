@@ -39,8 +39,8 @@ import { localDateOf } from '@/time/zone';
 // Site details (S3, S-Telephely): the routes with "Új útvonal betanítása" (and the supervisor's unfinished training of
 // the site, to continue), the settings (schedules, guards, reports) in one line each, and the site phone, with "Telefon
 // hozzárendelése" on a supervisor's own phone (M5-09). A route leads to its editing (S7), the schedule row to a route's
-// schedule (S8, a choice of the route if the site has more); the other rows lead to their screens as those are built
-// (M5-18, M5-19); the design's warning about the last problem round needs round data the phone does not get (Q15, M5-20).
+// schedule (S8, a choice of the route if the site has more), the guards row to the guards and PINs (S9); the reports
+// row leads to its screen when that is built (M5-19); the design's warning about the last problem round needs round data the phone does not get (Q15, M5-20).
 export default function SiteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { color, typography, space } = useTheme();
@@ -107,7 +107,12 @@ export default function SiteScreen() {
                     : () => setPickingRoute(true)
               }
             />
-            <Row tile={{ letter: t('supervisor.guards') }} title={t('supervisor.guards')} subtitle={guardsSummary(site.guards)} />
+            <Row
+              tile={{ letter: t('supervisor.guards') }}
+              title={t('supervisor.guards')}
+              subtitle={guardsSummary(site.guards)}
+              onPress={() => router.push({ pathname: '/sites/[id]/guards', params: { id: site.id } })}
+            />
             <Row
               tile={{ letter: t('supervisor.reports') }}
               title={t('supervisor.reports')}

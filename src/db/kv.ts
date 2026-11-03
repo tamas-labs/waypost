@@ -27,6 +27,8 @@ export interface OutboxRejection {
   /** The server's message (Hungarian, safe to show). */
   message: string;
   details: NonNullable<ErrorResponse['error']['details']> | null;
+  /** The local records the call changed (outbox.record_ids); absent in a refusal stored before it was kept. */
+  record_ids?: string[];
   /** Device wall clock. */
   at: string;
 }

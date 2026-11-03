@@ -163,6 +163,7 @@ export const typography = {
   banner: { fontSize: 14, lineHeight: 20, fontFamily: fontFamily.semibold }, // információs sáv
   tile: { fontSize: 15, lineHeight: 20, fontFamily: fontFamily.bold }, // kategóriacsempe (kijelölve: extrabold)
   pinKey: { fontSize: 30, lineHeight: 36, fontFamily: fontFamily.bold }, // PIN-billentyű
+  pinReveal: { fontSize: 36, lineHeight: 42, fontFamily: fontFamily.extrabold, letterSpacing: 6.5 }, // új PIN – csak most látható (0.18em)
   ringValue: { fontSize: 26, lineHeight: 28, fontFamily: fontFamily.extrabold }, // haladásgyűrű „5/9”
   ringValueSm: { fontSize: 24, lineHeight: 26, fontFamily: fontFamily.extrabold }, // kis gyűrű mellett
   unit: { fontSize: 12, lineHeight: 16, fontFamily: fontFamily.semibold }, // „pont”, jelmagyarázat

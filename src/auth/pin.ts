@@ -1,7 +1,8 @@
 // PIN login on the site phone, offline: the PIN is checked against the verifiers of the site's users that pull
 // delivered (PBKDF2-HMAC-SHA256, waypost-schema pin/test-vectors.json), with the lockout of src/domain/pin-lockout.ts
 // kept in the kv table. The PIN identifies the user, so every user of the site with a PIN is a candidate.
-import { and, eq, isNotNull } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, ne } from 'drizzle-orm';
+import { getRandomValues } from 'expo-crypto';
 import { Buffer, pbkdf2 } from 'react-native-quick-crypto';
 
 import type { Database } from '@/db/database';
@@ -12,6 +13,9 @@ import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 
 const PIN = /^[0-9]{6}$/;
 const HASH_BYTES = 32;
+/** The server's parameters (specification: PIN-kód): a 16-byte random salt, 100 000 iterations. */
+export const PIN_ITERATIONS = 100_000;
+const SALT_BYTES = 16;
 
 /** pin_hash (base64) of a PIN: PBKDF2-HMAC-SHA256 over its ASCII digits with the raw salt; natively, off the JS thread. */
 export function pinHash(pin: string, saltBase64: string, iterations: number): Promise<string> {
@@ -23,6 +27,50 @@ export function pinHash(pin: string, saltBase64: string, iterations: number): Pr
       else resolve(Buffer.from(key).toString('base64'));
     });
   });
+}
+
+export interface PinVerifier {
+  pin_hash: string;
+  pin_salt: string;
+  pin_iterations: number;
+}
+
+/**
+ * The verifier of a PIN the supervisor has just set, as the server makes it: stored locally at once, so the user can
+ * log in with it on the site phone before the server's response (which brings the server's own salt and hash).
+ */
+export async function newPinVerifier(
+  pin: string,
+  random: (bytes: Uint8Array) => void = (b) => void getRandomValues(b),
+): Promise<PinVerifier> {
+  const salt = new Uint8Array(SALT_BYTES);
+  random(salt);
+  const pin_salt = Buffer.from(salt).toString('base64');
+  return { pin_hash: await pinHash(pin, pin_salt, PIN_ITERATIONS), pin_salt, pin_iterations: PIN_ITERATIONS };
+}
+
+/**
+ * Whether another user of these sites has this PIN, as far as the phone can tell: only the site phone gets the PIN
+ * verifiers, so elsewhere the server's 409 is the check. Inactive users count too (the server's uniqueness does).
+ */
+export async function pinTaken(db: Database, siteIds: readonly string[], pin: string, exceptUserId: string | null): Promise<boolean> {
+  if (siteIds.length === 0) return false;
+  const others = db
+    .selectDistinct({ id: users.id, pin_hash: users.pin_hash, pin_salt: users.pin_salt, pin_iterations: users.pin_iterations })
+    .from(users)
+    .innerJoin(siteUser, eq(siteUser.user_id, users.id))
+    .where(
+      and(
+        inArray(siteUser.site_id, [...siteIds]),
+        isNotNull(users.pin_hash),
+        isNotNull(users.pin_salt),
+        isNotNull(users.pin_iterations),
+        ...(exceptUserId === null ? [] : [ne(users.id, exceptUserId)]),
+      ),
+    )
+    .all();
+  const hashes = await Promise.all(others.map((user) => pinHash(pin, user.pin_salt!, user.pin_iterations!)));
+  return others.some((user, i) => user.pin_hash === hashes[i]);
 }
 
 export type PinLoginResult =

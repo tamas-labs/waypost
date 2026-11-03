@@ -17,6 +17,7 @@ import { onOutboxQueued } from './events';
 
 import {
   clearOutbox,
+  dismissOutboxRejection,
   dismissOutboxRejections,
   OUTBOX_BACKOFF_MAX_MS,
   OUTBOX_BACKOFF_MIN_MS,
@@ -287,6 +288,7 @@ describe('sendOutbox', () => {
     queueAction(db, { apply: (tx) => localCheckpoint(tx), calls: [createCheckpoint] }, SUPERVISOR);
     queueAction(db, { calls: [createRoute] }, SUPERVISOR);
     const callId = rows()[0]!.id;
+    const recordIds = rows()[0]!.record_ids;
     const { api, requests } = server({
       'POST /checkpoints': [error(status, code, 'Nem sikerült.', details)],
       'POST /routes': [[201, ROUTE_RESPONSE]],
@@ -304,6 +306,7 @@ describe('sendOutbox', () => {
       code,
       message: 'Nem sikerült.',
       details: details ?? null,
+      record_ids: recordIds,
       at: '2026-10-27T21:00:00.000Z',
     };
     expect(outboxRejections(db)).toEqual([rejection]);
@@ -314,6 +317,25 @@ describe('sendOutbox', () => {
 
     dismissOutboxRejections(db);
     expect(outboxRejections(db)).toEqual([]);
+    expect(useSyncStatus.getState().rejectedCalls).toEqual([]);
+  });
+
+  it('lets the supervisor dismiss one refusal and keeps the others', async () => {
+    queueAction(db, { calls: [createCheckpoint] }, SUPERVISOR);
+    queueAction(db, { calls: [createRoute] }, SUPERVISOR);
+    const [first, second] = rows().map((row) => row.id);
+    const { api } = server({
+      'POST /checkpoints': [error(409, 'conflict', 'Nem sikerült.')],
+      'POST /routes': [error(422, 'validation_failed', 'Nem sikerült.')],
+    });
+    await sendOutbox({ db, api, token: 't' }, options());
+    expect(outboxRejections(db).map((rejection) => rejection.call_id)).toEqual([first, second]);
+
+    dismissOutboxRejection(db, first!);
+    expect(outboxRejections(db).map((rejection) => rejection.call_id)).toEqual([second]);
+    expect(useSyncStatus.getState().rejectedCalls.map((rejection) => rejection.call_id)).toEqual([second]);
+    dismissOutboxRejection(db, second!);
+    expect(getKv(db, 'outbox.rejected')).toBeNull();
     expect(useSyncStatus.getState().rejectedCalls).toEqual([]);
   });
 

@@ -204,6 +204,7 @@ function rejected(db: Database, row: OutboxRow, error: ApiError, nowMs: number):
     code: error.code,
     message: error.message,
     details: error.details,
+    record_ids: row.record_ids,
     at: toTimestamp(nowMs),
   };
   const rejections = [...(getKv(db, 'outbox.rejected') ?? []), rejection].slice(-MAX_REJECTIONS);
@@ -309,6 +310,14 @@ export function outboxRejections(db: Database): OutboxRejection[] {
 export function dismissOutboxRejections(db: Database): void {
   deleteKv(db, 'outbox.rejected');
   useSyncStatus.setState({ rejectedCalls: [] });
+}
+
+/** The supervisor has seen one refused call (e.g. a refused PIN, after a new one): the others stay. */
+export function dismissOutboxRejection(db: Database, callId: string): void {
+  const rejections = outboxRejections(db).filter((rejection) => rejection.call_id !== callId);
+  if (rejections.length === 0) deleteKv(db, 'outbox.rejected');
+  else setKv(db, 'outbox.rejected', rejections);
+  useSyncStatus.setState({ rejectedCalls: rejections });
 }
 
 /**
