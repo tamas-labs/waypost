@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState, type ReactNode } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -24,6 +24,7 @@ import {
   routeSummary,
   schedulesSummary,
   supervisorsSummary,
+  type SiteDetail,
   type SitePhone,
 } from '@/supervisor/site-detail';
 import { supervisorAccount } from '@/supervisor/sites';
@@ -37,8 +38,9 @@ import { localDateOf } from '@/time/zone';
 
 // Site details (S3, S-Telephely): the routes with "Új útvonal betanítása" (and the supervisor's unfinished training of
 // the site, to continue), the settings (schedules, guards, reports) in one line each, and the site phone, with "Telefon
-// hozzárendelése" on a supervisor's own phone (M5-09). A route leads to its editing (S7); the other rows lead to their
-// screens as those are built (M5-17 – M5-19); the design's warning about the last problem round needs round data the phone does not get (Q15, M5-20).
+// hozzárendelése" on a supervisor's own phone (M5-09). A route leads to its editing (S7), the schedule row to a route's
+// schedule (S8, a choice of the route if the site has more); the other rows lead to their screens as those are built
+// (M5-18, M5-19); the design's warning about the last problem round needs round data the phone does not get (Q15, M5-20).
 export default function SiteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { color, typography, space } = useTheme();
@@ -50,6 +52,7 @@ export default function SiteScreen() {
     return { site: loadSiteDetail(db, id, account?.id ?? null), email: account?.email ?? null, supervisorId: account?.id ?? null };
   }, [id, session]);
   const { site, email, supervisorId } = useLiveQuery(load);
+  const [pickingRoute, setPickingRoute] = useState(false);
 
   if (site === null) {
     return (
@@ -91,7 +94,19 @@ export default function SiteScreen() {
 
         <Section title={t('supervisor.settings')}>
           <Card divided>
-            <Row tile={{ letter: t('supervisor.schedule') }} title={t('supervisor.schedule')} subtitle={schedulesSummary(site.schedules)} />
+            <Row
+              tile={{ letter: t('supervisor.schedule') }}
+              title={t('supervisor.schedule')}
+              subtitle={schedulesSummary(site.schedules)}
+              // A schedule is a route's: one route leads to it, more to a choice; no route, nothing to schedule.
+              onPress={
+                site.routes.length === 0
+                  ? undefined
+                  : site.routes.length === 1
+                    ? () => openSchedule(site.routes[0]!.id)
+                    : () => setPickingRoute(true)
+              }
+            />
             <Row tile={{ letter: t('supervisor.guards') }} title={t('supervisor.guards')} subtitle={guardsSummary(site.guards)} />
             <Row
               tile={{ letter: t('supervisor.reports') }}
@@ -108,6 +123,60 @@ export default function SiteScreen() {
           {session.mode === 'supervisor_phone' && <EnrollThisPhone siteId={site.id} siteName={site.name} phone={site.phone} />}
         </Section>
       </ScrollView>
+      <Modal
+        visible={pickingRoute}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={() => setPickingRoute(false)}
+      >
+        <RoutePicker
+          site={site}
+          onPick={(routeId) => {
+            setPickingRoute(false);
+            openSchedule(routeId);
+          }}
+          onClose={() => setPickingRoute(false)}
+        />
+      </Modal>
+    </View>
+  );
+}
+
+const openSchedule = (routeId: string) => router.push({ pathname: '/routes/[id]/schedule', params: { id: routeId } });
+
+/** The routes of the site with their schedules in one line each, to choose whose schedule to edit (S8). */
+function RoutePicker({ site, onPick, onClose }: { site: SiteDetail; onPick: (routeId: string) => void; onClose: () => void }) {
+  const { color, typography, space, radius } = useTheme();
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={styles.grow}>
+      <Pressable
+        style={[styles.grow, { backgroundColor: color.scrim }]}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel={t('common.cancel')}
+      />
+      <View style={[styles.sheet, { backgroundColor: color.bg, borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card }]}>
+        <ScrollView contentContainerStyle={{ padding: space.l, paddingBottom: insets.bottom + space.l, gap: space.m }}>
+          <Text accessibilityRole="header" style={[typography.title2, { color: color.text }]}>
+            {t('scheduleEdit.pickRoute')}
+          </Text>
+          <Card divided>
+            {site.routes.map((route) => (
+              <Row
+                key={route.id}
+                title={route.name}
+                subtitle={schedulesSummary(site.schedules.filter((schedule) => schedule.route_id === route.id))}
+                dimmed={!route.active}
+                onPress={() => onPick(route.id)}
+              />
+            ))}
+          </Card>
+          <Button variant="secondary" label={t('common.cancel')} onPress={onClose} />
+        </ScrollView>
+      </View>
     </View>
   );
 }
@@ -323,6 +392,7 @@ function PhoneRow({ phone, timeZone }: { phone: SitePhone | null; timeZone: stri
 
 const styles = StyleSheet.create({
   grow: { flex: 1 },
+  sheet: { maxHeight: '92%' },
   row: { flexDirection: 'row', alignItems: 'center' },
   tile: { alignItems: 'center', justifyContent: 'center' },
 });

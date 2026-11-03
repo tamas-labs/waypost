@@ -795,7 +795,46 @@
     "noLimitShort": "nincs időkorlát",
     "minus": "5 perccel kevesebb",
     "plus": "5 perccel több",
-    "submit": "Menetrend mentése"
+    "submit": "Menetrend mentése",
+    "summaryDay": "{{count}} kör naponta · utolsó {{time}}-kor"
+  },
+  "scheduleEdit": {
+    "missing": "Ez az útvonal nincs meg ezen a telefonon.",
+    "more": "Ennek az útvonalnak {{count}} menetrendje van. Itt az elsőt szerkeszted, a többit a webes felületen.",
+    "day": {
+      "mon": "Hétfő",
+      "tue": "Kedd",
+      "wed": "Szerda",
+      "thu": "Csütörtök",
+      "fri": "Péntek",
+      "sat": "Szombat",
+      "sun": "Vasárnap"
+    },
+    "modeLabel": "Megadás módja",
+    "change": "{{label}}: {{value}}, módosítás",
+    "timeChip": "{{time}}, módosítás vagy törlés",
+    "addTime": "Időpont hozzáadása",
+    "time": "Időpont",
+    "hour": "Óra",
+    "minute": "Perc",
+    "done": "Kész",
+    "removeTime": "Időpont törlése",
+    "minutes": "{{minutes}} perc",
+    "everyUnit": "perc",
+    "active": "Menetrend bekapcsolva",
+    "activeOn": "A körök és az ébresztések e szerint mennek.",
+    "activeOff": "Kikapcsolva nincs kör és ébresztés. A beállítások megmaradnak.",
+    "footnote": "A napok a kör kezdő napját jelentik: az éjfélen átnyúló körök az előző naphoz tartoznak. A futó kör a régi beállítással fejeződik be.",
+    "saved": "A menetrend elmentve",
+    "pickRoute": "Melyik útvonal menetrendje?",
+    "errors": {
+      "noDays": "Jelölj ki legalább egy napot.",
+      "noTimes": "Adj meg legalább egy időpontot.",
+      "sameFromTo": "Az első és az utolsó kör nem lehet ugyanakkor.",
+      "duplicateTime": "Ez az időpont már szerepel a listán.",
+      "unchanged": "Nincs mentendő módosítás.",
+      "failed": "Nem sikerült menteni: {{message}}"
+    }
   },
   "guards": {
     "pinSet": "PIN beállítva",

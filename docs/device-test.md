@@ -151,6 +151,10 @@ Supervisor belépéssel a saját telefonon (ill. a J6-hoz PIN-nel a telephelyi t
 | J14 | (M5-16) „Nyomtatás”: Androidon „Mentés PDF-ként”, iPhone-on előnézet, majd a párbeszéd bezárása nyomtatás nélkül. Nyomtasd ki A4-re is, és olvasd le a papírról (fényes lámpa, sötét folyosó, 1 m-ről). | A4-es oldal, felül a kivágható címke: név, telephely, a 70 mm-es kód, „Waypost ellenőrzőpont”. A bezárás nem ad hibát. A kinyomtatott kód beolvasható. |
 | J15 | (M5-16) „Megosztás”: e-mailbe és fájlkezelőbe. | A PDF neve „<pont neve> – QR-címke.pdf”, megnyitva ugyanaz az oldal, mint a nyomtatásnál. |
 | J16 | (M5-16) Tanítsd be egy új pontot repülő üzemmódban, és nyisd meg a QR-címkéjét; utána kapcsold vissza a hálózatot. | Előbb „A pont QR-kódját a szerver adja…”, a gombok tiltva; a szinkron után magától megjelenik a kód. |
+| J17 | (M5-17) A telephely részletein „Menetrend” (egy útvonalnál egyből a menetrend, többnél a választó lap). Napok, „Első kör” / „Utolsó kör” az óra- és percválasztóval, „Gyakoriság”; „Lista” módban „Időpont hozzáadása”, egy időpont törlése. Sötét és világos témában, nagy betűmérettel is. | A kapszulák kijelöléskor kékek, az összegzés („13 kör éjszakánként · utolsó 08:00-kor”) azonnal frissül; a lista éjfélen átnyúló időpontjai a kezdő nap sorrendjében (pl. 22:00, 00:00, 02:00). A lapok görgethetők, a gombok elérhetők. |
+| J18 | (M5-17) Időkeret: −/+, „Nincs időkorlát” be és ki; „Menetrend bekapcsolva” ki. Mentés. | A javasolt értéknél zöld „javasolt érték”, eltérésnél „egyéni érték”; a magyarázat a mért bejárással. Mentés után vissza a telephelyre, a sorban az új összegzés; a szerveren (admin felület) ugyanaz. |
+| J19 | (M5-17) A telephelyi telefonon (PIN-nel belépett supervisor) állíts be egy 5 percen belül induló kört, mentsd repülő üzemmódban, majd lépj ki és várj. | Az ébresztés a hálózat nélkül is az új időpontban szól (a mentés után azonnal újraütemeződik). A hálózat visszatérése után a menetrend a szerveren is megvan. |
+| J20 | (M5-17) Kapcsold ki a menetrendet a telephelyi telefonon, mentsd. | A következő ébresztés nem szól, kör nem nyílik. |
 
 ## Eredmények
 

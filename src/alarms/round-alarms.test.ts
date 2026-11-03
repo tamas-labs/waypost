@@ -12,7 +12,7 @@ import { C1, GUARD, idSequence, local, ROUTE_A, SCHEDULE_A } from '@/domain/test
 import { runSchedulerStep } from '@/guard/scheduler';
 import { loadGuardState } from '@/guard/state';
 import { seedSite } from '@/guard/testing';
-import { emitConfigurationPulled, type PullSummary } from '@/sync/events';
+import { emitConfigurationPulled, emitOutboxQueued, type PullSummary } from '@/sync/events';
 
 import { alarmRequests, requestAlarmReschedule, rescheduleRoundAlarms, ROUND_ALARM_KIND, startRoundAlarms } from './round-alarms';
 
@@ -177,7 +177,7 @@ describe('rescheduling the round alarms', () => {
 });
 
 describe('round alarm triggers', () => {
-  it('reschedule at start, after a pull, at every notification and in the foreground', async () => {
+  it('reschedule at start, after a pull and a supervisor action, at every notification and in the foreground', async () => {
     const stop = startRoundAlarms(db);
     await flush();
     expect(roundAlarms()).toHaveLength(24);
@@ -187,6 +187,8 @@ describe('round alarm triggers', () => {
     const before = reschedules();
     emitConfigurationPulled({} as PullSummary);
     await flush();
+    emitOutboxQueued();
+    await flush();
     notificationReceived();
     await flush();
     notificationTapped();
@@ -194,13 +196,14 @@ describe('round alarm triggers', () => {
     appStateListener('background');
     appStateListener('active');
     await flush();
-    expect(reschedules()).toBe(before + 4);
+    expect(reschedules()).toBe(before + 5);
 
     stop();
     expect(removed).toHaveBeenCalledTimes(3);
     emitConfigurationPulled({} as PullSummary);
+    emitOutboxQueued();
     await flush();
-    expect(reschedules()).toBe(before + 4);
+    expect(reschedules()).toBe(before + 5);
   });
 
   it('follow the device mode: a revoked phone rings no more', async () => {

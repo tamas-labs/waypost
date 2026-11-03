@@ -24,6 +24,7 @@ import LoaderCircle from 'lucide-react-native/icons/loader-circle';
 import MapIcon from 'lucide-react-native/icons/map';
 import MapPin from 'lucide-react-native/icons/map-pin';
 import Mic from 'lucide-react-native/icons/mic';
+import Minus from 'lucide-react-native/icons/minus';
 import Navigation from 'lucide-react-native/icons/navigation';
 import Pencil from 'lucide-react-native/icons/pencil';
 import Plus from 'lucide-react-native/icons/plus';
@@ -78,6 +79,7 @@ const ICONS = {
   pencil: Pencil,
   grip: GripVertical,
   minusCircle: CircleMinus,
+  minus: Minus,
   clock: Clock,
   swap: ArrowUpDown,
   // DESIGN_HANDOFF 4

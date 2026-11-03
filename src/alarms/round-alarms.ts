@@ -21,7 +21,7 @@ import { onForeground } from '@/device/foreground';
 import { alarmPlan, type AlarmSlot, type PlannedAlarm } from '@/domain/alarms';
 import { loadGuardStateNow } from '@/guard/state';
 import { t } from '@/i18n';
-import { onConfigurationPulled } from '@/sync/events';
+import { onConfigurationPulled, onOutboxQueued } from '@/sync/events';
 import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 import { parseTimestamp } from '@/time/timestamp';
 import { localTimeOf } from '@/time/zone';
@@ -165,7 +165,7 @@ export function requestAlarmReschedule(): Promise<void> {
 
 /**
  * Starts the round alarms: the rounds channel, alarms shown in the foreground too, and the reschedule triggers –
- * start, pull, a change of the device mode, shift start and close, round start and close, every notification, coming to the foreground.
+ * start, pull, a supervisor action queued, a change of the device mode, shift start and close, round start and close, every notification, coming to the foreground.
  * Returns the function that stops them; a second call restarts them.
  */
 export function startRoundAlarms(db: Database): () => void {
@@ -174,6 +174,8 @@ export function startRoundAlarms(db: Database): () => void {
   showAlarmsInForeground();
 
   const unsubscribePull = onConfigurationPulled(() => void requestAlarmReschedule());
+  // A supervisor's change on the site phone (a schedule saved, a route's new version) is local before the server has it.
+  const unsubscribeOutbox = onOutboxQueued(() => void requestAlarmReschedule());
   // A revoked phone rings no more; a phone just enrolled has no shift yet.
   const unsubscribeSession = useSession.subscribe((state, previous) => {
     if (state.mode !== previous.mode) void requestAlarmReschedule();
@@ -193,6 +195,7 @@ export function startRoundAlarms(db: Database): () => void {
 
   const stop = () => {
     unsubscribePull();
+    unsubscribeOutbox();
     unsubscribeSession();
     unsubscribeChain();
     received.remove();
