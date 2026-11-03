@@ -17,6 +17,7 @@ import {
   ROUTE_NAME_MAX,
   TrainingError,
   elapsedMs,
+  pointsBefore,
   removePoint,
   setOrderMode,
   setRouteName,
@@ -33,6 +34,7 @@ import { t } from '@/i18n';
 import { openNfcSettings } from '@/nfc/reader';
 import { useTagReader } from '@/nfc/use-tag-reader';
 import { formatWalk } from '@/supervisor/site-detail';
+import { nextVersionNumber } from '@/supervisor/route-version';
 import { discardTrainingDraft, saveTraining } from '@/supervisor/training';
 import { elapsedText, pointMeta, routeTitle, trainingErrorText, walkText } from '@/supervisor/training-view';
 import { useSyncStatus } from '@/sync/status';
@@ -92,7 +94,9 @@ function useTrainingScanning(routeId: string) {
 // Training a route (S5, S-Betanitas; specification: (supervisor)/routes/[id]/train): the supervisor walks the route and
 // scans its tags; a point goes through the point screen (S6) into the draft, which stays on the phone until it is saved
 // as a new route version or discarded. Leaving by the back gesture keeps the draft (the site details continue it); the
-// cross discards it. The counter and the walk times run on the monotonic clock; the screen stays awake.
+// cross discards it. The counter and the walk times run on the monotonic clock; the screen stays awake. A training of
+// one point (S7 "Új pont felvétele") scans only the new point, which goes to the end of the route's current version:
+// no counter, no order, and its save is at once the new version.
 export default function TrainingScreen() {
   const { color, space } = useTheme();
   const { id = '' } = useLocalSearchParams<{ id: string }>();
@@ -126,6 +130,8 @@ export default function TrainingScreen() {
       { text: t('training.cancelDiscard'), style: 'destructive', onPress: leave },
     ]);
   };
+
+  if (draft.adding != null) return <AddPoint draft={draft} change={change} scanning={scanning} onCancel={cancel} />;
 
   return (
     <View style={[styles.grow, { backgroundColor: color.bg }]}>
@@ -187,10 +193,80 @@ function TrainingSummary({ draft }: { draft: TrainingDraft }) {
   );
 }
 
+/**
+ * The point of a training of one point (S7 → S5): the route's points stay as they are, the new one goes after them.
+ * The tag is read like on the walk; once the point is there, its save is the new version.
+ */
+function AddPoint({
+  draft,
+  change,
+  scanning,
+  onCancel,
+}: {
+  draft: TrainingDraft;
+  change: (next: TrainingDraft) => void;
+  scanning: ReturnType<typeof useTrainingScanning>;
+  onCancel: () => void;
+}) {
+  const { color, space } = useTheme();
+  const insets = useSafeAreaInsets();
+  const offline = useSyncStatus((state) => state.online === false);
+  const [error, setError] = useState<string | null>(null);
+  const version = nextVersionNumber(getDatabase(), draft.route.id);
+  const added = draft.points[0];
+
+  const save = () => {
+    try {
+      saveTraining(getDatabase(), draft);
+    } catch (e) {
+      setError(trainingErrorText(e, draft));
+      return;
+    }
+    showToast(t('training.addSaved', { name: added?.name ?? '', version }));
+    router.back();
+  };
+
+  return (
+    <View style={[styles.grow, { backgroundColor: color.bg }]}>
+      <ScreenHeader
+        overline={t('training.addLabel')}
+        title={routeTitle(draft)}
+        onBack={onCancel}
+        backIcon="x"
+        backLabel={t('training.cancel')}
+      />
+      <View style={{ paddingHorizontal: space.l, paddingBottom: space.m, gap: space.m }}>
+        <InfoBanner variant="info" text={t('training.addInfo', { position: pointsBefore(draft) + 1 })} />
+        {added === undefined && scanning.message !== null && (
+          <View accessibilityLiveRegion="polite">
+            <InfoBanner variant={scanning.message.variant} text={scanning.message.text} />
+          </View>
+        )}
+      </View>
+      <PointList draft={draft} onRemove={(point) => change(removePoint(draft, point.checkpoint_id))} />
+      {added === undefined ? (
+        <TrainingActions scanning={scanning} />
+      ) : (
+        <View style={{ paddingHorizontal: space.l, paddingTop: space.m, paddingBottom: insets.bottom + space.l, gap: space.m }}>
+          {offline && <InfoBanner variant="offline" icon="cloudOff" text={t('training.saveOfflineNote')} />}
+          {error !== null && (
+            <View accessibilityLiveRegion="polite" accessibilityRole="alert">
+              <InfoBanner variant="error" text={error} />
+            </View>
+          )}
+          <Button label={t('routeEdit.saveAs', { version })} onPress={save} />
+        </View>
+      )}
+    </View>
+  );
+}
+
 /** A new point opens its details (S6) to change them or take it out; an existing checkpoint can only be taken out. */
 function PointList({ draft, onRemove }: { draft: TrainingDraft; onRemove: (point: TrainingPoint) => void }) {
   const { color, typography, space, size, radius, border } = useTheme();
   const times = walkTimes(draft);
+  // A training of one point: after the route's points, and its walk from them was not measured.
+  const before = pointsBefore(draft);
   const open = (point: TrainingPoint) =>
     point.kind === 'new'
       ? router.push({ pathname: '/routes/[id]/train/point', params: { id: draft.route.id, edit: point.checkpoint_id } })
@@ -203,42 +279,46 @@ function PointList({ draft, onRemove }: { draft: TrainingDraft; onRemove: (point
       {draft.points.map((point, index) => (
         <TrainingPointRow
           key={point.checkpoint_id}
-          position={index + 1}
+          position={before + index + 1}
           point={point}
-          walk={walkText(times[index] ?? null, index)}
+          walk={walkText(times[index] ?? null, before + index)}
           onPress={() => open(point)}
         />
       ))}
-      <View
-        style={[
-          styles.row,
-          {
-            minHeight: size.listItem,
-            paddingHorizontal: space.l,
-            gap: space.m,
-            borderRadius: radius.item,
-            borderWidth: border.thick,
-            borderStyle: 'dashed',
-            borderColor: color.dash,
-          },
-        ]}
-      >
+      {(draft.adding == null || draft.points.length === 0) && (
         <View
           style={[
-            styles.centre,
+            styles.row,
             {
-              width: size.statusDot,
-              height: size.statusDot,
-              borderRadius: size.statusDot / 2,
-              borderWidth: border.ring,
-              borderColor: color.pending,
+              minHeight: size.listItem,
+              paddingHorizontal: space.l,
+              gap: space.m,
+              borderRadius: radius.item,
+              borderWidth: border.thick,
+              borderStyle: 'dashed',
+              borderColor: color.dash,
             },
           ]}
         >
-          <Text style={[typography.badge, tabular, { color: color.text2 }]}>{draft.points.length + 1}</Text>
+          <View
+            style={[
+              styles.centre,
+              {
+                width: size.statusDot,
+                height: size.statusDot,
+                borderRadius: size.statusDot / 2,
+                borderWidth: border.ring,
+                borderColor: color.pending,
+              },
+            ]}
+          >
+            <Text style={[typography.badge, tabular, { color: color.text2 }]}>{before + draft.points.length + 1}</Text>
+          </View>
+          <Text style={[typography.body, styles.grow, { color: color.text2 }]}>
+            {t(draft.adding == null ? 'training.goNext' : 'training.goNew')}
+          </Text>
         </View>
-        <Text style={[typography.body, styles.grow, { color: color.text2 }]}>{t('training.goNext')}</Text>
-      </View>
+      )}
     </ScrollView>
   );
 }
@@ -294,14 +374,15 @@ function TrainingPointRow({
   );
 }
 
+/** Scanning, and the end of the walk; a training of one point has no end of its own: its point is saved. */
 function TrainingActions({
   scanning,
-  canFinish,
+  canFinish = false,
   onFinish,
 }: {
   scanning: ReturnType<typeof useTrainingScanning>;
-  canFinish: boolean;
-  onFinish: () => void;
+  canFinish?: boolean;
+  onFinish?: () => void;
 }) {
   const { space } = useTheme();
   const insets = useSafeAreaInsets();
@@ -315,8 +396,16 @@ function TrainingActions({
         onPress={scanning.scan}
       />
       <View style={[styles.row, { gap: space.s }]}>
-        <Button variant="secondary" icon="qr" label={t('training.qr')} onPress={scanning.openQr} />
-        <Button variant="secondary" label={t('training.finish')} disabled={!canFinish} onPress={onFinish} style={styles.grow} />
+        <Button
+          variant="secondary"
+          icon="qr"
+          label={t('training.qr')}
+          onPress={scanning.openQr}
+          style={onFinish === undefined ? styles.grow : undefined}
+        />
+        {onFinish !== undefined && (
+          <Button variant="secondary" label={t('training.finish')} disabled={!canFinish} onPress={onFinish} style={styles.grow} />
+        )}
       </View>
     </View>
   );

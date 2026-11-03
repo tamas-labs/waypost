@@ -19,6 +19,7 @@ import {
   addNewPoint,
   checkPointDetails,
   pointDetailsOf,
+  pointsBefore,
   removePoint,
   updatePoint,
   type ExistingScan,
@@ -68,7 +69,11 @@ export default function TrainingPointScreen() {
 
   const header = (
     <ScreenHeader
-      overline={draft === null ? undefined : t('training.pointN', { n: editIndex >= 0 ? editIndex + 1 : draft.points.length + 1 })}
+      overline={
+        draft === null
+          ? undefined
+          : t('training.pointN', { n: pointsBefore(draft) + (editIndex >= 0 ? editIndex + 1 : draft.points.length + 1) })
+      }
       title={t(edit !== undefined ? 'training.editPoint' : pending?.kind === 'existing' ? 'training.existingPoint' : 'training.newPoint')}
       onBack={() => router.back()}
     />
@@ -196,7 +201,13 @@ function PointForm({ draft, change, scan, edit }: DraftProps & ({ scan: NewTagSc
         />
       </ScrollView>
       {edit === undefined ? (
-        <PointActions saveLabel={t('training.saveNext')} onSave={save} dropLabel={t('training.discard')} onDrop={() => router.back()} />
+        <PointActions
+          // A training of one point goes on to its save, not to a next point.
+          saveLabel={t(draft.adding == null ? 'training.saveNext' : 'training.savePoint')}
+          onSave={save}
+          dropLabel={t('training.discard')}
+          onDrop={() => router.back()}
+        />
       ) : (
         <PointActions saveLabel={t('training.savePoint')} onSave={save} dropLabel={t('training.removePoint')} onDrop={remove} />
       )}

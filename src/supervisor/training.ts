@@ -28,12 +28,15 @@ import {
   type TrainingDraft,
   type TrainingInstant,
   type TrainingRead,
+  TrainingError,
+  type AddingTo,
 } from '@/domain/training';
 import { uuidv7 } from '@/id/uuidv7';
 import { photoFile } from '@/photo/files';
 import { queueSupervisorAction } from '@/sync/outbox';
 import { nowTimestamp } from '@/time/timestamp';
 
+import { loadRouteEditBase } from './route-edit';
 import { checkpointPhotoCall, insertCheckpointPhoto, insertRouteVersion } from './route-version';
 
 /** A new route starts with free order; the supervisor can switch it during the walk (S5). */
@@ -100,11 +103,12 @@ export function discardTrainingDraft(db: Database): void {
 
 /**
  * Starts a training and stores its draft (replacing an earlier one): of an existing route (routeId), or of a new route
- * of the site, whose ID is generated here and which is created by the save.
+ * of the site, whose ID is generated here and which is created by the save. adding: a training of one point added to
+ * the route's current version (S7 "Új pont felvétele").
  */
 export function beginTraining(
   db: Database,
-  input: { siteId: string; routeId: string | null; supervisorId: string; started: TrainingInstant },
+  input: { siteId: string; routeId: string | null; supervisorId: string; started: TrainingInstant; adding?: boolean },
 ): TrainingDraft {
   let draft: TrainingDraft;
   if (input.routeId === null) {
@@ -122,12 +126,23 @@ export function beginTraining(
       .where(and(eq(routes.id, input.routeId), eq(routes.site_id, input.siteId)))
       .get();
     if (route === undefined) throw new Error(`Route ${input.routeId} is not on site ${input.siteId}`);
+    let adding: AddingTo | null = null;
+    if (input.adding === true) {
+      const base = loadRouteEditBase(db, route.id);
+      if (base === null) throw new Error(`Route ${route.id} has no version to add to`);
+      adding = {
+        version_id: base.version_id,
+        walk_duration_s: base.walk_duration_s,
+        points: base.points.map(({ checkpoint_id, name, walk_time_from_prev_s }) => ({ checkpoint_id, name, walk_time_from_prev_s })),
+      };
+    }
     draft = startTraining({
       site_id: input.siteId,
       supervisor_id: input.supervisorId,
       route,
       saved_order_mode: route.order_mode,
       started: input.started,
+      adding,
     });
   }
   storeTrainingDraft(db, draft);
@@ -217,8 +232,12 @@ export function saveTraining(db: Database, draft: TrainingDraft, now: Timestamp 
   const save = trainingSave(draft, siteCheckpoints(db, draft.site_id), newId);
   const { route } = draft;
   if (save.createRoute === null) {
-    const exists = db.select({ id: routes.id }).from(routes).where(eq(routes.id, route.id)).get();
+    const exists = db.select({ id: routes.id, current: routes.current_version_id }).from(routes).where(eq(routes.id, route.id)).get();
     if (exists === undefined) throw new Error(`Route ${route.id} is not on the phone any more`);
+    // The version the point is added to would lose what the newer one has.
+    if (draft.adding != null && exists.current !== draft.adding.version_id) {
+      throw new TrainingError('stale', 'The route has another current version');
+    }
   }
   const version = save.createVersion;
 

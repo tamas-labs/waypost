@@ -19,6 +19,7 @@ import {
   type RouteEditBase,
 } from './route-edit';
 
+const SITE = '019a2b3c-4d5e-7f00-8a00-0000000000a1';
 const ROUTE = '019a2b3c-4d5e-7f00-8a00-0000000000b1';
 const VERSION = '019a2b3c-4d5e-7f00-8a00-0000000000d1';
 const A = '019a2b3c-4d5e-7f00-8a00-0000000000c1';
@@ -32,15 +33,15 @@ const newId = () => NEW_VERSION;
 
 /** A → B 60 s → C 90 s → D 120 s: a walk of 270 s. B has a photo, C an instruction. */
 const base: RouteEditBase = {
-  route: { id: ROUTE, name: 'Éjszakai kör', order_mode: 'free' },
+  route: { id: ROUTE, site_id: SITE, name: 'Éjszakai kör', order_mode: 'free' },
   version_id: VERSION,
   version: 4,
   walk_duration_s: 270,
   points: [
-    { checkpoint_id: A, name: 'Főbejárat', instruction: null, photo_media_id: null, walk_time_from_prev_s: null },
-    { checkpoint_id: B, name: 'Porta', instruction: null, photo_media_id: SAVED_PHOTO, walk_time_from_prev_s: 60 },
-    { checkpoint_id: C, name: 'Raktár', instruction: 'Zárva van?', photo_media_id: null, walk_time_from_prev_s: 90 },
-    { checkpoint_id: D, name: 'Kazánház', instruction: null, photo_media_id: null, walk_time_from_prev_s: 120 },
+    { checkpoint_id: A, name: 'Főbejárat', tag_type: 'nfc', instruction: null, photo_media_id: null, walk_time_from_prev_s: null },
+    { checkpoint_id: B, name: 'Porta', tag_type: 'qr', instruction: null, photo_media_id: SAVED_PHOTO, walk_time_from_prev_s: 60 },
+    { checkpoint_id: C, name: 'Raktár', tag_type: 'nfc', instruction: 'Zárva van?', photo_media_id: null, walk_time_from_prev_s: 90 },
+    { checkpoint_id: D, name: 'Kazánház', tag_type: 'nfc', instruction: null, photo_media_id: null, walk_time_from_prev_s: 120 },
   ],
 };
 

@@ -64,6 +64,10 @@ export function trainingErrorText(error: unknown, draft: TrainingDraft): string 
       return t('training.nameMissing');
     case 'in_draft':
       return t('training.errors.inDraft');
+    case 'point_added':
+      return t('training.errors.pointAdded');
+    case 'stale':
+      return t('training.errors.stale');
     case 'not_in_draft':
     case 'not_new':
       return t('training.errors.failed', { message: error.message });

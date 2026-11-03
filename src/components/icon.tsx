@@ -7,6 +7,7 @@ import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import ChevronLeft from 'lucide-react-native/icons/chevron-left';
 import Clock from 'lucide-react-native/icons/clock';
 import CloudOff from 'lucide-react-native/icons/cloud-off';
+import CircleMinus from 'lucide-react-native/icons/circle-minus';
 import CloudUpload from 'lucide-react-native/icons/cloud-upload';
 import Delete from 'lucide-react-native/icons/delete';
 import DoorOpen from 'lucide-react-native/icons/door-open';
@@ -15,6 +16,7 @@ import Ellipsis from 'lucide-react-native/icons/ellipsis';
 import Eye from 'lucide-react-native/icons/eye';
 import EyeOff from 'lucide-react-native/icons/eye-off';
 import Flag from 'lucide-react-native/icons/flag';
+import GripVertical from 'lucide-react-native/icons/grip-vertical';
 import ImageIcon from 'lucide-react-native/icons/image';
 import Info from 'lucide-react-native/icons/info';
 import List from 'lucide-react-native/icons/list';
@@ -72,6 +74,8 @@ const ICONS = {
   exclam: pathIcon(['M12 5v9M12 19v.01']),
   x: X,
   pencil: Pencil,
+  grip: GripVertical,
+  minusCircle: CircleMinus,
   clock: Clock,
   swap: ArrowUpDown,
   // DESIGN_HANDOFF 4

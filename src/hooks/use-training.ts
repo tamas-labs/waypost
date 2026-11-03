@@ -58,13 +58,15 @@ export interface TrainingMessage {
 
 function feedbackOf(outcome: TrainingRead): FeedbackKind {
   if (outcome.kind === 'new_tag' || outcome.kind === 'existing_checkpoint') return 'success';
-  return outcome.kind === 'in_draft' ? 'warning' : 'error';
+  return outcome.kind === 'in_draft' || outcome.kind === 'point_added' ? 'warning' : 'error';
 }
 
 function messageOf(outcome: TrainingRead): TrainingMessage | null {
   switch (outcome.kind) {
     case 'in_draft':
       return { variant: 'warn', text: t('training.inDraft', { name: outcome.name, position: outcome.position }) };
+    case 'point_added':
+      return { variant: 'warn', text: t('training.pointAdded', { name: outcome.name }) };
     case 'unknown_qr':
       return { variant: 'error', text: t('training.unknownQr') };
     case 'unreadable':

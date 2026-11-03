@@ -7,6 +7,7 @@ import {
   draftPhotos,
   elapsedMs,
   pointDetailsOf,
+  pointsBefore,
   readTrainingTag,
   removePoint,
   secondsBetween,
@@ -347,5 +348,87 @@ describe('the save', () => {
     })();
     expect(error).toBeInstanceOf(TrainingError);
     expect(error).toMatchObject({ code: 'tag_taken', checkpointIds: [newPoint] });
+  });
+});
+
+describe('a training of one point', () => {
+  const OLD_VERSION = '019a2b3c-4d5e-7f00-8a00-0000000000d1';
+  /** Added to version: Kapu, then Raktár 95 s later, a walk of 95 s. */
+  const adding = {
+    version_id: OLD_VERSION,
+    walk_duration_s: 95,
+    points: [
+      { checkpoint_id: GATE.id, name: 'Kapu', walk_time_from_prev_s: null },
+      { checkpoint_id: STORE.id, name: 'Raktár', walk_time_from_prev_s: 95 },
+    ],
+  };
+  const addingDraft = () => startTraining({ ...draftOf(), adding });
+  const BACK = { ...GATE, id: '019a2b3c-4d5e-7f00-8a00-0000000000c3', name: 'Hátsó kapu', tag_uid: '04A1B2C3D4E503', qr_payload: null };
+
+  it('counts the points of the version before its own', () => {
+    expect(pointsBefore(addingDraft())).toBe(2);
+    expect(pointsBefore(draftOf())).toBe(0);
+  });
+
+  it('knows the points of the version are on the route already', () => {
+    const read = readTrainingTag(addingDraft(), SITE_CHECKPOINTS, { method: 'nfc', tag_uid: STORE.tag_uid!, ndef_raw: null }, at(0), FIX);
+    expect(read).toEqual({ kind: 'in_draft', position: 2, name: 'Raktár' });
+    expect(() => addExistingPoint(addingDraft(), { checkpoint: GATE, scanned: at(0) })).toThrow(
+      expect.objectContaining({ code: 'in_draft' }),
+    );
+  });
+
+  it('takes one point: another read tells to save it first', () => {
+    const draft = withNewPoint(addingDraft(), '04A1B2C3D4E599', 0, 'Kazánház');
+    expect(readTrainingTag(draft, SITE_CHECKPOINTS, { method: 'nfc', tag_uid: '04A1B2C3D4E598', ndef_raw: null }, at(5), FIX)).toEqual({
+      kind: 'point_added',
+      name: 'Kazánház',
+    });
+    expect(() => addExistingPoint(draft, { checkpoint: BACK, scanned: at(5) })).toThrow(expect.objectContaining({ code: 'point_added' }));
+    // Taken out, the point can be read again.
+    expect(
+      readTrainingTag(
+        removePoint(draft, draft.points[0]!.checkpoint_id),
+        SITE_CHECKPOINTS,
+        { method: 'qr', qr_payload: GATE.qr_payload! },
+        at(9),
+        FIX,
+      ).kind,
+    ).toBe('in_draft');
+  });
+
+  it("saves the version's points as they were, then the new one, with the walk measured for the version", () => {
+    const draft = withNewPoint(addingDraft(), '04A1B2C3D4E599', 0, 'Kazánház');
+    const save = trainingSave(draft, SITE_CHECKPOINTS, newId);
+    expect(save.createRoute).toBeNull();
+    expect(save.updateRoute).toBeNull();
+    expect(save.createCheckpoints.map((checkpoint) => checkpoint.name)).toEqual(['Kazánház']);
+    expect(save.createVersion).toEqual({
+      id: '019a2b3c-4d5e-7f00-8b00-000000000002',
+      walk_duration_s: 95,
+      checkpoints: [
+        { checkpoint_id: GATE.id, walk_time_from_prev_s: null },
+        { checkpoint_id: STORE.id, walk_time_from_prev_s: 95 },
+        // Its walk from Raktár was not measured.
+        { checkpoint_id: '019a2b3c-4d5e-7f00-8b00-000000000001', walk_time_from_prev_s: null },
+      ],
+    });
+  });
+
+  it('adds an existing checkpoint of the site too', () => {
+    const draft = addExistingPoint(addingDraft(), { checkpoint: BACK, scanned: at(0) });
+    expect(trainingSave(draft, [...SITE_CHECKPOINTS, BACK], newId).createVersion.checkpoints.at(-1)).toEqual({
+      checkpoint_id: BACK.id,
+      walk_time_from_prev_s: null,
+    });
+  });
+
+  it('counts the version in the limit of a route', () => {
+    const full = {
+      ...adding,
+      points: Array.from({ length: 500 }, (_, i) => ({ checkpoint_id: `cp-${i}`, name: `${i}`, walk_time_from_prev_s: null })),
+    };
+    const draft = withNewPoint(startTraining({ ...draftOf(), adding: full }), '04A1B2C3D4E599', 0);
+    expect(() => trainingSave(draft, SITE_CHECKPOINTS, newId)).toThrow(expect.objectContaining({ code: 'too_many_points' }));
   });
 });

@@ -37,8 +37,8 @@ import { localDateOf } from '@/time/zone';
 
 // Site details (S3, S-Telephely): the routes with "Új útvonal betanítása" (and the supervisor's unfinished training of
 // the site, to continue), the settings (schedules, guards, reports) in one line each, and the site phone, with "Telefon
-// hozzárendelése" on a supervisor's own phone (M5-09). The other rows lead to their screens as those are built (M5-15 –
-// M5-19); the design's warning about the last problem round needs round data the phone does not get (Q15, M5-20).
+// hozzárendelése" on a supervisor's own phone (M5-09). A route leads to its editing (S7); the other rows lead to their
+// screens as those are built (M5-17 – M5-19); the design's warning about the last problem round needs round data the phone does not get (Q15, M5-20).
 export default function SiteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { color, typography, space } = useTheme();
@@ -74,7 +74,16 @@ export default function SiteScreen() {
           )}
           <Card divided>
             {site.routes.map((route) => (
-              <Row key={route.id} title={route.name} subtitle={routeSummary(route)} dimmed={!route.active} />
+              <Row
+                key={route.id}
+                title={route.name}
+                subtitle={routeSummary(route)}
+                dimmed={!route.active}
+                // A route without a version on the phone has nothing to edit yet.
+                onPress={
+                  route.version === null ? undefined : () => router.push({ pathname: '/routes/[id]/edit', params: { id: route.id } })
+                }
+              />
             ))}
             {supervisorId !== null && <TrainingRows siteId={site.id} supervisorId={supervisorId} />}
           </Card>

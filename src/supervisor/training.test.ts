@@ -158,6 +158,7 @@ describe('the draft', () => {
       saved_order_mode: 'free',
       started,
       points: [],
+      adding: null,
     });
     expect(loadTrainingDraft(db, ME)).toEqual(draft);
   });
@@ -467,5 +468,58 @@ describe('saving', () => {
     db.delete(routes).run();
     expect(() => saveTraining(db, draft, SAVED_AT, newId)).toThrow('is not on the phone any more');
     expect(queued()).toEqual([]);
+  });
+});
+
+describe('a training of one point', () => {
+  const NEW_TAG = '04A1B2C3D4E599';
+  function addedPoint(draft: TrainingDraft): TrainingDraft {
+    const read = readTrainingTag(draft, siteCheckpoints(db, SITE), { method: 'nfc', tag_uid: NEW_TAG, ndef_raw: null }, after(0), null);
+    if (read.kind !== 'new_tag') throw new Error(`Unexpected read: ${read.kind}`);
+    return addNewPoint(draft, read.scan, { name: 'Kazánház', instruction: '', photo: null }, newId);
+  }
+
+  it("starts from the route's current version", () => {
+    const draft = beginTraining(db, { siteId: SITE, routeId: ROUTE, supervisorId: ME, started, adding: true });
+    expect(draft.adding).toEqual({
+      version_id: OLD_VERSION,
+      walk_duration_s: 900,
+      points: [{ checkpoint_id: GATE, name: 'Kapu', walk_time_from_prev_s: null }],
+    });
+    expect(storedTrainingDraft(db)).toEqual(draft);
+  });
+
+  it('is saved as the next version with the new point at the end', () => {
+    const draft = addedPoint(beginTraining(db, { siteId: SITE, routeId: ROUTE, supervisorId: ME, started, adding: true }));
+    const versionId = saveTraining(db, draft, SAVED_AT, newId);
+
+    expect(db.select().from(routes).get()).toMatchObject({ current_version_id: versionId, order_mode: 'free' });
+    expect(
+      db
+        .select({ checkpoint_id: routeVersionCheckpoints.checkpoint_id, walk: routeVersionCheckpoints.walk_time_from_prev_s })
+        .from(routeVersionCheckpoints)
+        .where(sql`route_version_id = ${versionId}`)
+        .orderBy(asc(routeVersionCheckpoints.position))
+        .all(),
+    ).toEqual([
+      { checkpoint_id: GATE, walk: null },
+      { checkpoint_id: '019a2b3c-4d5e-7f00-8b00-000000000001', walk: null },
+    ]);
+    expect(queued().map((call) => `${call.method} ${call.path}`)).toEqual(['POST /checkpoints', `POST /routes/${ROUTE}/versions`]);
+    expect(queued()[1]!.body).toMatchObject({ walk_duration_s: 900 });
+  });
+
+  it('is not saved over a version that came meanwhile', () => {
+    const draft = addedPoint(beginTraining(db, { siteId: SITE, routeId: ROUTE, supervisorId: ME, started, adding: true }));
+    db.update(routes).set({ current_version_id: '019a2b3c-4d5e-7f00-8a00-0000000000d9' }).run();
+
+    expect(() => saveTraining(db, draft, SAVED_AT, newId)).toThrow(expect.objectContaining({ code: 'stale' }));
+    expect(queued()).toEqual([]);
+    expect(getKv(db, 'training.draft')).not.toBeNull();
+  });
+
+  it('needs a version to add to', () => {
+    db.update(routes).set({ current_version_id: null }).run();
+    expect(() => beginTraining(db, { siteId: SITE, routeId: ROUTE, supervisorId: ME, started, adding: true })).toThrow('no version');
   });
 });

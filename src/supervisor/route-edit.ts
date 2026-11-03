@@ -21,6 +21,7 @@ export function loadRouteEditBase(db: Database, routeId: string): RouteEditBase 
   const row = db
     .select({
       id: routes.id,
+      site_id: routes.site_id,
       name: routes.name,
       order_mode: routes.order_mode,
       version_id: routeVersions.id,
@@ -36,6 +37,7 @@ export function loadRouteEditBase(db: Database, routeId: string): RouteEditBase 
     .select({
       checkpoint_id: routeVersionCheckpoints.checkpoint_id,
       name: checkpoints.name,
+      tag_type: checkpoints.tag_type,
       instruction: checkpoints.instruction,
       photo_media_id: checkpoints.photo_media_id,
       walk_time_from_prev_s: routeVersionCheckpoints.walk_time_from_prev_s,
@@ -46,8 +48,8 @@ export function loadRouteEditBase(db: Database, routeId: string): RouteEditBase 
     .where(eq(routeVersionCheckpoints.route_version_id, row.version_id))
     .orderBy(asc(routeVersionCheckpoints.position))
     .all();
-  const { id, name, order_mode, version_id, version, walk_duration_s } = row;
-  return { route: { id, name, order_mode }, version_id, version, walk_duration_s, points };
+  const { id, site_id, name, order_mode, version_id, version, walk_duration_s } = row;
+  return { route: { id, site_id, name, order_mode }, version_id, version, walk_duration_s, points };
 }
 
 /**

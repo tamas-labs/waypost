@@ -38,6 +38,8 @@ jest.mock('@/nfc/use-tag-reader', () => ({ useTagReader: jest.fn() }));
 jest.mock('expo-keep-awake', () => ({ useKeepAwake: jest.fn() }));
 jest.mock('expo-camera', () => ({ useCameraPermissions: jest.fn(), CameraView: (props: unknown) => mockCameraView(props) }));
 jest.mock('@/photo/photo', () => ({ takePhoto: jest.fn(), discardPhoto: jest.fn() }));
+// The app's files and the test's are the same in-memory ones (__mocks__/expo-file-system.ts).
+jest.mock('expo-file-system');
 const { files: mockedFiles } = jest.requireMock<typeof import('../__mocks__/expo-file-system')>('expo-file-system');
 
 function RootLayout() {

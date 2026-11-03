@@ -76,8 +76,18 @@ export function usePhotoDraft(): PhotoDraft {
   return { photos, add, remove, recording };
 }
 
-export interface SinglePhotoDraft {
-  photo: PhotoFile | null;
+/** A photo of the form: a saved one (anything with its media ID) or one taken now. */
+type FormPhoto<S> = S | PhotoFile;
+
+const isTaken = (photo: { id: string }): photo is PhotoFile => 'local_uri' in photo && 'sha256' in photo;
+
+/** Deletes a photo taken on the form; the saved one stays. */
+function discardTaken(saved: { id: string } | null, photo: { id: string } | null): void {
+  if (photo !== null && photo.id !== saved?.id && isTaken(photo)) discardQuietly(photo);
+}
+
+export interface SinglePhotoDraft<S extends { id: string } = PhotoFile> {
+  photo: FormPhoto<S> | null;
   /** Another photo instead of the one shown; one taken on this form and replaced is deleted at once. */
   take: (photo: PhotoFile) => void;
   remove: () => void;
@@ -89,17 +99,22 @@ export interface SinglePhotoDraft {
 }
 
 /**
- * One photo of a form that edits something saved (the point of a training): it starts with the saved photo, which is
- * never deleted here; the photos taken on the form live as long as the form, unless it is saved with one.
+ * One photo of a form that edits something saved (the point of a training or of a route): it starts with the saved
+ * photo, which is never deleted here (it may be only a media ID, its file on the server); the photos taken on the form
+ * live as long as the form, unless it is saved with one.
  */
-export function useSinglePhotoDraft(saved: PhotoFile | null): SinglePhotoDraft {
-  const [photo, setPhoto] = useState(saved);
-  const draft = useRef({ saved, current: saved, mounted: true, kept: false });
+export function useSinglePhotoDraft<S extends { id: string } = PhotoFile>(saved: S | null): SinglePhotoDraft<S> {
+  const [photo, setPhoto] = useState<FormPhoto<S> | null>(saved);
+  const draft = useRef<{ saved: S | null; current: FormPhoto<S> | null; mounted: boolean; kept: boolean }>({
+    saved,
+    current: saved,
+    mounted: true,
+    kept: false,
+  });
 
-  const show = useCallback((next: PhotoFile | null) => {
+  const show = useCallback((next: FormPhoto<S> | null) => {
     const state = draft.current;
-    const previous = state.current;
-    if (previous !== null && previous.id !== state.saved?.id) discardQuietly(previous);
+    discardTaken(state.saved, state.current);
     state.current = next;
     setPhoto(next);
   }, []);
@@ -122,7 +137,7 @@ export function useSinglePhotoDraft(saved: PhotoFile | null): SinglePhotoDraft {
     state.mounted = true;
     return () => {
       state.mounted = false;
-      if (!state.kept && state.current !== null && state.current.id !== state.saved?.id) discardQuietly(state.current);
+      if (!state.kept) discardTaken(state.saved, state.current);
     };
   }, []);
 

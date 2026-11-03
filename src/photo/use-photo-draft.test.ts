@@ -112,4 +112,13 @@ describe('the one photo of a form that edits something saved', () => {
     take(photo('late'));
     expect(jest.mocked(discardPhoto).mock.calls).toEqual([[photo('late')]]);
   });
+
+  it('starts with a saved photo known only by its media ID, which is never deleted', async () => {
+    const { result, unmount } = await renderHook(() => useSinglePhotoDraft<{ id: string }>({ id: 'on-the-server' }));
+    expect(result.current.photo).toEqual({ id: 'on-the-server' });
+    await act(async () => result.current.remove());
+    await act(async () => result.current.take(photo('a')));
+    await unmount();
+    expect(jest.mocked(discardPhoto).mock.calls).toEqual([[photo('a')]]);
+  });
 });

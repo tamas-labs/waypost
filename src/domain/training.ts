@@ -7,6 +7,8 @@
 // Only NFC makes a new checkpoint: a QR code carries the ID of its checkpoint, so it can only add one that exists
 // (decisions: "Betanítás – domain"). A new checkpoint may have a photo that helps to find it: it is uploaded before the
 // checkpoint is created, with the checkpoint as its owner (api/media-upload.request).
+// Adding a point to a route (S7 "Új pont felvétele · bejárást igényel") is a training of one point: its tag is scanned
+// on the spot, and the route's current version keeps its points before it (decisions: "Útvonal szerkesztése").
 import type { CheckpointCreateRequest, RouteCreateRequest, RouteVersionCreateRequest } from '@waypost/schema';
 
 import { locationFields, normalizeTagUid, type LocationFix, type PhotoFile } from '@/chain/payloads';
@@ -72,6 +74,14 @@ export interface TrainingRoute {
   order_mode: OrderMode;
 }
 
+/** The route's current version, which a training of one point adds to: its points stay as they are, before the new one. */
+export interface AddingTo {
+  version_id: string;
+  walk_duration_s: number | null;
+  /** By position. */
+  points: { checkpoint_id: string; name: string; walk_time_from_prev_s: number | null }[];
+}
+
 export interface TrainingDraft {
   site_id: string;
   /** Who trains: a draft is not taken over by another supervisor (the site phone has several). */
@@ -82,6 +92,11 @@ export interface TrainingDraft {
   started: TrainingInstant;
   /** In the order of the walk. */
   points: TrainingPoint[];
+  /**
+   * A training of one point added to this version (S7); null or missing (a draft stored before M5-15): a walk of the
+   * whole route, which becomes the version by itself.
+   */
+  adding?: AddingTo | null;
 }
 
 /** An unknown NFC tag, waiting for the details of its new checkpoint (S6). */
@@ -105,10 +120,23 @@ export type TrainingRead =
   /** A QR code of no checkpoint on the site: only an NFC tag makes a new one. */
   | { kind: 'unknown_qr' }
   /** The NFC tag gave no valid UID. */
-  | { kind: 'unreadable' };
+  | { kind: 'unreadable' }
+  /** A training of one point has its point: another needs it saved first. */
+  | { kind: 'point_added'; name: string };
 
 export type TrainingErrorCode =
-  'name_required' | 'route_name_required' | 'in_draft' | 'not_in_draft' | 'not_new' | 'no_points' | 'too_many_points' | 'tag_taken';
+  | 'name_required'
+  | 'route_name_required'
+  | 'in_draft'
+  | 'not_in_draft'
+  | 'not_new'
+  | 'no_points'
+  | 'too_many_points'
+  | 'tag_taken'
+  /** A training of one point has its point already. */
+  | 'point_added'
+  /** The version a point is added to is not the route's current one any more (a pull or another save changed it). */
+  | 'stale';
 
 /** A training rule cannot be applied; code tells the screen what to show. */
 export class TrainingError extends Error {
@@ -130,15 +158,31 @@ export function startTraining(input: {
   /** Null for a new route. */
   saved_order_mode: OrderMode | null;
   started: TrainingInstant;
+  /** A training of one point added to this version of the route. */
+  adding?: AddingTo | null;
 }): TrainingDraft {
-  return { ...input, route: { ...input.route }, points: [] };
+  return { ...input, route: { ...input.route }, points: [], adding: input.adding ?? null };
 }
 
-/** The draft's point of a tag, by the tag of a new point or the checkpoint an existing tag belongs to. */
-function positionInDraft(draft: TrainingDraft, matches: (point: TrainingPoint) => boolean): TrainingRead | null {
+/** The number of points before the draft's own: those of the version a point is added to. */
+export function pointsBefore(draft: TrainingDraft): number {
+  return draft.adding?.points.length ?? 0;
+}
+
+/** The draft's point of a tag (or one of the version it adds to), by the tag of a new point or the checkpoint an existing tag belongs to. */
+function positionInDraft(draft: TrainingDraft, matches: (point: { kind?: string; checkpoint_id: string }) => boolean): TrainingRead | null {
+  const before = draft.adding?.points ?? [];
+  const kept = before.findIndex(matches);
+  const keptPoint = before[kept];
+  if (keptPoint !== undefined) return { kind: 'in_draft', position: kept + 1, name: keptPoint.name };
   const index = draft.points.findIndex(matches);
   const point = draft.points[index];
-  return point === undefined ? null : { kind: 'in_draft', position: index + 1, name: point.name };
+  return point === undefined ? null : { kind: 'in_draft', position: before.length + index + 1, name: point.name };
+}
+
+/** A training of one point that has its point: it takes no other. */
+function addedPoint(draft: TrainingDraft): TrainingPoint | null {
+  return draft.adding == null ? null : (draft.points[0] ?? null);
 }
 
 /**
@@ -152,6 +196,8 @@ export function readTrainingTag(
   scanned: TrainingInstant,
   location: LocationFix | null,
 ): TrainingRead {
+  const added = addedPoint(draft);
+  if (added !== null) return { kind: 'point_added', name: added.name };
   if (read.method === 'qr') {
     const checkpoint = checkpoints.find((c) => c.qr_payload === read.qr_payload);
     if (checkpoint === undefined) return { kind: 'unknown_qr' };
@@ -169,7 +215,7 @@ export function readTrainingTag(
   }
   const fix = location === null || location.mocked ? null : location;
   return (
-    positionInDraft(draft, (p) => p.kind === 'new' && p.tag_uid === uid) ?? {
+    positionInDraft(draft, (p) => p.kind === 'new' && 'tag_uid' in p && p.tag_uid === uid) ?? {
       kind: 'new_tag',
       scan: { tag_uid: uid, location: locationFields(fix), scanned },
     }
@@ -201,11 +247,16 @@ function inDraft(draft: TrainingDraft, checkpointId: string): boolean {
   return draft.points.some((point) => point.checkpoint_id === checkpointId);
 }
 
+function checkRoomForPoint(draft: TrainingDraft): void {
+  if (addedPoint(draft) !== null) throw new TrainingError('point_added', 'A training of one point has its point');
+}
+
 /** Adds the new checkpoint of an unknown tag ("Mentés, jöhet a következő"). */
 export function addNewPoint(draft: TrainingDraft, scan: NewTagScan, details: PointDetails, newId: NewId): TrainingDraft {
   if (draft.points.some((point) => point.kind === 'new' && point.tag_uid === scan.tag_uid)) {
     throw new TrainingError('in_draft', 'The tag is in the draft already');
   }
+  checkRoomForPoint(draft);
   const cleaned = cleanDetails(details);
   const point: TrainingPoint = {
     kind: 'new',
@@ -220,7 +271,10 @@ export function addNewPoint(draft: TrainingDraft, scan: NewTagScan, details: Poi
 
 /** Adds a checkpoint of the site whose tag was scanned. */
 export function addExistingPoint(draft: TrainingDraft, { checkpoint, scanned }: ExistingScan): TrainingDraft {
-  if (inDraft(draft, checkpoint.id)) throw new TrainingError('in_draft', 'The checkpoint is in the draft already');
+  if (inDraft(draft, checkpoint.id) || draft.adding?.points.some((p) => p.checkpoint_id === checkpoint.id)) {
+    throw new TrainingError('in_draft', 'The checkpoint is in the draft already');
+  }
+  checkRoomForPoint(draft);
   const point: TrainingPoint = {
     kind: 'existing',
     checkpoint_id: checkpoint.id,
@@ -325,7 +379,7 @@ export interface TrainingSave {
 export function trainingSave(draft: TrainingDraft, checkpoints: readonly SiteCheckpoint[], newId: NewId): TrainingSave {
   const [first, ...rest] = draft.points;
   if (first === undefined) throw new TrainingError('no_points', 'The training has no checkpoint');
-  if (draft.points.length > ROUTE_POINTS_MAX)
+  if (pointsBefore(draft) + draft.points.length > ROUTE_POINTS_MAX)
     throw new TrainingError('too_many_points', `A route has at most ${ROUTE_POINTS_MAX} checkpoints`);
   const name = draft.route.name.trim();
   if (draft.saved_order_mode === null && name === '') throw new TrainingError('route_name_required', 'The new route needs a name');
@@ -334,6 +388,15 @@ export function trainingSave(draft: TrainingDraft, checkpoints: readonly SiteChe
 
   const { route, site_id } = draft;
   const times = walkTimes(draft);
+  const walked = [
+    { checkpoint_id: first.checkpoint_id, walk_time_from_prev_s: null },
+    ...rest.map((point, index) => ({ checkpoint_id: point.checkpoint_id, walk_time_from_prev_s: times[index + 1] ?? null })),
+  ];
+  // Adding to a version: its points as they were, then the new one, whose walk from the last of them was not measured.
+  const [head = walked[0]!, ...tail] = [
+    ...(draft.adding?.points.map(({ checkpoint_id, walk_time_from_prev_s }) => ({ checkpoint_id, walk_time_from_prev_s })) ?? []),
+    ...walked,
+  ];
   return {
     createRoute: draft.saved_order_mode === null ? { id: route.id, site_id, name, order_mode: route.order_mode, active: true } : null,
     updateRoute:
@@ -363,11 +426,9 @@ export function trainingSave(draft: TrainingDraft, checkpoints: readonly SiteChe
     activateCheckpoints: draft.points.flatMap((point) => (point.kind === 'existing' && !point.active ? [point.checkpoint_id] : [])),
     createVersion: {
       id: newId(),
-      walk_duration_s: walkDuration(draft),
-      checkpoints: [
-        { checkpoint_id: first.checkpoint_id, walk_time_from_prev_s: null },
-        ...rest.map((point, index) => ({ checkpoint_id: point.checkpoint_id, walk_time_from_prev_s: times[index + 1] ?? null })),
-      ],
+      // The walk measured for the version added to: the new point's way to it is not known.
+      walk_duration_s: draft.adding == null ? walkDuration(draft) : draft.adding.walk_duration_s,
+      checkpoints: [{ ...head, walk_time_from_prev_s: null }, ...tail],
     },
   };
 }

@@ -139,7 +139,8 @@ export interface SinglePhotoFieldProps {
   label: string;
   /** After the label in the secondary colour: "· segít megtalálni". */
   hint?: string;
-  photo: PhotoFile | null;
+  /** A photo taken on the phone, or a saved one by its media ID (its file may not be on this phone). */
+  photo: { id: string } | null;
   /** A new photo, instead of the one shown. */
   onTake: (photo: PhotoFile) => void;
   onRemove: () => void;
@@ -167,7 +168,7 @@ export function SinglePhotoField({ label, hint, photo, onTake, onRemove, disable
           <>
             <PhotoSlot
               // Found by its ID: iOS moves the app's documents at an update, so the URI of an older draft goes stale.
-              uri={photoFile(photo.id).uri}
+              uri={photoUri(photo.id)}
               number={1}
               accessibilityHint={t('photoField.removeHint')}
               onPress={disabled ? undefined : () => confirmRemove(onRemove)}
@@ -186,6 +187,12 @@ export function SinglePhotoField({ label, hint, photo, onTake, onRemove, disable
       <CameraModal open={cameraOpen} onTaken={onTake} onClose={() => setCameraOpen(false)} />
     </View>
   );
+}
+
+/** The photo's file on this phone; null if it is not here (a saved photo from another phone, or after the cleanup). */
+function photoUri(id: string): string | null {
+  const file = photoFile(id);
+  return file.exists ? file.uri : null;
 }
 
 const styles = StyleSheet.create({

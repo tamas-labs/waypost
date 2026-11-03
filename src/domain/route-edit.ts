@@ -16,6 +16,8 @@ import { ROUTE_NAME_MAX, trimPointText, type OrderMode } from './training';
 export interface VersionPoint {
   checkpoint_id: string;
   name: string;
+  /** What the guard scans there: its meta on the list (S7). */
+  tag_type: 'nfc' | 'nfc_dna' | 'qr';
   instruction: string | null;
   photo_media_id: string | null;
   /** Null at the first position, or where it was not measured. */
@@ -24,7 +26,7 @@ export interface VersionPoint {
 
 /** The route and its current version, as the editing started from them. */
 export interface RouteEditBase {
-  route: { id: string; name: string; order_mode: OrderMode };
+  route: { id: string; site_id: string; name: string; order_mode: OrderMode };
   version_id: string;
   version: number;
   walk_duration_s: number | null;

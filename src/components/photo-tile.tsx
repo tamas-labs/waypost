@@ -7,8 +7,8 @@ import { useTheme } from '@/theme/theme-provider';
 import { Icon } from './icon';
 
 export interface PhotoSlotProps {
-  /** The compressed photo file (photo/photo.ts). */
-  uri: string;
+  /** The compressed photo file (photo/photo.ts); null: a saved photo whose file is not on this phone. */
+  uri: string | null;
   /** Its place in the list, from 1: "2. fotó". */
   number: number;
   /** E.g. remove the photo; the screen tells what happens in the hint. */
@@ -19,7 +19,7 @@ export interface PhotoSlotProps {
 
 /** A taken photo (DESIGN_HANDOFF 5.14): the image cropped to the tile, a check at the top right. */
 export function PhotoSlot({ uri, number, onPress, accessibilityHint, style }: PhotoSlotProps) {
-  const { color, size, space, radius, iconSize, iconStroke } = useTheme();
+  const { color, typography, size, space, radius, iconSize, iconStroke } = useTheme();
   return (
     <Pressable
       accessibilityRole={onPress === undefined ? 'image' : 'button'}
@@ -29,7 +29,14 @@ export function PhotoSlot({ uri, number, onPress, accessibilityHint, style }: Ph
       onPress={onPress}
       style={[styles.tile, { height: size.photoTile, borderRadius: radius.item, backgroundColor: color.field }, style]}
     >
-      <Image source={{ uri }} contentFit="cover" style={StyleSheet.absoluteFill} accessible={false} />
+      {uri === null ? (
+        <View style={[StyleSheet.absoluteFill, styles.missing, { padding: space.s, gap: space.xs }]}>
+          <Icon name="image" size={iconSize.banner} color={color.text2} />
+          <Text style={[typography.small, styles.centred, { color: color.text2 }]}>{t('components.photoElsewhere')}</Text>
+        </View>
+      ) : (
+        <Image source={{ uri }} contentFit="cover" style={StyleSheet.absoluteFill} accessible={false} />
+      )}
       <View
         style={[
           styles.check,
@@ -92,4 +99,6 @@ const styles = StyleSheet.create({
   tile: { flex: 1, overflow: 'hidden' },
   check: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   add: { flex: 1, alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed' },
+  missing: { alignItems: 'center', justifyContent: 'center' },
+  centred: { textAlign: 'center' },
 });

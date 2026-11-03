@@ -210,7 +210,8 @@
     "progress": "{{done}} / {{total}} pont kész",
     "timeline": "Körök idővonala: {{items}}",
     "timelineLater": "a többi később",
-    "photo": "{{n}}. fotó"
+    "photo": "{{n}}. fotó",
+    "photoElsewhere": "Nincs a telefonon"
   },
   "deviceSetup": {
     "title": "Telefon beállítása",
@@ -718,8 +719,15 @@
       "tooManyPoints": "Egy útvonalon legfeljebb {{max}} pont lehet.",
       "tagTaken": "Ezeknek a pontoknak a címkéje közben egy másik ponthoz került a telephelyen: {{names}}. Vedd ki őket a bejárásból, és olvass le helyettük másik címkét.",
       "inDraft": "Ez a pont már a bejárásban van.",
-      "failed": "A mentés nem sikerült: {{message}}"
-    }
+      "failed": "A mentés nem sikerült: {{message}}",
+      "pointAdded": "Ezzel a felvétellel csak egy pont vehető fel.",
+      "stale": "Az útvonalnak közben új verziója lett. Kezdd újra a pont felvételét az útvonal szerkesztéséből."
+    },
+    "pointAdded": "Ezzel a felvétellel egy pont vehető fel: előbb mentsd a(z) „{{name}}” pontot.",
+    "addLabel": "Új pont felvétele",
+    "addInfo": "Olvasd le az új pont címkéjét a helyszínen. A pont az útvonal végére kerül ({{position}}. pont), a helyét a szerkesztésben állíthatod be.",
+    "goNew": "Menj az új ponthoz…",
+    "addSaved": "„{{name}}” felvéve, mentve v{{version}}-ként"
   },
   "routeEdit": {
     "versionInfo": "Mentéskor új verzió (v{{version}}) készül. A futó kör a régivel fejeződik be, a korábbi jelentések nem változnak.",
@@ -728,7 +736,28 @@
     "remove": "Kivétel az útvonalból: {{name}}",
     "addPoint": "Új pont felvétele",
     "needsWalk": "bejárást igényel",
-    "saveAs": "Mentés v{{version}}-ként"
+    "saveAs": "Mentés v{{version}}-ként",
+    "header": "v{{version}} szerkesztése · {{order}}",
+    "missing": "Ez az útvonal nincs meg ezen a telefonon, vagy még nincs verziója.",
+    "moveHint": "Hosszan nyomva húzd a helyére",
+    "moveUp": "Feljebb",
+    "moveDown": "Lejjebb",
+    "removeConfirm": "Kiveszed ezt a pontot az útvonalból? A pont a telephelyen megmarad.",
+    "stale": "Közben új verzió készült (v{{version}}). A módosításaid ehhez nem menthetők: kezdd újra.",
+    "restart": "Újrakezdés az új verzióból",
+    "saved": "Az útvonal elmentve: v{{version}}",
+    "leaveTitle": "Elveted a módosításokat?",
+    "leaveConfirm": "A nem mentett módosítások elvesznek.",
+    "leaveKeep": "Folytatom",
+    "leaveDiscard": "Elvetés",
+    "saveFirstTitle": "Előbb mentés",
+    "saveFirst": "Új pont felvétele előtt a módosításokat menteni kell (v{{version}}).",
+    "saveFirstButton": "Mentés és tovább",
+    "errors": {
+      "noPoints": "Egy útvonalon legalább egy pontnak kell lennie.",
+      "unchanged": "Nincs mentendő módosítás.",
+      "stale": "Közben új verzió készült, ezért ez a szerkesztés nem menthető. Kezdd újra az új verzióból."
+    }
   },
   "schedule": {
     "days": "Napok",

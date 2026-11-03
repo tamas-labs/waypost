@@ -121,14 +121,21 @@ const versionPoints = (id: string) =>
 describe('the route to edit', () => {
   it('is its current version with the checkpoints by position', () => {
     expect(base()).toEqual({
-      route: { id: ROUTE, name: 'Éjszakai kör', order_mode: 'free' },
+      route: { id: ROUTE, site_id: SITE, name: 'Éjszakai kör', order_mode: 'free' },
       version_id: OLD_VERSION,
       version: 4,
       walk_duration_s: 215,
       points: [
-        { checkpoint_id: GATE, name: 'Kapu', instruction: null, photo_media_id: OLD_PHOTO, walk_time_from_prev_s: null },
-        { checkpoint_id: STORE, name: 'Raktár', instruction: 'Zárva van?', photo_media_id: null, walk_time_from_prev_s: 95 },
-        { checkpoint_id: BACK, name: 'Hátsó kapu', instruction: null, photo_media_id: null, walk_time_from_prev_s: 120 },
+        { checkpoint_id: GATE, name: 'Kapu', tag_type: 'nfc', instruction: null, photo_media_id: OLD_PHOTO, walk_time_from_prev_s: null },
+        {
+          checkpoint_id: STORE,
+          name: 'Raktár',
+          tag_type: 'nfc',
+          instruction: 'Zárva van?',
+          photo_media_id: null,
+          walk_time_from_prev_s: 95,
+        },
+        { checkpoint_id: BACK, name: 'Hátsó kapu', tag_type: 'nfc', instruction: null, photo_media_id: null, walk_time_from_prev_s: 120 },
       ],
     });
   });

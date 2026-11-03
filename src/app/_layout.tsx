@@ -8,6 +8,8 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
+import { StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { startAlarmScreen } from '@/alarms/active-alarms';
 import { startRoundAlarms } from '@/alarms/round-alarms';
@@ -83,14 +85,17 @@ export default function RootLayout() {
 
   if (!ready) return null;
   return (
-    // Without a database (failed start) the theme follows the system and a choice is not stored.
-    <ThemeProvider
-      initialPreference={startup.state === 'ready' ? startup.themePreference : 'system'}
-      onPreferenceChange={startup.state === 'ready' ? storeThemePreference : undefined}
-    >
-      <ThemedStatusBar />
-      {startup.state === 'failed' ? <StartupError error={startup.error} onRetry={retry} /> : <AppStack />}
-    </ThemeProvider>
+    // The gestures of the screens (the drag of S7) need their root view here.
+    <GestureHandlerRootView style={styles.root}>
+      {/* Without a database (failed start) the theme follows the system and a choice is not stored. */}
+      <ThemeProvider
+        initialPreference={startup.state === 'ready' ? startup.themePreference : 'system'}
+        onPreferenceChange={startup.state === 'ready' ? storeThemePreference : undefined}
+      >
+        <ThemedStatusBar />
+        {startup.state === 'failed' ? <StartupError error={startup.error} onRetry={retry} /> : <AppStack />}
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -102,3 +107,7 @@ function ThemedStatusBar() {
   const { name } = useTheme();
   return <StatusBar style={name === 'dark' ? 'light' : 'dark'} />;
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});
