@@ -129,6 +129,19 @@ Friss telepítés, hozzárendelés után PIN-nel belépett supervisorral (a tele
 | B4 | „Téma”: Sötét, majd Világos, majd Rendszer; utána zárd be és nyisd meg újra az appot. | Az egész app azonnal vált, és újraindítás után is megmarad. A PIN-képernyőn és az őr képernyőin nincs témaválasztó. |
 | B5 | A supervisor saját telefonján a fiókmenüből „Telefon beállítása”. | Csak helymeghatározás, kamera és NFC; a telephelylistán nincs figyelmeztető sáv. |
 
+### M5 – Betanítás (M5-12, a telephely részletein „Új útvonal betanítása”; fejlesztői build, a helyadat miatt a szabadban is)
+
+Supervisor belépéssel a saját telefonon (ill. a J6-hoz PIN-nel a telephelyi telefonon), egy telephellyel, amelynek van legalább egy pontja (címkével és QR-kóddal), és két-három még fel nem vett NFC-címkével.
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| J1 | „Új útvonal betanítása”, majd egy új címke (Android: gomb nélkül, a képernyő nyitva; iPhone: „Pont leolvasása”). Név, utasítás, „Mentés, jöhet a következő”. | Siker-visszajelzés; a pont képernyőjén a címke UID-ja és a GPS pontossága; vissza a bejárásra: „1. …”, „NFC · utasítás · GPS ±N m”, „start”. Az „Eltelt idő” másodpercenként nő, a kijelző nem alszik el. |
+| J2 | Menj a következő ponthoz, és olvasd le a telephely egy meglévő pontjának címkéjét, majd ugyanazt még egyszer. | Előbb a meglévő pont felajánlása figyelmeztetéssel („Pont hozzáadása”), a sorban a gyalogidő („+m:ss”); a második leolvasásra figyelmeztető rezgés és „már a bejárásban van” sáv. |
+| J3 | „QR” gomb: egy idegen QR-kód, majd a telephely egy pontjának QR-kódja. | Az idegen kód: hibasáv; a pont kódja: a pont képernyője „QR-kód leolvasva · …”, hozzáadás után vissza a bejárásra (nem a QR-olvasóra). |
+| J4 | Egy pontot nyomj meg, „Kivétel”; a „Kötött sorrend” választó; „Bejárás befejezése”. | A pont eltűnik, a gyalogidők a megmaradt pontok közt; az összegzőn a teljes idő, a javasolt időkeret, a pontok száma. Név nélkül a mentés kéri a nevet. |
+| J5 | Repülő üzemmódban mentsd el, majd kapcsold vissza a hálózatot. | Offline sáv a lapon, a mentés után vissza a telephelyre, ott az új útvonal; a hálózat visszatérése után a szerveren is megvan (az admin felületen az útvonal, a pontok és a verzió a mért időkkel). |
+| J6 | Kezdj új betanítást, olvass le egy pontot, majd lépj vissza (gesztus / vissza gomb), zárd be és indítsd újra az appot. | A telephely részletein „Betanítás folytatása · Új útvonal · 1 pont rögzítve”, onnan ugyanott folytatható; az „X” megerősítés után elveti. |
+
 ## Eredmények
 
 Sablon (egy futáshoz másold le, és a fejlécbe írd a dátumot és a mérföldkövet):

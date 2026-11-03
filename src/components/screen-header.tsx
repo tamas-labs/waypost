@@ -20,6 +20,8 @@ export interface ScreenHeaderProps {
   onBack?: () => void;
   /** What the back button does, if not just "Vissza" (e.g. it logs out). */
   backLabel?: string;
+  /** The back button's icon: a cross where leaving gives up what the screen holds (the training). */
+  backIcon?: 'back' | 'x';
   /** The right side; default: the sync indicator, which is on every screen (a status badge goes next to it). */
   right?: ReactNode;
 }
@@ -35,6 +37,7 @@ export function ScreenHeader({
   subtitle,
   onBack,
   backLabel = t('common.back'),
+  backIcon = 'back',
   right = <SyncStatusIndicator />,
 }: ScreenHeaderProps) {
   const { color, typography, space, size } = useTheme();
@@ -42,7 +45,7 @@ export function ScreenHeader({
   const supervisor = useSession((session) => routeAccess(session).supervisor);
   return (
     <View style={[styles.header, { paddingTop: insets.top + space.s, paddingHorizontal: space.l, paddingBottom: space.s, gap: space.m }]}>
-      {onBack !== undefined && <IconButton icon="back" accessibilityLabel={backLabel} onPress={onBack} />}
+      {onBack !== undefined && <IconButton icon={backIcon} accessibilityLabel={backLabel} onPress={onBack} />}
       {supervisor && <SupervisorBadge />}
       {/* As high as the back button, with or without it. */}
       <View style={[styles.titles, { minHeight: size.touchMin }]}>

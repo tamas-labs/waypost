@@ -17,7 +17,19 @@ import {
 } from '@/domain/training';
 import { schemaErrors } from '@/schema/validation';
 
-import { beginTraining, discardTrainingDraft, loadTrainingDraft, saveTraining, siteCheckpoints } from './training';
+import {
+  beginTraining,
+  discardTrainingDraft,
+  existingScanOf,
+  loadTrainingDraft,
+  parsePendingScan,
+  pendingScanOf,
+  pendingScanParam,
+  readForTraining,
+  saveTraining,
+  siteCheckpoints,
+  storedTrainingDraft,
+} from './training';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 
@@ -148,8 +160,69 @@ describe('the draft', () => {
   it("is not another supervisor's, and can be discarded", () => {
     beginTraining(db, { siteId: SITE, routeId: ROUTE, supervisorId: ME, started });
     expect(loadTrainingDraft(db, OTHER)).toBeNull();
+    // The phone keeps one draft: a new training replaces it, whoever's it is.
+    expect(storedTrainingDraft(db)).toMatchObject({ supervisor_id: ME });
     discardTrainingDraft(db);
     expect(loadTrainingDraft(db, ME)).toBeNull();
+  });
+});
+
+describe('a scan waiting on the point screen', () => {
+  const nfc = (tag_uid: string) => ({ method: 'nfc' as const, tag_uid, ndef_raw: null });
+
+  it('of a new tag travels as a param with its location', () => {
+    const draft = beginTraining(db, { siteId: SITE, routeId: ROUTE, supervisorId: ME, started });
+    const fix = { latitude: 47.4979, longitude: 19.0402, accuracy_m: 4.2, mocked: false, gnss_time: null };
+    const outcome = readForTraining(db, draft, nfc('04:a1:b2:c3:d4:e5:77'), after(30), fix);
+    const pending = pendingScanOf(outcome, 'nfc');
+    expect(pending).toEqual({
+      kind: 'new',
+      scan: { tag_uid: '04A1B2C3D4E577', location: { lat_e7: 474979000, lng_e7: 190402000, accuracy_dm: 42 }, scanned: after(30) },
+    });
+    expect(parsePendingScan(pendingScanParam(pending!))).toEqual(pending);
+  });
+
+  it('of a checkpoint of the site keeps how it was read, and finds the checkpoint again', () => {
+    const draft = beginTraining(db, { siteId: SITE, routeId: ROUTE, supervisorId: ME, started });
+    const outcome = readForTraining(db, draft, { method: 'qr', qr_payload: `waypost:cp:${STORE}:AbCdEfGhIjKlMnOp` }, after(5), null);
+    const pending = parsePendingScan(pendingScanParam(pendingScanOf(outcome, 'qr')!));
+    expect(pending).toEqual({ kind: 'existing', checkpoint_id: STORE, method: 'qr', scanned: after(5) });
+    expect(existingScanOf(db, draft, pending as Extract<typeof pending, { kind: 'existing' }>)).toEqual({
+      checkpoint: {
+        id: STORE,
+        name: 'Raktár',
+        tag_uid: '04A1B2C3D4E502',
+        qr_payload: `waypost:cp:${STORE}:AbCdEfGhIjKlMnOp`,
+        active: false,
+      },
+      scanned: after(5),
+    });
+    db.delete(checkpoints).run();
+    expect(existingScanOf(db, draft, pending as Extract<typeof pending, { kind: 'existing' }>)).toBeNull();
+  });
+
+  it('is none for a read that brings no point', () => {
+    const draft = beginTraining(db, { siteId: SITE, routeId: ROUTE, supervisorId: ME, started });
+    expect(pendingScanOf(readForTraining(db, draft, { method: 'qr', qr_payload: 'waypost:cp:x:y' }, after(1), null), 'qr')).toBeNull();
+    expect(pendingScanOf(readForTraining(db, draft, nfc('zz'), after(1), null), 'nfc')).toBeNull();
+  });
+
+  it.each([
+    ['missing', undefined],
+    ['not JSON', '{'],
+    ['not an object', '3'],
+    ['of an unknown kind', JSON.stringify({ kind: 'other' })],
+    ['a new tag without its time', JSON.stringify({ kind: 'new', scan: { tag_uid: '04', location: {} } })],
+    [
+      'a new tag with a float location',
+      JSON.stringify({
+        kind: 'new',
+        scan: { tag_uid: '04', location: { lat_e7: 1.5, lng_e7: null, accuracy_dm: null }, scanned: started },
+      }),
+    ],
+    ['a checkpoint read by hand', JSON.stringify({ kind: 'existing', checkpoint_id: GATE, method: 'manual', scanned: started })],
+  ])('is not taken from a param %s', (_case, param) => {
+    expect(parsePendingScan(param)).toBeNull();
   });
 });
 

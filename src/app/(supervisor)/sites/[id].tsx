@@ -1,6 +1,6 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState, type ReactNode } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -12,8 +12,10 @@ import { InfoBanner } from '@/components/info-banner';
 import { ScreenHeader } from '@/components/screen-header';
 import { formatSyncTime } from '@/components/sync-status-indicator';
 import { getDatabase } from '@/db/open';
+import type { TrainingDraft } from '@/domain/training';
 import { useEnrollThisPhone } from '@/hooks/use-enroll-this-phone';
 import { useLiveQuery } from '@/hooks/use-live-query';
+import { trainingNow } from '@/hooks/use-training';
 import { t } from '@/i18n';
 import {
   guardsSummary,
@@ -25,16 +27,18 @@ import {
   type SitePhone,
 } from '@/supervisor/site-detail';
 import { supervisorAccount } from '@/supervisor/sites';
+import { beginTraining, loadTrainingDraft, storedTrainingDraft } from '@/supervisor/training';
+import { routeTitle } from '@/supervisor/training-view';
 import { useSyncStatus } from '@/sync/status';
 import { useTheme } from '@/theme/theme-provider';
 import { tabular, type ColorTokens } from '@/theme/tokens';
 import { parseTimestamp } from '@/time/timestamp';
 import { localDateOf } from '@/time/zone';
 
-// Site details (S3, S-Telephely): the routes, the settings (schedules, guards, reports) in one line each, and the site
-// phone, with "Telefon hozzárendelése" on a supervisor's own phone (M5-09). The rows lead to their screens as those are
-// built (M5-12 – M5-19); the design's warning about the last problem round needs round data the phone does not get (Q15,
-// M5-20).
+// Site details (S3, S-Telephely): the routes with "Új útvonal betanítása" (and the supervisor's unfinished training of
+// the site, to continue), the settings (schedules, guards, reports) in one line each, and the site phone, with "Telefon
+// hozzárendelése" on a supervisor's own phone (M5-09). The other rows lead to their screens as those are built (M5-15 –
+// M5-19); the design's warning about the last problem round needs round data the phone does not get (Q15, M5-20).
 export default function SiteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { color, typography, space } = useTheme();
@@ -43,9 +47,9 @@ export default function SiteScreen() {
   const load = useCallback(() => {
     const db = getDatabase();
     const account = supervisorAccount(db, session);
-    return { site: loadSiteDetail(db, id, account?.id ?? null), email: account?.email ?? null };
+    return { site: loadSiteDetail(db, id, account?.id ?? null), email: account?.email ?? null, supervisorId: account?.id ?? null };
   }, [id, session]);
-  const { site, email } = useLiveQuery(load);
+  const { site, email, supervisorId } = useLiveQuery(load);
 
   if (site === null) {
     return (
@@ -63,15 +67,17 @@ export default function SiteScreen() {
       <ScreenHeader title={site.name} subtitle={supervisorsSummary(site.supervisors)} onBack={() => router.back()} />
       <ScrollView style={styles.grow} contentContainerStyle={{ padding: space.l, paddingBottom: insets.bottom + space.xxl, gap: space.m }}>
         <Section title={t('supervisor.routes')}>
-          {site.routes.length === 0 ? (
-            <Text style={[typography.bodyRegular, { color: color.text2, padding: space.l }]}>{t('supervisor.noRoute')}</Text>
-          ) : (
-            <Card divided>
-              {site.routes.map((route) => (
-                <Row key={route.id} title={route.name} subtitle={routeSummary(route)} dimmed={!route.active} />
-              ))}
-            </Card>
+          {site.routes.length === 0 && (
+            <Text style={[typography.bodyRegular, { color: color.text2, paddingHorizontal: space.l, paddingVertical: space.s }]}>
+              {t('supervisor.noRoute')}
+            </Text>
           )}
+          <Card divided>
+            {site.routes.map((route) => (
+              <Row key={route.id} title={route.name} subtitle={routeSummary(route)} dimmed={!route.active} />
+            ))}
+            {supervisorId !== null && <TrainingRows siteId={site.id} supervisorId={supervisorId} />}
+          </Card>
         </Section>
 
         <Section title={t('supervisor.settings')}>
@@ -109,16 +115,82 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+/**
+ * The supervisor's unfinished training of this site (kept on the phone until it is saved or discarded) to continue, and
+ * "Új útvonal betanítása", which replaces a draft after a confirmation: the phone keeps one.
+ */
+function TrainingRows({ siteId, supervisorId }: { siteId: string; supervisorId: string }) {
+  const [draft, setDraft] = useState<TrainingDraft | null>(null);
+  // Loaded again when the training gives way: it may have been saved or discarded.
+  useFocusEffect(useCallback(() => setDraft(loadTrainingDraft(getDatabase(), supervisorId)), [supervisorId]));
+  const open = (routeId: string) => router.push({ pathname: '/routes/[id]/train', params: { id: routeId } });
+
+  const startNew = () => {
+    const begin = () => open(beginTraining(getDatabase(), { siteId, routeId: null, supervisorId, started: trainingNow() }).route.id);
+    const stored = storedTrainingDraft(getDatabase());
+    if (stored === null || stored.points.length === 0) {
+      begin();
+      return;
+    }
+    Alert.alert(t('supervisor.replaceTrainingTitle'), t('supervisor.replaceTraining', { count: stored.points.length }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('supervisor.replaceTrainingButton'), style: 'destructive', onPress: begin },
+    ]);
+  };
+
+  return (
+    <>
+      {draft !== null && draft.site_id === siteId && (
+        <Row
+          tile={{ icon: 'nfc', fg: 'run', bg: 'runBg' }}
+          title={t('supervisor.continueTraining')}
+          subtitle={t('supervisor.continueTrainingLine', { route: routeTitle(draft), count: draft.points.length })}
+          onPress={() => open(draft.route.id)}
+        />
+      )}
+      <ActionRow label={t('supervisor.trainNewRoute')} onPress={startNew} />
+    </>
+  );
+}
+
+/** The last row of a card that adds something (S3 "Új útvonal betanítása"): a plus and the accent label. */
+function ActionRow({ label, onPress }: { label: string; onPress: () => void }) {
+  const { color, typography, space, size, iconSize } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={[styles.row, { minHeight: size.buttonDashed, paddingHorizontal: space.l, gap: space.s }]}
+    >
+      <Icon name="plus" size={iconSize.banner} color={color.accent} />
+      <Text style={[typography.buttonSm, { color: color.accent }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 type Tile = { letter: string } | { icon: IconName; fg: keyof ColorTokens; bg: keyof ColorTokens };
 
 /** A row of a grouped card (DESIGN_HANDOFF S3): an optional 36 dp tile, the title and a one-line summary. */
-function Row({ tile, title, subtitle, dimmed = false }: { tile?: Tile; title: string; subtitle: string; dimmed?: boolean }) {
+function Row({
+  tile,
+  title,
+  subtitle,
+  dimmed = false,
+  onPress,
+}: {
+  tile?: Tile;
+  title: string;
+  subtitle: string;
+  dimmed?: boolean;
+  onPress?: () => void;
+}) {
   const { color, typography, space, size, radius, iconSize, press } = useTheme();
-  return (
-    <View
-      accessible
-      style={[styles.row, { minHeight: size.listItem + space.xs, paddingHorizontal: space.l, paddingVertical: space.m, gap: space.m }]}
-    >
+  const rowStyle = [
+    styles.row,
+    { minHeight: size.listItem + space.xs, paddingHorizontal: space.l, paddingVertical: space.m, gap: space.m },
+  ];
+  const content = (
+    <>
       {tile !== undefined && (
         <View
           importantForAccessibility="no-hide-descendants"
@@ -146,7 +218,20 @@ function Row({ tile, title, subtitle, dimmed = false }: { tile?: Tile; title: st
           {subtitle}
         </Text>
       </View>
-    </View>
+    </>
+  );
+  // A row that leads nowhere yet is not announced as a disabled button.
+  if (onPress === undefined) {
+    return (
+      <View accessible style={rowStyle}>
+        {content}
+      </View>
+    );
+  }
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={rowStyle}>
+      {content}
+    </Pressable>
   );
 }
 

@@ -7,17 +7,23 @@ import type { Timestamp } from '@waypost/schema';
 import { and, eq, inArray, max } from 'drizzle-orm';
 
 import { configCalls, type ConfigCall } from '@/api/config-calls';
+import type { LocationFix } from '@/chain/payloads';
 import type { Database } from '@/db/database';
 import { deleteKv, getKv, setKv } from '@/db/kv';
 import { checkpoints, routes, routeVersionCheckpoints, routeVersions } from '@/db/schema';
+import type { TagRead } from '@/domain/scan';
 import type { NewId } from '@/domain/state';
 import {
+  readTrainingTag,
   startTraining,
   trainingSave,
+  type ExistingScan,
+  type NewTagScan,
   type OrderMode,
   type SiteCheckpoint,
   type TrainingDraft,
   type TrainingInstant,
+  type TrainingRead,
 } from '@/domain/training';
 import { uuidv7 } from '@/id/uuidv7';
 import { queueSupervisorAction } from '@/sync/outbox';
@@ -45,6 +51,11 @@ export function siteCheckpoints(db: Database, siteId: string): SiteCheckpoint[] 
 export function loadTrainingDraft(db: Database, supervisorId: string): TrainingDraft | null {
   const draft = getKv(db, 'training.draft');
   return draft?.supervisor_id === supervisorId ? draft : null;
+}
+
+/** The draft on the phone, whoever's it is: a new training replaces it (the phone keeps one). */
+export function storedTrainingDraft(db: Database): TrainingDraft | null {
+  return getKv(db, 'training.draft');
 }
 
 export function storeTrainingDraft(db: Database, draft: TrainingDraft): void {
@@ -89,6 +100,79 @@ export function beginTraining(
   }
   storeTrainingDraft(db, draft);
   return draft;
+}
+
+/**
+ * A scan waiting on the point screen (S6) for the supervisor's decision: the new checkpoint of an unknown tag, or a
+ * checkpoint of the site to add. It travels as a route param, so it is plain JSON.
+ */
+export type PendingScan =
+  { kind: 'new'; scan: NewTagScan } | { kind: 'existing'; checkpoint_id: string; method: TagRead['method']; scanned: TrainingInstant };
+
+/** The pending scan of a read that has one: a new tag or a checkpoint of the site; null for the rest. */
+export function pendingScanOf(outcome: TrainingRead, method: TagRead['method']): PendingScan | null {
+  if (outcome.kind === 'new_tag') return { kind: 'new', scan: outcome.scan };
+  if (outcome.kind === 'existing_checkpoint')
+    return { kind: 'existing', checkpoint_id: outcome.scan.checkpoint.id, method, scanned: outcome.scan.scanned };
+  return null;
+}
+
+export function pendingScanParam(scan: PendingScan): string {
+  return JSON.stringify(scan);
+}
+
+const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+const isIntOrNull = (value: unknown) => value === null || Number.isInteger(value);
+const isInstant = (value: unknown): value is TrainingInstant =>
+  isObject(value) && typeof value.uptime_ms === 'number' && typeof value.boot_id === 'string';
+
+/** The pending scan of a route param; null if it is missing or not one (a stale or hand-made link). */
+export function parsePendingScan(param: string | undefined): PendingScan | null {
+  if (param === undefined) return null;
+  let value: unknown;
+  try {
+    value = JSON.parse(param);
+  } catch {
+    return null;
+  }
+  if (!isObject(value)) return null;
+  if (value.kind === 'new' && isObject(value.scan)) {
+    const { tag_uid, location, scanned } = value.scan;
+    if (typeof tag_uid !== 'string' || !isInstant(scanned) || !isObject(location)) return null;
+    const { lat_e7, lng_e7, accuracy_dm } = location;
+    if (!isIntOrNull(lat_e7) || !isIntOrNull(lng_e7) || !isIntOrNull(accuracy_dm)) return null;
+    return {
+      kind: 'new',
+      scan: {
+        tag_uid,
+        location: { lat_e7: lat_e7 as number | null, lng_e7: lng_e7 as number | null, accuracy_dm: accuracy_dm as number | null },
+        scanned: { uptime_ms: scanned.uptime_ms, boot_id: scanned.boot_id },
+      },
+    };
+  }
+  if (value.kind === 'existing') {
+    const { checkpoint_id, method, scanned } = value;
+    if (typeof checkpoint_id !== 'string' || (method !== 'nfc' && method !== 'qr') || !isInstant(scanned)) return null;
+    return { kind: 'existing', checkpoint_id, method, scanned: { uptime_ms: scanned.uptime_ms, boot_id: scanned.boot_id } };
+  }
+  return null;
+}
+
+/** What a read means for the draft, against the site's checkpoints as the phone knows them now. */
+export function readForTraining(
+  db: Database,
+  draft: TrainingDraft,
+  read: TagRead,
+  scanned: TrainingInstant,
+  location: LocationFix | null,
+): TrainingRead {
+  return readTrainingTag(draft, siteCheckpoints(db, draft.site_id), read, scanned, location);
+}
+
+/** The checkpoint of an existing scan, if it is still on the site. */
+export function existingScanOf(db: Database, draft: TrainingDraft, pending: PendingScan & { kind: 'existing' }): ExistingScan | null {
+  const checkpoint = siteCheckpoints(db, draft.site_id).find((c) => c.id === pending.checkpoint_id);
+  return checkpoint === undefined ? null : { checkpoint, scanned: pending.scanned };
 }
 
 /** The next version number as the phone knows it; the server's response sets the real one (M5-14). */
