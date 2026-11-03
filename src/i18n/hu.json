@@ -891,18 +891,27 @@
     }
   },
   "reports": {
-    "recipient": "Címzett: {{email}}",
+    "recipient": "Címzett: {{who}}",
+    "subscriptions": "Amit e-mailben kapsz",
     "shift": "Műszakjelentés",
-    "shiftSub": "Zárás és szinkron után · HTML e-mail",
+    "shiftSub": "A műszak zárása után · HTML e-mail",
     "daily": "Napi összesítő",
-    "dailySub": "Minden reggel {{time}} · HTML e-mail",
+    "dailySub": "Minden nap 10:00 · HTML e-mail",
     "weekly": "Heti összesítő",
-    "weeklySub": "Hétfő reggel · PDF melléklet",
+    "weeklySub": "Hétfőn 10:00 · HTML e-mail és PDF",
     "monthly": "Havi összesítő",
-    "monthlySub": "Hónap 1. napja · PDF, archiválható",
+    "monthlySub": "A hónap 1. napján 10:00 · HTML e-mail és PDF",
     "alert": "Figyelmeztetés",
     "noDataTitle": "Ha nem jön adat a telephelyről",
-    "afterSchedule": "a menetrend vége után",
-    "retention": "Nyers adatok megőrzése: {{period}}. Havi jelentésnél 2 hónapra nő. A heti és havi PDF a fotókat bélyegképként tartalmazza."
+    "afterSchedule": "az utolsó kör határideje után · a telephely minden supervisorának",
+    "alertSheet": "Figyelmeztetés ennyi idő után",
+    "change": "{{label}}: {{value}}, módosítás",
+    "minutes": "{{minutes}} perc",
+    "hours": "{{hours}} óra",
+    "hoursMinutes": "{{hours}} óra {{minutes}} perc",
+    "retention": "Nyers adatok megőrzése: {{days}} nap. Havi jelentésnél {{monthly}} napra nő. A heti és havi PDF a fotókat bélyegképként tartalmazza.",
+    "retentionMonthly": "Nyers adatok megőrzése: {{days}} nap, mert a telephelyről havi jelentés is megy. A heti és havi PDF a fotókat bélyegképként tartalmazza.",
+    "saved": "A jelentésbeállítások elmentve",
+    "failed": "Nem sikerült menteni: {{message}}"
   }
 }

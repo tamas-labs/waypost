@@ -15,11 +15,10 @@ import {
   siteUser,
   users,
 } from '@/db/schema';
+import { REPORT_FREQUENCIES, type ReportFrequency } from '@/domain/report-settings';
 import type { ScheduleRules } from '@/domain/schedule';
 import { t, type TranslationKey } from '@/i18n';
 import { scheduleSummary } from '@/i18n/schedule';
-
-export type ReportFrequency = (typeof reportSubscriptions.$inferSelect)['frequency'];
 
 export interface SiteRoute {
   id: string;
@@ -57,7 +56,6 @@ export interface SiteDetail {
   phone: SitePhone | null;
 }
 
-const REPORT_ORDER: readonly ReportFrequency[] = ['shift', 'daily', 'weekly', 'monthly'];
 const byName = (a: string, b: string) => a.localeCompare(b, 'hu');
 
 /** The site's details; null if the phone does not have the site (e.g. a pull has removed it). accountId: whose reports. */
@@ -170,7 +168,7 @@ export function loadSiteDetail(db: Database, siteId: string, accountId: string |
     routes: siteRoutes,
     schedules: siteSchedules,
     guards: namesOf('guard'),
-    reports: REPORT_ORDER.filter((frequency) => subscribed.has(frequency)),
+    reports: REPORT_FREQUENCIES.filter((frequency) => subscribed.has(frequency)),
     phone,
   };
 }
