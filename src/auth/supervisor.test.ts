@@ -59,6 +59,14 @@ function seedAccountData() {
   setKv(db, 'sync.last_success_at', SERVER_TIME.server_time);
   setKv(db, 'outbox.rejected', []);
   setKv(db, 'supervisor.account', { id: LOGGED_IN.user.id, name: 'Előző supervisor', email: null });
+  setKv(db, 'training.draft', {
+    site_id: SITE,
+    supervisor_id: LOGGED_IN.user.id,
+    route: { id: 'r', name: '', order_mode: 'free' },
+    saved_order_mode: null,
+    started: { uptime_ms: 0, boot_id: 'android-boot:12' },
+    points: [],
+  });
 }
 
 function expectNoAccountData() {
@@ -69,6 +77,7 @@ function expectNoAccountData() {
   expect(getKv(db, 'sync.last_success_at')).toBeNull();
   expect(getKv(db, 'outbox.rejected')).toBeNull();
   expect(getKv(db, 'supervisor.account')).toBeNull();
+  expect(getKv(db, 'training.draft')).toBeNull();
 }
 
 describe('signInSupervisor', () => {

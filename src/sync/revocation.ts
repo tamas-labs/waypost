@@ -29,13 +29,14 @@ export async function closeUpload(api: ApiClient, token: string, deviceId: strin
 /**
  * The phone is not a site phone any more. The chain entries and the photos stay, what is not acknowledged forever; the
  * configuration with the PIN verifiers goes, and so do the supervisor actions of the outbox, which cannot be sent any
- * more. A stop after the transaction is finished by the next start (auth/startup.ts).
+ * more, and a training draft of the site. A stop after the transaction is finished by the next start (auth/startup.ts).
  */
 export async function forgetDevice(db: Database): Promise<void> {
   db.transaction((tx) => {
     deleteConfiguration(tx);
     clearOutbox(tx);
     deleteKv(tx, 'device.id');
+    deleteKv(tx, 'training.draft');
     deleteDeviceSyncState(tx);
   });
   await deleteDeviceCredentials();

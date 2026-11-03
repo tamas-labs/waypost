@@ -535,10 +535,11 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
 - [x] **M5-10 Telefon beállítása – ellenőrzőlista (`device-setup`)**: értesítések, pontos riasztás (Android), akkumulátor-optimalizálás kikapcsolva (Android), helymeghatározás (`hasLocationPermission` / `requestLocationPermission`, M3-20), kamera, NFC; zöld pipák; minden tételhez a rendszerbeállítás megnyitása; a téma választása (Rendszer / Sötét / Világos, `useThemePreference`, M3-25).
   - Megjegyzés (2026-11-03): `src/app/(supervisor)/device-setup.tsx`, a sorok: `setupRows` (`src/device/readiness.ts`), az ellenőrzés: `useReadiness` (közös a Műszakkezdéssel), a kamera engedélye: `src/photo/camera.ts`. A fiókmenüből nyílik (mindkét módban); a telephelyi telefonon a telephelylista sávja is jelzi, ha valami hiányzik. A supervisor saját telefonján csak a helymeghatározás, a kamera és az NFC. A témaválasztó a fejlesztői eszközök képernyőjéről ide került. A telefonos futás: `device-test.md` B1–B5. Döntés: „Telefon beállítása”.
 
-- [ ] **M5-11 Betanítás – domain**
+- [x] **M5-11 Betanítás – domain**
   - Mit: piszkozat, amely csak mentéskor lesz új útvonalverzió; `walk_duration_s` = utolsó − első leolvasás; `walk_time_from_prev_s`; ugyanaz a címke nem lehet két ponté (helyi ellenőrzés és a szerver 409-e).
   - Kész, ha: Jest tesztek.
   - Spec: Állapotgépek / Betanítás.
+  - Megjegyzés (2026-11-03): a szabályok: `src/domain/training.ts` (`readTrainingTag`, `addNewPoint`, `addExistingPoint`, `walkTimes`, `walkDuration`, `trainingSave`), az adatbázis és a mentés: `src/supervisor/training.ts` (`beginTraining`, `loadTrainingDraft`, `saveTraining`). A piszkozat a `kv`-ben (`training.draft`) marad a mentésig. Új pontot csak NFC-címke hoz létre, QR-ral meglévő pont adható hozzá; a meglévő pont címkéjére a pont felajánlása jön. A mérés a monoton órán. A szerver `409`-e a szokásos outbox-elutasítás. **Az M5-12-nek** a leolvasás kimeneteit (`new_tag`, `existing_checkpoint`, `in_draft`, `unknown_qr`, `unreadable`) és a mentés hibáit (`TrainingError`) kell megjelenítenie, **az M5-13-nak** a pont fotóját kell hozzáadnia (`photo_media_id`, a fotó a pont létrehozása előtt töltődik fel). Döntés: „Betanítás – domain”.
 
 - [ ] **M5-12 Betanítás – bejárás (S5, `S-Betanitas`)**: leolvasás (Androidon előtérbeli NFC, iOS-en gomb, QR), a rögzített pontok listája, eltelt idő, Mentés / Elvetés.
 

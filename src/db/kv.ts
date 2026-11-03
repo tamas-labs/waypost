@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 
 // Types only: what the keys hold. The database does not depend on the domain or the theme when it runs.
 import type { PinLockout } from '@/domain/pin-lockout';
+import type { TrainingDraft } from '@/domain/training';
 import type { ThemePreference } from '@/theme/tokens';
 
 import type { Database } from './database';
@@ -56,6 +57,8 @@ export interface KvValues {
   'pin.lockout': PinLockout;
   /** On a supervisor's own phone: whose it is (the account button, created_by of a new site); absent otherwise. */
   'supervisor.account': SupervisorAccount;
+  /** The training being walked (supervisor/training.ts), until it is saved or discarded: it survives a restart of the app. */
+  'training.draft': TrainingDraft;
   /** ID of this phone as the site phone (devices.id); absent while not enrolled. */
   'device.id': string;
   /** The server answered device_revoked: no more chain entries, the last upload is running (sync/revocation.ts). */

@@ -30,6 +30,7 @@ function deleteAccountData(db: Database): void {
     deleteDeviceSyncState(tx);
     deleteKv(tx, 'sync.last_success_at');
     deleteKv(tx, 'supervisor.account');
+    deleteKv(tx, 'training.draft');
   });
   useSyncStatus.setState({ rejectedCalls: [], lastSuccessAt: null, lastError: null });
   refreshPendingCount();

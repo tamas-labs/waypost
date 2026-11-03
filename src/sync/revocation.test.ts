@@ -139,6 +139,15 @@ describe('a revoked phone', () => {
   it('goes through its last upload at the first device_revoked: batches, photos, done, then it is not enrolled', async () => {
     await writeEntries(201);
     addPhoto();
+    // A supervisor's training of the site, not saved.
+    setKv(db, 'training.draft', {
+      site_id: '019a2b3c-4d5e-7f00-8a00-0000000000a1',
+      supervisor_id: GUARD,
+      route: { id: 'r', name: '', order_mode: 'free' },
+      saved_order_mode: null,
+      started: { uptime_ms: 0, boot_id: 'android-boot:12' },
+      points: [],
+    });
     db.insert(users)
       .values({
         id: GUARD,
@@ -169,6 +178,7 @@ describe('a revoked phone', () => {
     expect(await getDeviceCredentials()).toBeNull();
     expect(getKv(db, 'device.id')).toBeNull();
     expect(getKv(db, 'device.revoked')).toBeNull();
+    expect(getKv(db, 'training.draft')).toBeNull();
     expect(useSession.getState()).toMatchObject({ mode: 'unassigned', deviceId: null, activeUser: null });
     expect(useSyncStatus.getState()).toMatchObject({ replaced: true, lastError: null, pendingCount: 0 });
     // The PIN verifiers do not stay on a phone that is not the site's any more; what was recorded does.
