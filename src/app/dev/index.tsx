@@ -8,7 +8,7 @@ import { useTheme, useThemePreference } from '@/theme/theme-provider';
 import type { ThemePreference } from '@/theme/tokens';
 
 const SCREENS: { href: Href; title: TranslationKey }[] = [
-  { href: '/dev/enroll', title: 'dev.screens.enroll' },
+  { href: '/dev/server', title: 'dev.screens.server' },
   { href: '/dev/components', title: 'dev.screens.components' },
   { href: '/prototype/clock', title: 'prototype.screens.clock' },
   { href: '/prototype/nfc', title: 'prototype.screens.nfc' },
@@ -20,9 +20,9 @@ const SCREENS: { href: Href; title: TranslationKey }[] = [
 
 const THEME_PREFERENCES: ThemePreference[] = ['system', 'dark', 'light'];
 
-// Developer tools: the developer enrollment (M3-06), the base components (M3-26), the device test screens of the M1
-// prototype (and of the location and the photo, M3-20 / M3-21), and the theme choice until the app has a settings
-// screen (M3-25).
+// Developer tools: the API address (instead of the developer enrollment of M3-06), the base components (M3-26), the
+// device test screens of the M1 prototype (and of the location and the photo, M3-20 / M3-21), and the theme choice until
+// the app has a settings screen (M3-25).
 export default function DevToolsScreen() {
   const { color, typography, space, radius, size } = useTheme();
   const { preference, setPreference } = useThemePreference();

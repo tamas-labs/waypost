@@ -1,16 +1,18 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useSession } from '@/auth/session';
+import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Icon, type IconName } from '@/components/icon';
 import { InfoBanner } from '@/components/info-banner';
 import { ScreenHeader } from '@/components/screen-header';
 import { formatSyncTime } from '@/components/sync-status-indicator';
 import { getDatabase } from '@/db/open';
+import { useEnrollThisPhone } from '@/hooks/use-enroll-this-phone';
 import { useLiveQuery } from '@/hooks/use-live-query';
 import { t } from '@/i18n';
 import {
@@ -30,8 +32,9 @@ import { parseTimestamp } from '@/time/timestamp';
 import { localDateOf } from '@/time/zone';
 
 // Site details (S3, S-Telephely): the routes, the settings (schedules, guards, reports) in one line each, and the site
-// phone. The rows lead to their screens as those are built (M5-12 – M5-19), "Telefon hozzárendelése" comes with M5-09;
-// the design's warning about the last problem round needs round data the phone does not get (Q15, M5-20).
+// phone, with "Telefon hozzárendelése" on a supervisor's own phone (M5-09). The rows lead to their screens as those are
+// built (M5-12 – M5-19); the design's warning about the last problem round needs round data the phone does not get (Q15,
+// M5-20).
 export default function SiteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { color, typography, space } = useTheme();
@@ -87,6 +90,7 @@ export default function SiteScreen() {
           <Card divided>
             <PhoneRow phone={site.phone} timeZone={site.timezone} />
           </Card>
+          {session.mode === 'supervisor_phone' && <EnrollThisPhone siteId={site.id} siteName={site.name} phone={site.phone} />}
         </Section>
       </ScrollView>
     </View>
@@ -142,6 +146,45 @@ function Row({ tile, title, subtitle, dimmed = false }: { tile?: Tile; title: st
           {subtitle}
         </Text>
       </View>
+    </View>
+  );
+}
+
+/**
+ * "Telefon hozzárendelése" (specification, Telephelyi telefon hozzárendelése): on the supervisor's own phone, online,
+ * after a confirmation that tells what happens (and that the site's phone is replaced, if it has one).
+ */
+function EnrollThisPhone({ siteId, siteName, phone }: { siteId: string; siteName: string; phone: SitePhone | null }) {
+  const { color, typography, space } = useTheme();
+  const offline = useSyncStatus((state) => state.online === false);
+  const { enroll, busy, error } = useEnrollThisPhone(siteId);
+  const confirm = () => {
+    const message = [
+      t('supervisor.enrollConfirm', { site: siteName }),
+      ...(phone === null ? [] : [t('supervisor.enrollReplaces', { phone: phone.name })]),
+    ].join(' ');
+    Alert.alert(t('supervisor.enrollConfirmTitle'), message, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('supervisor.enrollConfirmButton'), onPress: () => void enroll() },
+    ]);
+  };
+  return (
+    <View style={{ gap: space.s }}>
+      <Button
+        label={busy ? t('supervisor.enrolling') : t('supervisor.enroll')}
+        variant="secondary"
+        icon="phone"
+        disabled={busy || offline}
+        onPress={confirm}
+      />
+      {offline && (
+        <Text style={[typography.small, { color: color.text2, paddingHorizontal: space.xs }]}>{t('supervisor.enrollOffline')}</Text>
+      )}
+      {error !== null && (
+        <View accessibilityLiveRegion="polite" accessibilityRole="alert">
+          <InfoBanner variant="error" text={error} />
+        </View>
+      )}
     </View>
   );
 }

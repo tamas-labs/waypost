@@ -16,7 +16,7 @@
       "supervisor_phone": "supervisor saját telefonja"
     },
     "screens": {
-      "enroll": "Telefon hozzárendelése",
+      "server": "API-cím",
       "components": "Komponensek"
     },
     "components": {
@@ -53,19 +53,17 @@
       "tagId": "NFC · 04:A2:19:6B:3C:51:80",
       "shake": "Rázás"
     },
-    "enroll": {
-      "title": "Telefon hozzárendelése",
-      "intro": "Supervisor-fiókkal ehhez a telephelyhez rendeli a telefont. A végleges felület később készül el.",
+    "server": {
+      "title": "API-cím",
+      "intro": "Fejlesztői buildben itt adható meg a szerver címe; az EXPO_PUBLIC_WAYPOST_API_URL helyett ezt használja az app. A telefont a supervisor belépés után, a telephely oldalán lehet hozzárendelni.",
       "apiUrl": "API-cím",
       "apiUrlExample": "http://192.168.1.10:8000/api/waypost/v1",
       "invalidUrl": "Az API-cím http:// vagy https:// kezdetű legyen.",
-      "chooseSite": "Válaszd ki a telephelyet",
-      "noSites": "Ehhez a fiókhoz nincs telephely rendelve.",
-      "working": "Folyamatban…",
-      "done": "A telefon a(z) {{site}} telephelyhez rendelve.",
-      "networkError": "A szerver nem érhető el ({{url}}).",
-      "invalidResponse": "A szerver válasza nem felel meg a sémának: {{details}}",
-      "error": "Hiba: {{message}}"
+      "current": "Most ezt használja: {{url}}",
+      "none": "Nincs megadva szerver.",
+      "save": "Mentés",
+      "saved": "Elmentve.",
+      "reset": "Vissza az alapértékre"
     }
   },
   "prototype": {
@@ -575,6 +573,23 @@
     "date": "{{year}}. {{month}}. {{day}}.",
     "noPhoneTitle": "Nincs hozzárendelt telefon",
     "noPhoneHint": "A telephelyi telefonon, a fiókoddal belépve rendelheted hozzá.",
+    "enroll": "Telefon hozzárendelése",
+    "enrolling": "Hozzárendelés…",
+    "enrollConfirmTitle": "Ez legyen a telephely telefonja?",
+    "enrollConfirm": "Ez a telefon lesz a(z) {{site}} telephelyi telefonja. A fiókod kijelentkezik róla, a telephely adatai letöltődnek, és utána csak PIN-kóddal lehet belépni.",
+    "enrollReplaces": "A mostani telefont ({{phone}}) a szerver visszavonja; a még fel nem töltött adatait az még feltölti.",
+    "enrollConfirmButton": "Hozzárendelés",
+    "enrollOffline": "A hozzárendeléshez internet kell.",
+    "enrollErrors": {
+      "unsent": "{{count}} módosítás még nem jutott el a szerverre. A hozzárendelés előtt el kell küldeni őket: ellenőrizd a kapcsolatot, és próbáld újra.",
+      "network": "A szerver nem érhető el. Ellenőrizd az internetkapcsolatot, és próbáld újra.",
+      "timeout": "A szerver nem válaszolt időben. Próbáld újra.",
+      "invalidResponse": "A szerver váratlan választ adott. Próbáld újra később.",
+      "unauthenticated": "A fiókod belépése már nem érvényes. Jelentkezz ki, és lépj be újra.",
+      "server": "Szerverhiba. Próbáld újra később.",
+      "noServer": "Ebben a buildben nincs megadva a szerver címe.",
+      "unknown": "A hozzárendelés nem sikerült: {{message}}"
+    },
     "freeOrder": "szabad sorrend",
     "fixedOrder": "kötött sorrend",
     "trainNewRoute": "Új útvonal betanítása",

@@ -4,14 +4,11 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 
-import type { ApiClient } from '@/api/client';
-import { enrollDevice, logout } from '@/api/endpoints';
 import type { Database } from '@/db/database';
 import { deleteDeviceSyncState, setKv } from '@/db/kv';
 import { devices } from '@/db/schema';
 
-import { deleteSupervisorToken, setDeviceCredentials } from '@/device/credentials';
-import { loadSession } from './session';
+import { setDeviceCredentials } from '@/device/credentials';
 
 /** The phone's name, for its enrollment and for the supervisor's token (device_name of the login). */
 export function phoneName(): string {
@@ -41,27 +38,4 @@ export async function saveEnrollment(db: Database, { device, token, secret }: De
     setKv(tx, 'device.id', device.id);
     deleteDeviceSyncState(tx);
   });
-}
-
-/**
- * Makes this phone the site phone of a site (specification, Telephelyi telefon hozzárendelése): enrolls it, stores the
- * device token and secret, then logs the supervisor out on the server and deletes their token from this phone, and
- * switches the session to the site phone. The full pull follows from the sync (M3-07).
- */
-export async function enrollThisPhone(
-  db: Database,
-  api: ApiClient,
-  supervisorToken: string,
-  siteId: string,
-): Promise<DevicesEnrollResponse> {
-  const response = await enrollDevice(api, supervisorToken, enrollmentRequest(siteId));
-  await saveEnrollment(db, response);
-  try {
-    await logout(api, supervisorToken);
-  } catch {
-    // The phone is enrolled either way; a token left on the server is only listed among the supervisor's tokens.
-  }
-  await deleteSupervisorToken();
-  await loadSession(db);
-  return response;
 }

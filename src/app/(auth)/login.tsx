@@ -19,7 +19,7 @@ import { useSyncStatus } from '@/sync/status';
 import { useTheme } from '@/theme/theme-provider';
 
 /**
- * The API address, read again whenever the screen comes back: in a development build the developer enrollment screen
+ * The API address, read again whenever the screen comes back: in a development build the developer API address screen
  * can set it meanwhile.
  */
 function useApiBaseUrl(): string | null {

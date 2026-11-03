@@ -1,7 +1,7 @@
 # Developer shortcuts for the Waypost app. Run `make` (or `make help`) for the list.
 #
 # Variables (on the command line, e.g. `make apk API_URL=https://example.com/api/waypost/v1`):
-#   API_URL  EXPO_PUBLIC_WAYPOST_API_URL baked into the JS bundle (needed for release builds: no /dev/enroll there)
+#   API_URL  EXPO_PUBLIC_WAYPOST_API_URL baked into the JS bundle (needed for release builds: no /dev/server there)
 #   DEVICE   device name for `expo run:android` (default: the only connected one, or a prompt)
 #   IP       host:port of the phone for `make pair` / `make connect` (wireless debugging)
 # adb honours ANDROID_SERIAL if more than one phone is connected.

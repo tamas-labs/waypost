@@ -62,7 +62,7 @@ export interface KvValues {
   'device.revoked': true;
   /** The manual theme choice (System / Dark / Light, theme/preference.ts); absent = follow the system. */
   'ui.theme_preference': ThemePreference;
-  /** Development builds only: API base URL entered on the developer enrollment screen. */
+  /** Development builds only: API base URL entered on the developer API address screen (/dev/server). */
   'dev.api_base_url': string;
 }
 

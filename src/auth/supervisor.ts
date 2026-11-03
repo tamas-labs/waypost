@@ -1,8 +1,11 @@
 // A supervisor's own phone (specification, Azonosítás / Supervisor fiók): the supervisor logs in with their account,
 // without enrolling the phone. There is no guard mode and no chain here; the pull brings the supervisor's sites, and the
-// actions go through the outbox with their own token. Logging out deletes everything of the account from the phone.
+// actions go through the outbox with their own token. Logging out deletes everything of the account from the phone, and
+// so does enrolling it as a site phone (Telephelyi telefon hozzárendelése).
+import type { DevicesEnrollResponse } from '@waypost/schema';
+
 import type { ApiClient } from '@/api/client';
-import { login, logout } from '@/api/endpoints';
+import { enrollDevice, login, logout } from '@/api/endpoints';
 import type { Database } from '@/db/database';
 import { deleteDeviceSyncState, deleteKv, setKv } from '@/db/kv';
 import { routeVersionCheckpoints, routeVersions } from '@/db/schema';
@@ -13,7 +16,7 @@ import { deleteConfiguration } from '@/sync/pull';
 import { refreshPendingCount, whenSyncIdle } from '@/sync/runtime';
 import { useSyncStatus } from '@/sync/status';
 
-import { phoneName } from './enrollment';
+import { enrollmentRequest, phoneName, saveEnrollment } from './enrollment';
 import { loadSession, useSession } from './session';
 
 /** Deletes what the phone keeps of a supervisor account: the configuration, the pull cursor, the outbox, who it is. */
@@ -75,4 +78,49 @@ export async function signOutSupervisor(db: Database, api: ApiClient | null): Pr
   await whenSyncIdle();
   deleteAccountData(db);
   await loadSession(db);
+}
+
+/** Supervisor actions are still waiting in the outbox: with the supervisor's token gone they could not be sent. */
+export class UnsentActionsError extends Error {
+  override readonly name = 'UnsentActionsError';
+
+  constructor(readonly count: number) {
+    super(`${count} supervisor action(s) not sent yet`);
+  }
+}
+
+/**
+ * Makes the supervisor's own phone the site phone of one of their sites (specification, Telephelyi telefon
+ * hozzárendelése). First the actions waiting in the outbox go out with a sync (the site itself may be one of them, and
+ * after the enrollment the supervisor's token is gone); if any is left, UnsentActionsError and nothing changes. Then
+ * POST /devices/enroll with the supervisor's token (a site with a phone gets the new one, the old one is revoked by the
+ * server). The token leaves the phone, a running sync is waited for, the account's data is deleted, the device token and
+ * secret are stored, the supervisor is logged out on the server (a failure only leaves the token among theirs), and the
+ * session becomes the site phone: its sync starts with the full pull, the navigation goes to the PIN login.
+ * An error of the enrollment (network, 401, 403 …) is thrown before anything changed.
+ */
+export async function enrollThisPhone(db: Database, api: ApiClient, siteId: string): Promise<DevicesEnrollResponse> {
+  if (useSession.getState().mode !== 'supervisor_phone') throw new Error("Only a supervisor's own phone is enrolled here");
+  const token = await getSupervisorToken();
+  if (token === null) throw new Error('No supervisor token on this phone');
+  if (countPending(db).outbox > 0) {
+    await useSyncStatus.getState().syncNow();
+    const unsent = countPending(db).outbox;
+    if (unsent > 0) throw new UnsentActionsError(unsent);
+  }
+
+  const response = await enrollDevice(api, token, enrollmentRequest(siteId));
+
+  // Without the token no new sync starts; a running one could still write the account's data.
+  await deleteSupervisorToken();
+  await whenSyncIdle();
+  deleteAccountData(db);
+  await saveEnrollment(db, response);
+  try {
+    await logout(api, token);
+  } catch {
+    // The phone is enrolled either way.
+  }
+  await loadSession(db);
+  return response;
 }

@@ -8,6 +8,7 @@ import SiteScreen from '@/app/(supervisor)/sites/[id]';
 import NewSiteScreen from '@/app/(supervisor)/sites/new';
 import Index from '@/app/index';
 import { useSession, type SessionState } from '@/auth/session';
+import { enrollThisPhone, UnsentActionsError } from '@/auth/supervisor';
 import type { Database } from '@/db/database';
 import { getKv, setKv, type OutboxRejection } from '@/db/kv';
 import { getDatabase } from '@/db/open';
@@ -21,7 +22,13 @@ jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBo
 jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
 jest.mock('@/sync/runtime', () => ({ requestSync: jest.fn() }));
 // The logout itself is tested in src/auth/supervisor.test.ts and __tests__/navigation.test.tsx.
-jest.mock('@/auth/supervisor', () => ({ signOutSupervisor: jest.fn(), unsentSupervisorActions: jest.fn(() => 0) }));
+jest.mock('@/auth/supervisor', () => ({
+  ...jest.requireActual<object>('@/auth/supervisor'),
+  signOutSupervisor: jest.fn(),
+  unsentSupervisorActions: jest.fn(() => 0),
+  // The enrollment itself is tested in src/auth/supervisor.test.ts.
+  enrollThisPhone: jest.fn(),
+}));
 
 function RootLayout() {
   return (
@@ -255,5 +262,76 @@ describe('site details', () => {
     await act(async () => fireEvent.press(screen.getByRole('button', { name: /Raktár/ })));
     expect(screen.getByText('Nincs hozzárendelt telefon')).toBeOnTheScreen();
     expect(screen.getByText('A telephelyi telefonon, a fiókoddal belépve rendelheted hozzá.')).toBeOnTheScreen();
+  });
+});
+
+describe('enrolling this phone', () => {
+  const PHONE = '019a2b3c-4d5e-7f00-8a00-000000000004';
+
+  beforeEach(() => {
+    seedSite();
+    setKv(db, 'dev.api_base_url', 'https://waypost.example/api/waypost/v1');
+    jest.mocked(enrollThisPhone).mockReset();
+  });
+
+  async function openSite(session?: Pick<SessionState, 'mode' | 'activeUser'>) {
+    await start(session);
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: /Raktár/ })));
+  }
+
+  it('enrolls after a confirmation, and the PIN login follows', async () => {
+    db.insert(devices)
+      .values({ id: PHONE, site_id: SITE, name: 'Porta', platform: 'android', app_version: '0.1.0', enrolled_by: ME.id, enrolled_at: AT })
+      .run();
+    jest.mocked(enrollThisPhone).mockImplementation(async () => {
+      useSession.setState({ mode: 'site_phone', deviceId: PHONE });
+      return {} as never;
+    });
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    await openSite();
+
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Telefon hozzárendelése' })));
+    expect(enrollThisPhone).not.toHaveBeenCalled();
+    expect(alert).toHaveBeenCalledWith(
+      'Ez legyen a telephely telefonja?',
+      'Ez a telefon lesz a(z) Raktár telephelyi telefonja. A fiókod kijelentkezik róla, a telephely adatai letöltődnek, és utána csak PIN-kóddal lehet belépni. A mostani telefont (Porta) a szerver visszavonja; a még fel nem töltött adatait az még feltölti.',
+      expect.any(Array),
+    );
+    const buttons = alert.mock.calls[0]![2]!;
+    await act(async () => buttons.find((button) => button.text === 'Hozzárendelés')!.onPress!());
+
+    expect(enrollThisPhone).toHaveBeenCalledWith(db, expect.anything(), SITE);
+    // The navigation follows the session: the site phone without a user is at the PIN login (a stub here).
+    expect(screen).not.toHavePathname(`/sites/${SITE}`);
+    alert.mockRestore();
+  });
+
+  it('tells what went wrong', async () => {
+    jest.mocked(enrollThisPhone).mockRejectedValue(new UnsentActionsError(2));
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    await openSite();
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Telefon hozzárendelése' })));
+    await act(async () => alert.mock.calls[0]![2]!.find((button) => button.text === 'Hozzárendelés')!.onPress!());
+
+    expect(
+      screen.getByText(
+        '2 módosítás még nem jutott el a szerverre. A hozzárendelés előtt el kell küldeni őket: ellenőrizd a kapcsolatot, és próbáld újra.',
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Telefon hozzárendelése' })).toBeEnabled();
+    alert.mockRestore();
+  });
+
+  it('needs the network', async () => {
+    useSyncStatus.setState({ online: false });
+    await openSite();
+    expect(screen.getByRole('button', { name: 'Telefon hozzárendelése' })).toBeDisabled();
+    expect(screen.getByText('A hozzárendeléshez internet kell.')).toBeOnTheScreen();
+  });
+
+  it('is not on the site phone', async () => {
+    db.insert(users).values({ id: ME.id, name: ME.name, role: 'supervisor', active: true, created_at: AT, updated_at: AT }).run();
+    await openSite({ mode: 'site_phone', activeUser: { id: ME.id, role: 'supervisor' } });
+    expect(screen.queryByRole('button', { name: 'Telefon hozzárendelése' })).toBeNull();
   });
 });

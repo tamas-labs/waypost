@@ -89,17 +89,18 @@ Kiadott JS-csomaggal (`make apk` vagy release build) mérj, mert fejlesztői bui
 | M1 | „Mérés indítása” háromszor egymás után; a harmadik futás számait jegyezd fel menetrendenként. | Megjelenik a három menetrend és az öt szabály ideje. |
 | M2 | Hasonlítsd össze a `schedulerStep` idejét a 100 ms-os határral (J-12) és a `slotsBetween` idejével. | Az 5 perces menetrendeknél is 100 ms alatt marad; ha nem, a `slotsBetween` aránya mutatja, hogy a kibontást kell-e gyorsítani. |
 
-### M3 – Indulás és fejlesztői hozzárendelés (M3-01, M3-05, M3-06; fejlesztői build)
+### Indulás és hozzárendelés (M3-01, M3-05, M5-06, M5-09; fejlesztői build)
 
 A workbench demó-telephelye kell (`laravel-waypost`: `composer serve`), olyan címen, amelyet a telefon elér (ugyanazon a Wi-Fi-n a gép IP-címe, Android-emulátoron `10.0.2.2`), pl. `http://192.168.1.10:8088/api/waypost/v1`. A demó supervisor: `supervisor@waypost.test` / `password`.
 
 | # | Ellenőrzés | Várt eredmény |
 | --- | --- | --- |
 | I1 | Friss telepítés, első indítás. | A splash után a „Supervisor belépés” képernyő jön, hibaképernyő nélkül (az adatbázis létrejött). |
-| I2 | „Fejlesztői eszközök” → „Telefon hozzárendelése”: API-cím, demó supervisor, „Belépés”, majd a „Demó telephely”. | „A telefon a(z) Demó telephely telephelyhez rendelve.”; a „Kész” után a „PIN-belépés” képernyő. A workbench-ben megjelenik az új eszköz. |
+| I2 | „Fejlesztői eszközök” → „API-cím”: a workbench címe, „Mentés”. Vissza, „Supervisor belépés” a demó supervisorral; a telephelylistán a „Demó telephely”, alul „Telefon hozzárendelése”, a kérdésre „Hozzárendelés”. | A belépés után a telephelylista; a hozzárendelés után a „PIN-belépés” képernyő, és a teljes pull után a telephely neve. A workbench-ben megjelenik az új eszköz, a supervisor tokenje eltűnik. |
 | I3 | Zárd be az appot (a legutóbbi appok közül kisöpörve), és nyisd meg újra; utána indítsd újra a telefont, és oldd fel. | Mindkétszer a „PIN-belépés” jön (a hozzárendelés megmaradt). |
-| I4 | Hibás API-cím vagy leállított workbench mellett „Belépés”. | „A szerver nem érhető el (…)”, legfeljebb 30 mp múlva; az app nem fagy le. |
+| I4 | Hibás API-cím vagy leállított workbench mellett „Belépés”, ill. a belépés után leállított workbench mellett „Telefon hozzárendelése”. | „A szerver nem érhető el…”, legfeljebb 30 mp múlva; az app nem fagy le, a hozzárendelés után sem változik semmi. |
 | I5 | Töröld az appot, és telepítsd újra (iPhone-on is: a Keychain megmarad). | Az app hozzárendeletlenként indul („Supervisor belépés”); a „Fejlesztői eszközök” állapota „nincs hozzárendelve”. |
+| I6 | Belépés után repülőgép-üzemmódban „Új telephely”, majd a hálózat visszatérte előtt nyisd meg, és nézd meg a „Telefon hozzárendelése” gombot; utána hálózattal „Hozzárendelés”. | Offline a gomb letiltva („A hozzárendeléshez internet kell.”). Hálózattal a telephely előbb feltöltődik, utána a hozzárendelés sikerül. |
 
 ### M3 – Helyadat, fotó, NFC és visszajelzés (M3-20 – M3-22, képernyő: „Helyadat, fotó, visszajelzés”; új dev build)
 
@@ -207,10 +208,10 @@ Emulátoron az R1–R6 és a T1–T4 futtatható, kézi rögzítéssel és a vir
 | R5 | A szerveren: `projected_at`, `waypost_shifts`, `waypost_rounds`, `waypost_scans`. | Nincs `projected_at = null`; a műszak zárt, a körök állapota a telefonéval azonos. |
 | R6 | Feltöltés közben szakítsd meg a hálózatot, majd add vissza; külön próbaként állítsd le az appot feltöltés közben. | A feltöltés onnan folytatódik, nincs duplikált sor, a végén minden `ok`. |
 | R7 | Az óra kézi átállítása (Á3) repülőgép-üzemmódban, leolvasás, majd szinkron. | A bejegyzésen `time_suspect`, `ok` állapottal. |
-| T1 | Telefoncsere: a régi telefonon offline rögzítés (fotóval is), közben egy másik telefon hozzárendelése ugyanahhoz a telephelyhez (emulátorban elég a backend: `POST /devices/enroll`), majd a régin hálózat. | A régi telefon a `push-final`-lal feltölti a láncot és a fotókat. A szerveren minden `ok`, a `upload_closed_at` kitöltve. |
+| T1 | Telefoncsere: a régi telefonon offline rögzítés (fotóval is), közben egy másik telefon hozzárendelése ugyanahhoz a telephelyhez (egy másik telefonon supervisor belépés és „Telefon hozzárendelése”; emulátorban elég a backend: `POST /devices/enroll`), majd a régin hálózat. | A régi telefon a `push-final`-lal feltölti a láncot és a fotókat. A szerveren minden `ok`, a `upload_closed_at` kitöltve. |
 | T2 | A régi telefon a feltöltés után. | A belépőképernyőn: „Ezt a telefont egy másik váltotta fel…”. Nincs több ébresztés, a régi tokennel a szerver `401 device_revoked`-et ad. |
 | T3 | T1 közben szakadjon meg a hálózat, vagy indítsd újra az appot. | A következő szinkron folytatja, és csak utána lép ki. Ezalatt új rögzítés nem megy, a szinkronjelző mutatja az okot. |
-| T4 | Ugyanennek a telefonnak az újbóli hozzárendelése (`/dev/enroll`). | Új lánc 1-től; a régi műszak és körök nem látszanak; a várakozó tételek száma 0-ról indul. |
+| T4 | Ugyanennek a telefonnak az újbóli hozzárendelése: az app újratelepítése, supervisor belépés, „Telefon hozzárendelése”. | Új lánc 1-től; a régi műszak és körök nem látszanak; a várakozó tételek száma 0-ról indul. |
 
 ### ÉÉÉÉ-HH-NN – M1
 

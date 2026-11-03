@@ -24,10 +24,10 @@ A Waypost mobilapp (Expo / React Native, TypeScript): az őrök a telephelyi tel
 src/
   app/        # expo-router képernyők – csak route-fájl lehet benne (teszt, segéd nem); (auth)/ (guard)/ (supervisor)/, dev/ és prototype/ (M1 eszközpróbák) csak fejlesztői buildben
   navigation/ # melyik csoport nyitott az állapot szerint (Stack.Protected), kezdőképernyő
-  hooks/      # képernyők közös hookjai: useLiveQuery (élő betöltés az adatbázisból), usePinEntry (PIN-beírás és ellenőrzés), useRecordForm (űrlap: helyadat, mentés), useScanRecorder (leolvasás rögzítése és visszajelzése), usePinLock (a PIN zárolása), useAccountMenu (a supervisor fiókmenüje: kijelentkezés, kilépés)
+  hooks/      # képernyők közös hookjai: useLiveQuery (élő betöltés az adatbázisból), usePinEntry (PIN-beírás és ellenőrzés), useRecordForm (űrlap: helyadat, mentés), useScanRecorder (leolvasás rögzítése és visszajelzése), usePinLock (a PIN zárolása), useAccountMenu (a supervisor fiókmenüje: kijelentkezés, kilépés), useEnrollThisPhone (a telefon hozzárendelése)
   components/ # közös UI-komponensek (DESIGN_HANDOFF 5); ikon: icon.tsx (lucide, ikononként importálva); képernyőfejléc: screen-header.tsx (jobbra a szinkronjelző); rövid üzenet: toast.tsx (`showToast`)
   api/        # API-kliens: client.ts (token, Idempotency-Key, típusos hibák, __DEV__ Ajv), endpoints.ts, config-calls.ts (a supervisorműveletek hívásai az outboxnak)
-  auth/       # indulási állapot, munkamenet (Zustand), hozzárendelés, PIN, supervisor belépés és kijelentkezés a saját telefonon (supervisor.ts), a belépés hibáinak szövege (login-error.ts)
+  auth/       # indulási állapot, munkamenet (Zustand), hozzárendelés, PIN, supervisor belépés, kijelentkezés és a telefon hozzárendelése a saját telefonon (supervisor.ts), a belépés és a hozzárendelés hibáinak szövege (login-error.ts, enroll-error.ts)
   db/         # expo-sqlite + Drizzle: schema.ts, migrations/ (generált), kv.ts, testing.ts (better-sqlite3 a tesztekhez)
   id/         # uuidv7()
   time/       # időbélyeg, readClock() (waypost-clock), megbízható idő
@@ -79,5 +79,5 @@ Importban a `@/…` alias a `src/…`-ra mutat.
 - `npx expo-doctor` – függőségek és konfiguráció ellenőrzése.
 - `npm run db:generate` – a `src/db/schema.ts` változása után új migráció a `src/db/migrations/` alá (`drizzle-kit generate`); a generált fájlokat commitoljuk, kézzel nem szerkesztjük. A `.sql` fájlokat a `babel-plugin-inline-import` fordítja be; ha a Metro régi migrációt mutat, `npm start -- --clear`.
 - Térkép Androidon: `GOOGLE_MAPS_ANDROID_API_KEY` (`.env.local`, EAS-en környezeti változó; az `app.config.ts` olvassa); változása után új natív build kell. Kulcs nélkül a build működik, a térkép helyén üzenet áll. iOS-en Apple Maps, kulcs nem kell.
-- API-cím: `EXPO_PUBLIC_WAYPOST_API_URL` (előtaggal, pl. `https://example.com/api/waypost/v1`); fejlesztői buildben a `/dev/enroll` képernyőn is megadható.
+- API-cím: `EXPO_PUBLIC_WAYPOST_API_URL` (előtaggal, pl. `https://example.com/api/waypost/v1`); fejlesztői buildben a „Fejlesztői eszközök” → „API-cím” (`/dev/server`) képernyőn is megadható.
 - Development build (Expo-fiók kell): `npx eas-cli@latest build --profile development --platform android` (ill. `ios`; ahhoz Apple Developer fiók és regisztrált eszköz kell).

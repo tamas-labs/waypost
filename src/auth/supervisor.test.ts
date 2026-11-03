@@ -1,4 +1,4 @@
-import type { AuthLoginResponse } from '@waypost/schema';
+import type { AuthLoginResponse, DevicesEnrollResponse } from '@waypost/schema';
 import * as SecureStore from 'expo-secure-store';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -7,16 +7,16 @@ import { configCalls } from '@/api/config-calls';
 import { NetworkError } from '@/api/errors';
 import type { Database } from '@/db/database';
 import { getKv, setKv } from '@/db/kv';
-import { outbox, routeVersions, sites } from '@/db/schema';
+import { devices, outbox, routeVersions, sites } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
-import { setDeviceCredentials, getSupervisorToken, setSupervisorToken } from '@/device/credentials';
+import { getDeviceCredentials, getSupervisorToken, setDeviceCredentials, setSupervisorToken } from '@/device/credentials';
 import { queueAction } from '@/sync/outbox';
 import { whenSyncIdle } from '@/sync/runtime';
 import { fakeApi, type FakeAnswer } from '@/sync/testing';
 import { useSyncStatus } from '@/sync/status';
 
 import { useSession } from './session';
-import { signInSupervisor, signOutSupervisor, unsentSupervisorActions } from './supervisor';
+import { enrollThisPhone, signInSupervisor, signOutSupervisor, UnsentActionsError, unsentSupervisorActions } from './supervisor';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 jest.mock('@/sync/runtime', () => ({ whenSyncIdle: jest.fn(() => Promise.resolve()), refreshPendingCount: jest.fn() }));
@@ -24,6 +24,7 @@ jest.mock('@/sync/runtime', () => ({ whenSyncIdle: jest.fn(() => Promise.resolve
 const EXAMPLES = join(dirname(require.resolve('@waypost/schema/package.json')), 'examples', 'api');
 const LOGGED_IN = JSON.parse(readFileSync(join(EXAMPLES, 'auth-login.response/valid/supervisor.json'), 'utf8')) as AuthLoginResponse;
 const SERVER_TIME = { server_time: '2026-10-27T10:05:12.345Z' };
+const ENROLLED = JSON.parse(readFileSync(join(EXAMPLES, 'devices-enroll.response/valid/enrolled.json'), 'utf8')) as DevicesEnrollResponse;
 const store = (SecureStore as unknown as { store: Map<string, string> }).store;
 const SITE = '019a2b3c-4d5e-7f00-8a00-000000000001';
 
@@ -175,5 +176,107 @@ describe('signOutSupervisor', () => {
     await setDeviceCredentials({ token: 'device-token', secret: `${'A'.repeat(43)}=` });
     useSession.setState({ mode: 'site_phone', deviceId: 'd' });
     await expect(signOutSupervisor(db, null)).rejects.toThrow("Not a supervisor's own phone");
+  });
+});
+
+describe('enrollThisPhone', () => {
+  const ENROLL_SITE = ENROLLED.device.site_id!;
+
+  async function onSupervisorPhone() {
+    await setSupervisorToken(LOGGED_IN.token);
+    useSession.setState({ mode: 'supervisor_phone' });
+    seedAccountData();
+  }
+
+  /** The enrollment and the logout answer; anything else is a test failure. */
+  function enrollApi(enroll: FakeAnswer = ENROLLED) {
+    return fakeApi((request) => (request.path === '/devices/enroll' ? enroll : request.path === '/auth/logout' ? SERVER_TIME : [404, {}]));
+  }
+
+  /** "Sync now", as the runtime would run it: here it sends the outbox or leaves it. */
+  function syncNowSends(sends: boolean) {
+    const syncNow = jest.fn(async () => {
+      if (sends) db.delete(outbox).run();
+      return { status: 'done' as const };
+    });
+    useSyncStatus.setState({ syncNow: syncNow as never });
+    return syncNow;
+  }
+
+  it('sends the waiting actions, enrolls, and leaves only the site phone on the phone', async () => {
+    await onSupervisorPhone();
+    const syncNow = syncNowSends(true);
+    const { api, requests } = enrollApi();
+
+    await enrollThisPhone(db, api, ENROLL_SITE);
+
+    expect(syncNow).toHaveBeenCalledTimes(1);
+    expect(requests.map((request) => request.path)).toEqual(['/devices/enroll', '/auth/logout']);
+    expect(requests[0]!.headers.Authorization).toBe(`Bearer ${LOGGED_IN.token}`);
+    expect(requests[0]!.body).toMatchObject({ site_id: ENROLL_SITE });
+    expect(requests[1]!.headers.Authorization).toBe(`Bearer ${LOGGED_IN.token}`);
+    await expect(getDeviceCredentials()).resolves.toEqual({ token: ENROLLED.token, secret: ENROLLED.secret });
+    await expect(getSupervisorToken()).resolves.toBeNull();
+    // The account's sites are gone; the site phone's own come with the full pull.
+    expect(db.select().from(sites).all()).toEqual([]);
+    expect(db.select().from(devices).all()).toEqual([ENROLLED.device]);
+    expect(getKv(db, 'device.id')).toBe(ENROLLED.device.id);
+    expect(getKv(db, 'supervisor.account')).toBeNull();
+    expect(getKv(db, 'sync.cursor')).toBeNull();
+    expect(jest.mocked(whenSyncIdle)).toHaveBeenCalled();
+    expect(useSession.getState()).toMatchObject({ mode: 'site_phone', deviceId: ENROLLED.device.id, activeUser: null });
+  });
+
+  it('does not sync first when nothing waits', async () => {
+    await setSupervisorToken(LOGGED_IN.token);
+    useSession.setState({ mode: 'supervisor_phone' });
+    const syncNow = syncNowSends(true);
+    await enrollThisPhone(db, enrollApi().api, ENROLL_SITE);
+    expect(syncNow).not.toHaveBeenCalled();
+    expect(useSession.getState().mode).toBe('site_phone');
+  });
+
+  it('changes nothing while actions cannot be sent', async () => {
+    await onSupervisorPhone();
+    syncNowSends(false);
+    const { api, requests } = enrollApi();
+
+    const error = await enrollThisPhone(db, api, ENROLL_SITE).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(UnsentActionsError);
+    expect((error as UnsentActionsError).count).toBe(1);
+    expect(requests).toEqual([]);
+    await expect(getSupervisorToken()).resolves.toBe(LOGGED_IN.token);
+    expect(db.select().from(sites).all()).toHaveLength(1);
+    expect(useSession.getState().mode).toBe('supervisor_phone');
+  });
+
+  it('changes nothing if the server refuses the enrollment', async () => {
+    await onSupervisorPhone();
+    syncNowSends(true);
+    const { api } = enrollApi([403, { error: { code: 'forbidden', message: 'Ez nem a te telephelyed.' } }]);
+
+    await expect(enrollThisPhone(db, api, ENROLL_SITE)).rejects.toMatchObject({ code: 'forbidden' });
+
+    await expect(getSupervisorToken()).resolves.toBe(LOGGED_IN.token);
+    await expect(getDeviceCredentials()).resolves.toBeNull();
+    expect(getKv(db, 'device.id')).toBeNull();
+    expect(useSession.getState().mode).toBe('supervisor_phone');
+  });
+
+  it('is enrolled even if the logout fails', async () => {
+    await setSupervisorToken(LOGGED_IN.token);
+    useSession.setState({ mode: 'supervisor_phone' });
+    const { api } = fakeApi((request) => (request.path === '/devices/enroll' ? ENROLLED : new NetworkError(false)));
+    await enrollThisPhone(db, api, ENROLL_SITE);
+    expect(useSession.getState().mode).toBe('site_phone');
+  });
+
+  it("is only for a supervisor's own phone with its token", async () => {
+    const { api, requests } = enrollApi();
+    await expect(enrollThisPhone(db, api, ENROLL_SITE)).rejects.toThrow("supervisor's own phone");
+    useSession.setState({ mode: 'supervisor_phone' });
+    await expect(enrollThisPhone(db, api, ENROLL_SITE)).rejects.toThrow('No supervisor token');
+    expect(requests).toEqual([]);
   });
 });

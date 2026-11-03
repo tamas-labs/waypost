@@ -59,7 +59,7 @@ const fetchMock = jest.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =
 beforeEach(async () => {
   ({ db } = await createTestDatabase());
   jest.mocked(getDatabase).mockReturnValue(db);
-  // In a development build (as in the tests) the developer enrollment's address is used.
+  // In a development build (as in the tests) the address of the developer API address screen is used.
   setKv(db, 'dev.api_base_url', BASE_URL);
   store.clear();
   fetchMock.mockClear();
