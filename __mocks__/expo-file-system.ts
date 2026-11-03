@@ -25,6 +25,14 @@ export class File {
   delete() {
     if (!files.delete(this.uri)) throw new Error(`No such file: ${this.uri}`);
   }
+  moveSync(destination: { uri: string }, options: { overwrite?: boolean } = {}) {
+    const file = files.get(this.uri);
+    if (file === undefined) throw new Error(`No such file: ${this.uri}`);
+    if (files.has(destination.uri) && options.overwrite !== true) throw new Error(`File exists: ${destination.uri}`);
+    files.delete(this.uri);
+    files.set(destination.uri, file);
+    this.uri = destination.uri;
+  }
 }
 
 export class Directory {
@@ -41,4 +49,4 @@ export class Directory {
   }
 }
 
-export const Paths = { document: { uri: 'file:///documents' } };
+export const Paths = { document: { uri: 'file:///documents' }, cache: { uri: 'file:///cache' } };

@@ -759,6 +759,21 @@
       "stale": "Közben új verzió készült, ezért ez a szerkesztés nem menthető. Kezdd újra az új verzióból."
     }
   },
+  "qrLabel": {
+    "title": "QR-címke",
+    "code": "QR-kód: {{name}}",
+    "missing": "Ez a pont nincs meg ezen a telefonon.",
+    "pending": "A pont QR-kódját a szerver adja. A szinkron után itt jelenik meg.",
+    "purposeNfc": "Tartalék: ha a pont NFC-címkéje nem olvasható, az őr ezzel a kóddal is leolvashatja. Nyomtasd ki, és tedd a címke mellé.",
+    "purposeQr": "Ezt a kódot olvassa le az őr a ponton. Nyomtasd ki, és tedd a pont helyére.",
+    "inactive": "A pont ki van kapcsolva: az őr leolvasása addig nem találja meg, amíg egy útvonal be nem tanítja.",
+    "print": "Nyomtatás",
+    "share": "Megosztás",
+    "shareTitle": "QR-címke megosztása",
+    "fileName": "{{name}} – QR-címke",
+    "printHint": "Waypost ellenőrzőpont – olvasd le a QR-kódot",
+    "failed": "Nem sikerült: {{message}}"
+  },
   "schedule": {
     "days": "Napok",
     "everyDay": "Minden nap",

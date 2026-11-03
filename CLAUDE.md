@@ -33,13 +33,13 @@ src/
   time/       # időbélyeg, readClock() (waypost-clock), megbízható idő
   domain/     # üzleti szabályok (menetrend → körök, műszak, kör, leolvasás, betanítás, útvonal szerkesztése) és a képernyők nézetmodelljei (shift-view.ts) – UI és I/O nélkül
   guard/      # a domain és az adatbázis között: a GuardState betöltése, az ütemező futtató; testing.ts (a domain-fixture az adatbázisban)
-  supervisor/ # a supervisor mód képernyőinek adatai az adatbázisból és a műveletei az outboxon át (sites.ts: telephelylista, új telephely; site-detail.ts: a telephely részletei és szövegei; training.ts: a betanítás piszkozata és mentése; training-view.ts: a betanítás képernyőinek szövegei; route-edit.ts: az útvonal szerkesztése bejárás nélkül; route-edit-view.ts: a szerkesztés szövegei; route-version.ts: az új útvonalverzió helyi rekordjai, közös a betanítással)
+  supervisor/ # a supervisor mód képernyőinek adatai az adatbázisból és a műveletei az outboxon át (sites.ts: telephelylista, új telephely; site-detail.ts: a telephely részletei és szövegei; training.ts: a betanítás piszkozata és mentése; training-view.ts: a betanítás képernyőinek szövegei; route-edit.ts: az útvonal szerkesztése bejárás nélkül; route-edit-view.ts: a szerkesztés szövegei; route-version.ts: az új útvonalverzió helyi rekordjai, közös a betanítással; checkpoint-label.ts: a pont QR-címkéjének adatai)
   device/     # a telefon saját adatai és állapota, a domaintól függetlenül: tokenek és eszköztitok a secure store-ban (credentials.ts), készenlét és a „Telefon beállítása” ellenőrzőlistája (readiness.ts), előtér-figyelés és intervallum (foreground.ts)
   schema/     # JSON Schema-ellenőrzés fejlesztői módban (validation.ts, Ajv)
   sync/       # pull, push (push.ts: kötegek, elutasítás, diagnosztika), média (media.ts), visszavont telefon (revocation.ts), helyi takarítás (cleanup.ts), outbox (outbox.ts: supervisorműveletek, visszatartás, elutasítás; a pont fotója is itt megy fel, multipart); testing.ts: hamis API a tesztekhez
   chain/      # láncbejegyzés: kanonikus JSON, HMAC
   nfc/        # olvasás (reader.ts), Androidon az app-szintű figyelés (tag-events.ts), useTagReader a kör és a betanítás képernyőjére
-  qr/         # QR: a kamera szűrője (qr-scanner.tsx), a teljes képernyős olvasó (qr-reader-screen.tsx, a kör és a betanítás közös olvasója)
+  qr/         # QR: a kamera szűrője (qr-scanner.tsx), a teljes képernyős olvasó (qr-reader-screen.tsx, a kör és a betanítás közös olvasója), a pont kódjának rajza (code.ts, SVG-út), a nyomtatható címke, nyomtatás és megosztás (label.ts, expo-print, expo-sharing)
   alarms/
   location/   # helyadat a leolvasáshoz (location.ts), saját helyzet a térképen (use-position.ts), térkép elérhetősége (maps.ts)
   photo/      # fotó: tömörítés, SHA-256, fájl a dokumentumok media/ mappájában (a media sort a láncíró írja); files.ts: a fájl helye az azonosítóból; use-photo-draft.ts: egy űrlap még nem rögzített fotói (`useSinglePhotoDraft`: egy mentett fotó cseréje, pl. a betanított ponté); camera.ts: a kamera engedélye kameranézet nélkül

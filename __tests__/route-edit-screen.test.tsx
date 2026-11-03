@@ -1,9 +1,12 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
+import { eq } from 'drizzle-orm';
 import { useCameraPermissions } from 'expo-camera';
+import { router } from 'expo-router';
 import { renderRouter } from 'expo-router/testing-library';
 import { Alert, Platform, type AlertButton } from 'react-native';
 
 import SupervisorLayout from '@/app/(supervisor)/_layout';
+import CheckpointQrScreen from '@/app/(supervisor)/checkpoints/[id]/qr';
 import RouteEditScreen from '@/app/(supervisor)/routes/[id]/edit';
 import TrainingScreen from '@/app/(supervisor)/routes/[id]/train/index';
 import TrainingPointScreen from '@/app/(supervisor)/routes/[id]/train/point';
@@ -35,6 +38,8 @@ jest.mock('@/nfc/use-tag-reader', () => ({ useTagReader: jest.fn() }));
 jest.mock('expo-keep-awake', () => ({ useKeepAwake: jest.fn() }));
 jest.mock('expo-camera', () => ({ useCameraPermissions: jest.fn(), CameraView: (props: unknown) => mockCameraView(props) }));
 jest.mock('@/photo/photo', () => ({ takePhoto: jest.fn(), discardPhoto: jest.fn() }));
+jest.mock('expo-print', () => ({ printAsync: jest.fn(), printToFileAsync: jest.fn() }));
+jest.mock('expo-sharing', () => ({ shareAsync: jest.fn() }));
 // The app's files and the test's are the same in-memory ones (__mocks__/expo-file-system.ts).
 jest.mock('expo-file-system');
 jest.mock('react-native-draggable-flatlist');
@@ -57,6 +62,7 @@ const ROUTES = {
   '(supervisor)/routes/[id]/edit': RouteEditScreen,
   '(supervisor)/routes/[id]/train/index': TrainingScreen,
   '(supervisor)/routes/[id]/train/point': TrainingPointScreen,
+  '(supervisor)/checkpoints/[id]/qr': CheckpointQrScreen,
 };
 
 const AT = '2026-10-27T10:05:12.345Z';
@@ -242,6 +248,34 @@ it('opens from the site details with the version it makes, and saves the changes
     },
   ]);
   expect(db.select({ version: routeVersions.version }).from(routeVersions).all()).toHaveLength(2);
+});
+
+it('the sheet leads to the point’s QR label, keeping what was typed on it', async () => {
+  db.update(checkpoints)
+    .set({ qr_payload: `waypost:cp:${GATE}:Ab3dEf6hIj9kLm2n` })
+    .where(eq(checkpoints.id, GATE))
+    .run();
+  await openEdit();
+  await press('Szerkesztés: Kapu');
+  await fireEvent.changeText(screen.getByLabelText(/Pont neve/), 'Főkapu');
+  await press('QR-címke');
+
+  expect(screen).toHavePathname(`/checkpoints/${GATE}/qr`);
+  expect(screen.getByRole('image', { name: 'QR-kód: Kapu' })).toBeOnTheScreen();
+
+  await act(async () => router.back());
+  expect(screen).toHavePathname(editPath);
+  expect(pointNames()).toEqual(['Áthelyezés: Főkapu', 'Áthelyezés: Raktár', 'Áthelyezés: Kazánház']);
+  expect(screen.getByRole('button', { name: 'Mentés v5-ként' })).toBeEnabled();
+});
+
+it('the sheet does not leave for the label without a name', async () => {
+  await openEdit();
+  await press('Szerkesztés: Kapu');
+  await fireEvent.changeText(screen.getByLabelText(/Pont neve/), '  ');
+  await press('QR-címke');
+  expect(screen).toHavePathname(editPath);
+  expect(screen.getByText('Add meg a pont nevét.')).toBeOnTheScreen();
 });
 
 it('changes the photo of a point: the saved one is on the server, the new one goes up with the save', async () => {

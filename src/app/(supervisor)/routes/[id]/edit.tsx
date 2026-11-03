@@ -45,7 +45,7 @@ const ORDER_MODES: readonly { value: OrderMode; label: string }[] = [
 // handle (or moved up and down by the screen reader's actions), each one's name, instruction and photo on a sheet, a
 // point taken out after a confirmation, the order mode; every save is a new version (domain/route-edit.ts). A new point
 // needs its tag scanned on the spot: "Új pont felvétele" is a training of one point (S5), added to the end of the
-// version. Leaving with changes asks first; the photos taken are deleted then.
+// version. Leaving with changes asks first; the photos taken are deleted then. The sheet leads to the point's QR label.
 export default function RouteEditScreen() {
   const { color, space } = useTheme();
   const { id = '' } = useLocalSearchParams<{ id: string }>();
@@ -378,21 +378,33 @@ function PointSheet({
   const [nameMissing, setNameMissing] = useState(false);
   const photo = useSinglePhotoDraft<SavedPhoto>(sheetPhotoOf(started.photo));
 
-  const save = () => {
+  /** Takes the sheet's fields into the editing; false (the name marked) if the name is missing. */
+  const apply = (): boolean => {
     const details = { name, instruction, photo: editPhotoOf(photo.photo, started.photo) };
     if (checkPointDetails({ ...details, photo: null }) !== null) {
       setNameMissing(true);
-      return;
+      return false;
     }
     try {
       onChange(updateEditPoint(edit, point.checkpoint_id, details));
     } catch (e) {
       if (!(e instanceof RouteEditError) || e.code !== 'name_required') throw e;
       setNameMissing(true);
-      return;
+      return false;
     }
     photo.keep();
+    return true;
+  };
+
+  const save = () => {
+    if (apply()) onClose();
+  };
+
+  // The label leaves the screen: what was typed on the sheet goes into the editing first, so it is not lost.
+  const openQr = () => {
+    if (!apply()) return;
     onClose();
+    router.push({ pathname: '/checkpoints/[id]/qr', params: { id: point.checkpoint_id } });
   };
 
   return (
@@ -439,6 +451,7 @@ function PointSheet({
             onTake={photo.take}
             onRemove={photo.remove}
           />
+          <Button variant="secondary" icon="qr" label={t('qrLabel.title')} onPress={openQr} />
           <Button label={t('training.savePoint')} onPress={save} />
           <Button variant="secondary" label={t('common.cancel')} onPress={onClose} />
         </ScrollView>

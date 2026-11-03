@@ -27,8 +27,10 @@ import Mic from 'lucide-react-native/icons/mic';
 import Navigation from 'lucide-react-native/icons/navigation';
 import Pencil from 'lucide-react-native/icons/pencil';
 import Plus from 'lucide-react-native/icons/plus';
+import Printer from 'lucide-react-native/icons/printer';
 import QrCode from 'lucide-react-native/icons/qr-code';
 import RefreshCw from 'lucide-react-native/icons/refresh-cw';
+import Share2 from 'lucide-react-native/icons/share-2';
 import Shield from 'lucide-react-native/icons/shield';
 import Smartphone from 'lucide-react-native/icons/smartphone';
 import TriangleAlert from 'lucide-react-native/icons/triangle-alert';
@@ -93,6 +95,8 @@ const ICONS = {
   list: List,
   camera: Camera,
   qr: QrCode,
+  printer: Printer,
+  share: Share2,
   image: ImageIcon,
   mapPin: MapPin,
   bell: Bell,

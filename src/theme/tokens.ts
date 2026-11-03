@@ -70,6 +70,10 @@ export const palette = {
     mapMarkerText: '#0B1630',
     mapMe: '#FFFFFF',
     mapMeHalo: 'rgba(138,180,255,0.3)',
+
+    // QR-kód: mindkét témában sötét a világoson, mert az olvasó csak ezt ismeri fel biztosan
+    qrInk: '#000000',
+    qrPaper: '#FFFFFF',
   },
   light: {
     bg: '#EEF2F8',
@@ -115,6 +119,9 @@ export const palette = {
     mapMarkerText: '#FFFFFF',
     mapMe: '#0F1726',
     mapMeHalo: 'rgba(47,107,219,0.22)',
+
+    qrInk: '#000000',
+    qrPaper: '#FFFFFF',
   },
 } as const;
 
