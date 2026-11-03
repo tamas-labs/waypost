@@ -1,4 +1,4 @@
-import type { CheckpointResponse, RouteResponse, RouteVersionResponse, SyncPullResponse } from '@waypost/schema';
+import type { CheckpointResponse, MediaUploadResponse, RouteResponse, RouteVersionResponse, SyncPullResponse } from '@waypost/schema';
 import { eq } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -8,8 +8,9 @@ import { ApiError, NetworkError } from '@/api/errors';
 import { useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
 import { getKv, setKv } from '@/db/kv';
-import { checkpoints, outbox, routes, routeVersionCheckpoints, routeVersions, siteUser, users } from '@/db/schema';
+import { checkpoints, media, outbox, routes, routeVersionCheckpoints, routeVersions, siteUser, users } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
+import { photoFile } from '@/photo/files';
 import type { ClockReading } from '@/time/clock';
 
 import { onOutboxQueued } from './events';
@@ -30,6 +31,8 @@ import { applyPullPages } from './pull';
 import { useSyncStatus } from './status';
 import { fakeApi, type FakeAnswer, type RecordedRequest } from './testing';
 
+jest.mock('expo-file-system');
+const { files: mockedFiles } = jest.requireMock<typeof import('../../__mocks__/expo-file-system')>('expo-file-system');
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 
 const EXAMPLES = join(dirname(require.resolve('@waypost/schema/package.json')), 'examples', 'api');
@@ -422,6 +425,125 @@ describe('sendOutbox', () => {
     clearOutbox(db);
     expect(rows()).toEqual([]);
     expect(getKv(db, 'outbox.rejected')).toBeNull();
+  });
+});
+
+describe('the photo of a checkpoint', () => {
+  const PHOTO = '019a2b3c-4d5e-7f00-8a00-0000000000e1';
+  const SHA = 'ab'.repeat(32);
+  const TAKEN = '2026-10-27T20:58:00.000Z';
+  const upload = configCalls.uploadCheckpointPhoto(PHOTO, { sha256: SHA, owner_type: 'checkpoint', owner_id: CHECKPOINT, taken_at: TAKEN });
+  const withPhoto = configCalls.createCheckpoint({ ...createCheckpoint.body, photo_media_id: PHOTO } as Parameters<
+    typeof configCalls.createCheckpoint
+  >[0]);
+  const UPLOADED: MediaUploadResponse = {
+    server_time: '2026-10-27T21:00:01.000Z',
+    media: {
+      id: PHOTO,
+      device_id: null,
+      owner_type: 'checkpoint',
+      owner_id: CHECKPOINT,
+      sha256: SHA,
+      mime: 'image/jpeg',
+      size_bytes: 1234,
+      taken_at: TAKEN,
+      uploaded_at: '2026-10-27T21:00:00.500Z',
+    },
+  };
+
+  /** What the training's save writes (supervisor/training.ts): the media row, the checkpoint citing it, the calls. */
+  function queueCheckpointWithPhoto() {
+    mockedFiles.set(photoFile(PHOTO).uri, { size: 1234, modifiedAtMs: 0 });
+    queueAction(
+      db,
+      {
+        apply: (tx) => {
+          tx.insert(media)
+            .values({
+              id: PHOTO,
+              owner_type: 'checkpoint',
+              owner_id: CHECKPOINT,
+              sha256: SHA,
+              mime: 'image/jpeg',
+              size_bytes: 1234,
+              local_uri: photoFile(PHOTO).uri,
+              taken_at: TAKEN,
+            })
+            .run();
+          localCheckpoint(tx);
+          tx.update(checkpoints).set({ photo_media_id: PHOTO }).run();
+        },
+        calls: [upload, withPhoto],
+      },
+      SUPERVISOR,
+    );
+  }
+  const photoRow = () => db.select({ id: media.id, uploaded_at: media.uploaded_at }).from(media).get();
+  const localPhoto = () => db.select({ photo: checkpoints.photo_media_id }).from(checkpoints).get()?.photo;
+
+  beforeEach(() => mockedFiles.clear());
+
+  it('goes as a multipart upload in the name of the supervisor, before the checkpoint that refers to it', async () => {
+    queueCheckpointWithPhoto();
+    const { api, requests } = server({ [`PUT /media/${PHOTO}`]: [UPLOADED], 'POST /checkpoints': [[201, CHECKPOINT_RESPONSE]] });
+
+    await sendOutbox({ db, api, token: 'device-token' }, options());
+
+    expect(requests.map((request) => `${request.method} ${request.path}`)).toEqual([`PUT /media/${PHOTO}`, 'POST /checkpoints']);
+    expect(requests[0]!.body).toEqual({ sha256: SHA, owner_type: 'checkpoint', owner_id: CHECKPOINT, taken_at: TAKEN });
+    expect(requests[0]!.file).toMatchObject({ uri: photoFile(PHOTO).uri });
+    expect(requests[0]!.headers).toMatchObject({ 'X-Acting-User': SUPERVISOR, 'Idempotency-Key': expect.any(String) });
+    expect(requests[1]!.body).toMatchObject({ photo_media_id: PHOTO });
+    // Uploaded: the cleanup may delete it after the retention.
+    expect(photoRow()).toEqual({ id: PHOTO, uploaded_at: UPLOADED.media.uploaded_at });
+    expect(rows()).toEqual([]);
+  });
+
+  it('is left out of the checkpoint if the server refuses it, so the checkpoint is not refused for it', async () => {
+    queueCheckpointWithPhoto();
+    const { api, requests } = server({
+      [`PUT /media/${PHOTO}`]: [error(413, 'bad_request', 'A fájl túl nagy.')],
+      'POST /checkpoints': [new TypeError('Network request failed')],
+    });
+
+    await expect(sendOutbox({ db, api, token: 't' }, options())).rejects.toBeInstanceOf(NetworkError);
+
+    expect(requests[1]!.body).toMatchObject({ photo_media_id: null });
+    // The waiting call and the local checkpoint, until the server's record comes.
+    expect(rows().map((row) => row.body)).toEqual([expect.objectContaining({ photo_media_id: null })]);
+    expect(localPhoto()).toBeNull();
+    expect(photoRow()).toBeUndefined();
+    expect(outboxRejections(db)).toEqual([expect.objectContaining({ path: `/media/${PHOTO}`, status: 413, message: 'A fájl túl nagy.' })]);
+  });
+
+  it('is left out the same way if its file is gone, without a request', async () => {
+    queueCheckpointWithPhoto();
+    mockedFiles.clear();
+    const { api, requests } = server({ 'POST /checkpoints': [[201, CHECKPOINT_RESPONSE]] });
+
+    await sendOutbox({ db, api, token: 't' }, options());
+
+    expect(requests.map((request) => request.path)).toEqual(['/checkpoints']);
+    expect(requests[0]!.body).toMatchObject({ photo_media_id: null });
+    expect(outboxRejections(db)).toEqual([
+      expect.objectContaining({ status: 404, message: 'A pont fotója nincs meg a telefonon, ezért a pont fotó nélkül kerül fel.' }),
+    ]);
+  });
+
+  it('waits on a network error like any call', async () => {
+    queueCheckpointWithPhoto();
+    const { api } = server({ [`PUT /media/${PHOTO}`]: [new TypeError('Network request failed')] });
+
+    await expect(sendOutbox({ db, api, token: 't' }, options())).rejects.toBeInstanceOf(NetworkError);
+
+    expect(rows().map((row) => row.path)).toEqual([`/media/${PHOTO}`, '/checkpoints']);
+    expect(photoRow()).toEqual({ id: PHOTO, uploaded_at: null });
+  });
+
+  it('goes with the outbox when it is cleared', () => {
+    queueCheckpointWithPhoto();
+    clearOutbox(db);
+    expect(photoRow()).toBeUndefined();
   });
 });
 

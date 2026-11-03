@@ -4,7 +4,9 @@ import {
   addExistingPoint,
   addNewPoint,
   checkPointDetails,
+  draftPhotos,
   elapsedMs,
+  pointDetailsOf,
   readTrainingTag,
   removePoint,
   secondsBetween,
@@ -73,7 +75,7 @@ function expectRead<K extends TrainingRead['kind']>(read: TrainingRead, kind: K)
 /** Scans an unknown NFC tag at s seconds and adds it as a new point. */
 function withNewPoint(draft: TrainingDraft, uid: string, s: number, name = `Pont ${uid.slice(-2)}`): TrainingDraft {
   const read = expectRead(readTrainingTag(draft, SITE_CHECKPOINTS, { method: 'nfc', tag_uid: uid, ndef_raw: null }, at(s), FIX), 'new_tag');
-  return addNewPoint(draft, read.scan, { name, instruction: '' }, newId);
+  return addNewPoint(draft, read.scan, { name, instruction: '', photo: null }, newId);
 }
 
 describe('reading a tag', () => {
@@ -138,13 +140,13 @@ describe('the points of the draft', () => {
   const scan: NewTagScan = { tag_uid: '04A1B2C3D4E599', location: { lat_e7: null, lng_e7: null, accuracy_dm: null }, scanned: at(0) };
 
   it('need a name; the details are trimmed, an empty instruction is none', () => {
-    expect(checkPointDetails({ name: '  ', instruction: '' })).toEqual({ name: 'missing' });
-    expect(checkPointDetails({ name: 'Kapu', instruction: '' })).toBeNull();
-    expect(() => addNewPoint(draftOf(), scan, { name: ' ', instruction: 'Zárva?' }, newId)).toThrow(
+    expect(checkPointDetails({ name: '  ', instruction: '', photo: null })).toEqual({ name: 'missing' });
+    expect(checkPointDetails({ name: 'Kapu', instruction: '', photo: null })).toBeNull();
+    expect(() => addNewPoint(draftOf(), scan, { name: ' ', instruction: 'Zárva?', photo: null }, newId)).toThrow(
       expect.objectContaining({ code: 'name_required' }),
     );
 
-    const draft = addNewPoint(draftOf(), scan, { name: '  Hátsó kapu ', instruction: '   ' }, newId);
+    const draft = addNewPoint(draftOf(), scan, { name: '  Hátsó kapu ', instruction: '   ', photo: null }, newId);
     expect(draft.points).toEqual([
       {
         kind: 'new',
@@ -152,22 +154,25 @@ describe('the points of the draft', () => {
         tag_uid: '04A1B2C3D4E599',
         name: 'Hátsó kapu',
         instruction: null,
+        photo: null,
         location: scan.location,
         scanned: at(0),
       },
     ]);
-    expect(updatePoint(draft, draft.points[0]!.checkpoint_id, { name: 'Kapu 2', instruction: ' Zárva? ' }).points[0]).toMatchObject({
+    expect(
+      updatePoint(draft, draft.points[0]!.checkpoint_id, { name: 'Kapu 2', instruction: ' Zárva? ', photo: null }).points[0],
+    ).toMatchObject({
       name: 'Kapu 2',
       instruction: 'Zárva?',
     });
   });
 
   it('do not take the same tag or checkpoint twice', () => {
-    const draft = addExistingPoint(addNewPoint(draftOf(), scan, { name: 'Hátsó kapu', instruction: '' }, newId), {
+    const draft = addExistingPoint(addNewPoint(draftOf(), scan, { name: 'Hátsó kapu', instruction: '', photo: null }, newId), {
       checkpoint: GATE,
       scanned: at(10),
     });
-    expect(() => addNewPoint(draft, scan, { name: 'Másik', instruction: '' }, newId)).toThrow(
+    expect(() => addNewPoint(draft, scan, { name: 'Másik', instruction: '', photo: null }, newId)).toThrow(
       expect.objectContaining({ code: 'in_draft' }),
     );
     expect(() => addExistingPoint(draft, { checkpoint: GATE, scanned: at(20) })).toThrow(expect.objectContaining({ code: 'in_draft' }));
@@ -175,8 +180,10 @@ describe('the points of the draft', () => {
 
   it('change only a new checkpoint, and only one in the draft', () => {
     const draft = addExistingPoint(draftOf(), { checkpoint: GATE, scanned: at(0) });
-    expect(() => updatePoint(draft, GATE.id, { name: 'Új név', instruction: '' })).toThrow(expect.objectContaining({ code: 'not_new' }));
-    expect(() => updatePoint(draft, STORE.id, { name: 'Új név', instruction: '' })).toThrow(
+    expect(() => updatePoint(draft, GATE.id, { name: 'Új név', instruction: '', photo: null })).toThrow(
+      expect.objectContaining({ code: 'not_new' }),
+    );
+    expect(() => updatePoint(draft, STORE.id, { name: 'Új név', instruction: '', photo: null })).toThrow(
       expect.objectContaining({ code: 'not_in_draft' }),
     );
     expect(() => removePoint(draft, STORE.id)).toThrow(TrainingError);
@@ -248,9 +255,11 @@ describe('the save', () => {
           lat_e7: 474979000,
           lng_e7: 190402000,
           accuracy_dm: 42,
+          photo_media_id: null,
           active: true,
         },
       ],
+      uploadPhotos: [],
       // The inactive checkpoint is switched on, so a guard's scan finds it.
       activateCheckpoints: [STORE.id],
       createVersion: {
@@ -277,6 +286,30 @@ describe('the save', () => {
     expect(save.createRoute).toEqual({ id: ROUTE, site_id: SITE, name: 'Hajnali kör', order_mode: 'fixed', active: true });
     expect(save.updateRoute).toBeNull();
     expect(save.createVersion.checkpoints).toEqual([{ checkpoint_id: GATE.id, walk_time_from_prev_s: null }]);
+  });
+
+  it('uploads the photo of a new point before its checkpoint, which refers to it', () => {
+    const photo = {
+      id: 'p1',
+      sha256: 'ab'.repeat(32),
+      mime: 'image/jpeg',
+      size_bytes: 1,
+      local_uri: 'file:///p1.jpg',
+      taken_at: '2026-11-03T10:00:00.000Z',
+    };
+    const scan: NewTagScan = { tag_uid: '04A1B2C3D4E599', location: { lat_e7: null, lng_e7: null, accuracy_dm: null }, scanned: at(0) };
+    let draft = addNewPoint(draftOf(), scan, { name: 'Kapu', instruction: '', photo }, newId);
+    draft = withNewPoint(draft, '04A1B2C3D4E5AA', 30);
+    const [point] = draft.points;
+    expect(draftPhotos(draft)).toEqual([photo]);
+    expect(pointDetailsOf(point!)).toEqual({ name: 'Kapu', instruction: '', photo });
+    expect(pointDetailsOf(addExistingPoint(draftOf(), { checkpoint: GATE, scanned: at(0) }).points[0]!)).toBeNull();
+
+    const save = trainingSave(draft, SITE_CHECKPOINTS, newId);
+    expect(save.uploadPhotos).toEqual([{ checkpoint_id: point!.checkpoint_id, photo }]);
+    expect(save.createCheckpoints.map((c) => c.photo_media_id)).toEqual(['p1', null]);
+    // Its photo goes with the point.
+    expect(draftPhotos(removePoint(draft, point!.checkpoint_id))).toEqual([]);
   });
 
   it('changes the order mode of an existing route if it was switched', () => {

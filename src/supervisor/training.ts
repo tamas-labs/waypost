@@ -3,6 +3,9 @@
 // walk), and the save, which is one supervisor action: the local records at once, and the calls through the outbox
 // (sync/outbox.ts). A call the server refuses (e.g. 409: the tag was taken on another phone meanwhile) is shown to the
 // supervisor like any refused action, and the next pull brings the server's state back (decisions: "Betanítás – domain").
+// The photos of the new points are files of the draft until the save (photo/files.ts): a photo that leaves the draft
+// (its point removed, replaced by another, the draft discarded) is deleted, a saved one becomes the media row that its
+// upload call sends before the checkpoint (decisions: "Betanítás – pont adatai").
 import type { Timestamp } from '@waypost/schema';
 import { and, eq, inArray, max } from 'drizzle-orm';
 
@@ -10,10 +13,11 @@ import { configCalls, type ConfigCall } from '@/api/config-calls';
 import type { LocationFix } from '@/chain/payloads';
 import type { Database } from '@/db/database';
 import { deleteKv, getKv, setKv } from '@/db/kv';
-import { checkpoints, routes, routeVersionCheckpoints, routeVersions } from '@/db/schema';
+import { checkpoints, media, routes, routeVersionCheckpoints, routeVersions } from '@/db/schema';
 import type { TagRead } from '@/domain/scan';
 import type { NewId } from '@/domain/state';
 import {
+  draftPhotos,
   readTrainingTag,
   startTraining,
   trainingSave,
@@ -26,6 +30,7 @@ import {
   type TrainingRead,
 } from '@/domain/training';
 import { uuidv7 } from '@/id/uuidv7';
+import { photoFile } from '@/photo/files';
 import { queueSupervisorAction } from '@/sync/outbox';
 import { nowTimestamp } from '@/time/timestamp';
 
@@ -58,12 +63,37 @@ export function storedTrainingDraft(db: Database): TrainingDraft | null {
   return getKv(db, 'training.draft');
 }
 
+/** Deletes the files of photos no draft keeps; a file that will not go is the cleanup's orphan later. */
+export function deleteDraftPhotos(photos: readonly { id: string }[]): void {
+  for (const { id } of photos) {
+    try {
+      const file = photoFile(id);
+      if (file.exists) file.delete();
+    } catch (error) {
+      if (__DEV__) console.warn(`Deleting the photo ${id} failed`, error);
+    }
+  }
+}
+
+/** The photos of the stored draft that the next one does not keep. */
+function droppedPhotos(db: Database, next: TrainingDraft | null) {
+  const before = storedTrainingDraft(db);
+  if (before === null) return [];
+  const kept = new Set(next === null ? [] : draftPhotos(next).map((photo) => photo.id));
+  return draftPhotos(before).filter((photo) => !kept.has(photo.id));
+}
+
+/** Stores the draft (replacing the one on the phone); the photos it no longer has are deleted. */
 export function storeTrainingDraft(db: Database, draft: TrainingDraft): void {
+  const dropped = droppedPhotos(db, draft);
   setKv(db, 'training.draft', draft);
+  deleteDraftPhotos(dropped);
 }
 
 export function discardTrainingDraft(db: Database): void {
+  const dropped = droppedPhotos(db, null);
   deleteKv(db, 'training.draft');
+  deleteDraftPhotos(dropped);
 }
 
 /**
@@ -186,7 +216,7 @@ function nextVersion(tx: Database, routeId: string): number {
 }
 
 /**
- * Saves the draft as the route's new version: the route (created, or its order mode changed), the new checkpoints,
+ * Saves the draft as the route's new version: the route (created, or its order mode changed), the photos and the new checkpoints,
  * the inactive ones of the draft switched on, the version as the route's current one – locally at once and through
  * the outbox in this order; the draft is deleted in the same transaction. Throws TrainingError (domain/training.ts)
  * if the draft cannot be saved: nothing changes then. Returns the ID of the new version.
@@ -202,6 +232,14 @@ export function saveTraining(db: Database, draft: TrainingDraft, now: Timestamp 
 
   const calls: ConfigCall[] = [
     ...(save.createRoute === null ? [] : [configCalls.createRoute(save.createRoute)]),
+    ...save.uploadPhotos.map(({ checkpoint_id, photo }) =>
+      configCalls.uploadCheckpointPhoto(photo.id, {
+        sha256: photo.sha256,
+        owner_type: 'checkpoint',
+        owner_id: checkpoint_id,
+        taken_at: photo.taken_at,
+      }),
+    ),
     ...save.createCheckpoints.map((body) => configCalls.createCheckpoint(body)),
     ...save.activateCheckpoints.map((id) => configCalls.updateCheckpoint(id, { active: true })),
     ...(save.updateRoute === null ? [] : [configCalls.updateRoute(route.id, { order_mode: save.updateRoute.order_mode })]),
@@ -220,6 +258,22 @@ export function saveTraining(db: Database, draft: TrainingDraft, now: Timestamp 
           .values({ ...save.createRoute, current_version_id: version.id, active: true, created_at: now, updated_at: now })
           .run();
       }
+      for (const { checkpoint_id, photo } of save.uploadPhotos) {
+        tx.insert(media)
+          .values({
+            id: photo.id,
+            // A checkpoint photo is no chain entry's: its outbox call sends it (sync/outbox.ts).
+            device_id: null,
+            owner_type: 'checkpoint',
+            owner_id: checkpoint_id,
+            sha256: photo.sha256,
+            mime: photo.mime,
+            size_bytes: photo.size_bytes,
+            local_uri: photoFile(photo.id).uri,
+            taken_at: photo.taken_at,
+          })
+          .run();
+      }
       for (const body of save.createCheckpoints) {
         tx.insert(checkpoints)
           .values({
@@ -230,7 +284,7 @@ export function saveTraining(db: Database, draft: TrainingDraft, now: Timestamp 
             lat_e7: body.lat_e7 ?? null,
             lng_e7: body.lng_e7 ?? null,
             accuracy_dm: body.accuracy_dm ?? null,
-            photo_media_id: null,
+            photo_media_id: body.photo_media_id ?? null,
             active: true,
             created_at: now,
             updated_at: now,

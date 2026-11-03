@@ -1,4 +1,4 @@
-import { and, count, eq, isNull, or } from 'drizzle-orm';
+import { and, count, eq, isNull, ne, or } from 'drizzle-orm';
 
 import type { Database } from '@/db/database';
 import { getKv } from '@/db/kv';
@@ -12,9 +12,13 @@ export interface PendingCounts {
   total: number;
 }
 
-/** The photos this phone can still upload: not those of an earlier enrollment, whose upload is closed. */
+/**
+ * The photos of chain entries this phone can still upload: not those of an earlier enrollment, whose upload is closed.
+ * A checkpoint photo is not one: its outbox call sends it, and counts it.
+ */
 export function photosOfThisDevice(deviceId: string | null) {
-  return deviceId === null ? isNull(media.device_id) : or(eq(media.device_id, deviceId), isNull(media.device_id));
+  const device = deviceId === null ? isNull(media.device_id) : or(eq(media.device_id, deviceId), isNull(media.device_id));
+  return and(device, ne(media.owner_type, 'checkpoint'));
 }
 
 export function countPending(db: Database): PendingCounts {

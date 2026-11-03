@@ -212,6 +212,13 @@ describe('photo upload', () => {
     expect(requests).toHaveLength(1);
   });
 
+  it("leaves a checkpoint photo to its outbox call, which sends it in the supervisor's name", async () => {
+    addPhoto(PHOTO(1), { device_id: null, owner_type: 'checkpoint', owner_id: '019a2b3c-4d5e-7f00-8a00-0000000000c5' });
+    const { done, requests } = upload(stored, [PHOTO(1)]);
+    await done;
+    expect(requests).toHaveLength(0);
+  });
+
   it.each([
     [404, 'not_found'],
     [403, 'forbidden'],

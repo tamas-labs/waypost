@@ -9,6 +9,7 @@ const NEW: TrainingPoint = {
   tag_uid: '04A1',
   name: 'Hátsó kapu',
   instruction: 'Zárva van?',
+  photo: null,
   location: { lat_e7: 474979000, lng_e7: 190402000, accuracy_dm: 42 },
   scanned,
 };
@@ -37,6 +38,15 @@ it('tells the walk from the previous point', () => {
 
 it('tells what a point has', () => {
   expect(pointMeta(NEW)).toBe('NFC · utasítás · GPS ±4 m');
+  const photo = {
+    id: 'p1',
+    sha256: 'a'.repeat(64),
+    mime: 'image/jpeg',
+    size_bytes: 1,
+    local_uri: 'file:///p1.jpg',
+    taken_at: '2026-11-03T10:00:00.000Z',
+  };
+  expect(pointMeta({ ...NEW, photo })).toBe('NFC · fotó · utasítás · GPS ±4 m');
   expect(pointMeta({ ...NEW, instruction: null, location: { lat_e7: null, lng_e7: null, accuracy_dm: null } })).toBe('NFC · GPS nélkül');
   expect(pointMeta(EXISTING)).toBe('Meglévő pont · kikapcsolva');
   expect(pointMeta({ ...EXISTING, active: true })).toBe('Meglévő pont');

@@ -20,7 +20,7 @@ import type {
 import type { ApiClient } from './client';
 
 /** A photo may take long on a slow network. */
-const MEDIA_UPLOAD_TIMEOUT_MS = 120_000;
+export const MEDIA_UPLOAD_TIMEOUT_MS = 120_000;
 
 /** POST /auth/login: supervisor login; wrong credentials are 401 unauthenticated. */
 export async function login(api: ApiClient, body: AuthLoginRequest): Promise<AuthLoginResponse> {

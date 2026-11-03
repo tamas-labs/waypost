@@ -75,3 +75,56 @@ export function usePhotoDraft(): PhotoDraft {
 
   return { photos, add, remove, recording };
 }
+
+export interface SinglePhotoDraft {
+  photo: PhotoFile | null;
+  /** Another photo instead of the one shown; one taken on this form and replaced is deleted at once. */
+  take: (photo: PhotoFile) => void;
+  remove: () => void;
+  /**
+   * The form's save has stored the photo shown: leaving deletes nothing after this. The saved photo it replaced is not
+   * deleted here: whoever stored the save knows when nothing refers to it any more.
+   */
+  keep: () => void;
+}
+
+/**
+ * One photo of a form that edits something saved (the point of a training): it starts with the saved photo, which is
+ * never deleted here; the photos taken on the form live as long as the form, unless it is saved with one.
+ */
+export function useSinglePhotoDraft(saved: PhotoFile | null): SinglePhotoDraft {
+  const [photo, setPhoto] = useState(saved);
+  const draft = useRef({ saved, current: saved, mounted: true, kept: false });
+
+  const show = useCallback((next: PhotoFile | null) => {
+    const state = draft.current;
+    const previous = state.current;
+    if (previous !== null && previous.id !== state.saved?.id) discardQuietly(previous);
+    state.current = next;
+    setPhoto(next);
+  }, []);
+
+  const take = useCallback(
+    (next: PhotoFile) => {
+      // The camera finished after the form was left.
+      if (!draft.current.mounted) discardQuietly(next);
+      else show(next);
+    },
+    [show],
+  );
+  const remove = useCallback(() => show(null), [show]);
+  const keep = useCallback(() => {
+    draft.current.kept = true;
+  }, []);
+
+  useEffect(() => {
+    const state = draft.current;
+    state.mounted = true;
+    return () => {
+      state.mounted = false;
+      if (!state.kept && state.current !== null && state.current.id !== state.saved?.id) discardQuietly(state.current);
+    };
+  }, []);
+
+  return { photo, take, remove, keep };
+}

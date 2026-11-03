@@ -237,6 +237,8 @@ export const size = {
   mapAccuracyDash: [4, 4], // kézi pont pontossági köre
   mapCapsule: 36, // „Megtett út” kapszula
   photoTile: 92, // fotócsempe (92–132)
+  photoTileLarge: 132, // egyetlen fotó: a pont fotója (S-PontAdatai)
+  photoRetake: 84, // „Újra” csempe a pont fotója mellett
   photoCheck: 22, // kész fotó pipája
   categoryTile: 76,
   categoryTileWide: 56, // esemény kategória

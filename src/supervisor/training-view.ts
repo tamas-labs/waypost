@@ -28,10 +28,15 @@ export function gpsText(location: CheckpointLocation): string {
   return t('training.metaGps', { accuracy: Math.max(1, Math.round(location.accuracy_dm / 10)) });
 }
 
-/** "NFC · utasítás · GPS ±4 m"; an existing checkpoint: "Meglévő pont", "kikapcsolva" if the save switches it on. */
+/** "NFC · fotó · utasítás · GPS ±4 m"; an existing checkpoint: "Meglévő pont", "kikapcsolva" if the save switches it on. */
 export function pointMeta(point: TrainingPoint): string {
   if (point.kind === 'existing') return [t('training.metaExisting'), ...(point.active ? [] : [t('training.metaInactive')])].join(' · ');
-  return [t('method.nfc'), ...(point.instruction === null ? [] : [t('training.metaInstruction')]), gpsText(point.location)].join(' · ');
+  return [
+    t('method.nfc'),
+    ...(point.photo == null ? [] : [t('training.metaPhoto')]),
+    ...(point.instruction === null ? [] : [t('training.metaInstruction')]),
+    gpsText(point.location),
+  ].join(' · ');
 }
 
 /** The route's name in the header; a new one is "Új útvonal" until it is named at the save. */

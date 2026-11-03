@@ -141,6 +141,8 @@ Supervisor belépéssel a saját telefonon (ill. a J6-hoz PIN-nel a telephelyi t
 | J4 | Egy pontot nyomj meg, „Kivétel”; a „Kötött sorrend” választó; „Bejárás befejezése”. | A pont eltűnik, a gyalogidők a megmaradt pontok közt; az összegzőn a teljes idő, a javasolt időkeret, a pontok száma. Név nélkül a mentés kéri a nevet. |
 | J5 | Repülő üzemmódban mentsd el, majd kapcsold vissza a hálózatot. | Offline sáv a lapon, a mentés után vissza a telephelyre, ott az új útvonal; a hálózat visszatérése után a szerveren is megvan (az admin felületen az útvonal, a pontok és a verzió a mért időkkel). |
 | J6 | Kezdj új betanítást, olvass le egy pontot, majd lépj vissza (gesztus / vissza gomb), zárd be és indítsd újra az appot. | A telephely részletein „Betanítás folytatása · Új útvonal · 1 pont rögzítve”, onnan ugyanott folytatható; az „X” megerősítés után elveti. |
+| J7 | (M5-13) Új pontnál „Fotó készítése”, majd „Újra”; mentés. Utána nyomd meg a pont sorát, írd át a nevét, „Mentés”. | A fotó a csempén, az „Újra” lecseréli; a sorban „NFC · fotó · …”. A sor a pont adatait nyitja, rajta a fotó és a név; a mentés után a sorban az új név. |
+| J8 | (M5-13) Fotós ponttal mentsd az útvonalat a telephelyi telefonon (PIN-nel belépett supervisor), majd a hálózat visszatérése után nézd meg az admin felületen. | A pontnak van fotója (a supervisor nevében töltődött fel, a pont előtt); a szinkron nem ad hibát. |
 
 ## Eredmények
 

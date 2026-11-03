@@ -126,6 +126,33 @@ describe('local cleanup', () => {
     expect(hasFile(PHOTO(2))).toBe(true);
   });
 
+  it('keeps the photos of a training draft, however old', () => {
+    addFile(PHOTO(1), NOW_MS - RETENTION_MS * 2);
+    const photo = { id: PHOTO(1), sha256: 'ab'.repeat(32), mime: 'image/jpeg', size_bytes: 1, local_uri: 'file:///x', taken_at: OLD };
+    const scanned = { uptime_ms: 0, boot_id: 'android-boot:12' };
+    setKv(db, 'training.draft', {
+      site_id: 's',
+      supervisor_id: 'u',
+      route: { id: 'r', name: '', order_mode: 'free' },
+      saved_order_mode: null,
+      started: scanned,
+      points: [
+        {
+          kind: 'new',
+          checkpoint_id: 'c',
+          tag_uid: '04A1',
+          name: 'Kapu',
+          instruction: null,
+          photo,
+          location: { lat_e7: null, lng_e7: null, accuracy_dm: null },
+          scanned,
+        },
+      ],
+    });
+    cleanUpLocalData(db, NOW, NOW_MS);
+    expect(hasFile(PHOTO(1))).toBe(true);
+  });
+
   it('leaves other files in the directory alone, and copes with no directory', () => {
     cleanUpLocalData(db, NOW, NOW_MS);
     mockedFiles.set('file:///documents/media/notes.txt', { size: 1, modifiedAtMs: 0 });

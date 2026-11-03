@@ -64,6 +64,8 @@ describe('sync status', () => {
       .values([
         { ...photo, id: '019a2b3c-4d5e-7f00-8a00-0000000000d1' },
         { ...photo, id: '019a2b3c-4d5e-7f00-8a00-0000000000d2', uploaded_at: '2026-10-27T20:01:00.000Z' },
+        // Its outbox call counts it.
+        { ...photo, id: '019a2b3c-4d5e-7f00-8a00-0000000000d3', owner_type: 'checkpoint' },
       ])
       .run();
     db.insert(outbox)

@@ -1,12 +1,13 @@
 // Local cleanup (specification, Szinkron protokoll / Push és média; Adatmegőrzés): the acknowledged chain entries and the
 // uploaded photos go after 7 days, what is not acknowledged or uploaded stays. The last entry of a chain always stays:
 // the next one links to it. Photo files without a media row (the app stopped during a manual entry that was never
-// saved) go after a day, so a form still open keeps its photos.
+// saved) go after a day, so a form still open keeps its photos; those of a training draft stay as long as the draft.
 import { and, inArray, lt, sql } from 'drizzle-orm';
 
 import type { Database } from '@/db/database';
 import { getKv, setKv } from '@/db/kv';
 import { chainEntries, media } from '@/db/schema';
+import { draftPhotos } from '@/domain/training';
 import { listPhotoFiles, photoFile } from '@/photo/files';
 import { readClock as readDeviceClock, type ClockReading, type ReadClock } from '@/time/clock';
 import { parseTimestamp, toTimestamp } from '@/time/timestamp';
@@ -46,13 +47,15 @@ function deleteOldPhotos(db: Database, before: string): void {
 }
 
 function deleteOrphanPhotoFiles(db: Database, nowMs: number): void {
-  const known = new Set(
-    db
+  const draft = getKv(db, 'training.draft');
+  const known = new Set([
+    ...db
       .select({ id: media.id })
       .from(media)
       .all()
       .map((row) => row.id),
-  );
+    ...(draft === null ? [] : draftPhotos(draft).map((photo) => photo.id)),
+  ]);
   for (const { id, modifiedAtMs } of listPhotoFiles()) {
     if (known.has(id) || modifiedAtMs === null || nowMs - modifiedAtMs < ORPHAN_PHOTO_AGE_MS) continue;
     try {

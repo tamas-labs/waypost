@@ -5,10 +5,11 @@
 // server's 409 conflict covers what the phone could not see). The walk is measured on the monotonic clock:
 // walk_duration_s = last scan − first scan, walk_time_from_prev_s between two consecutive scans.
 // Only NFC makes a new checkpoint: a QR code carries the ID of its checkpoint, so it can only add one that exists
-// (decisions: "Betanítás – domain").
+// (decisions: "Betanítás – domain"). A new checkpoint may have a photo that helps to find it: it is uploaded before the
+// checkpoint is created, with the checkpoint as its owner (api/media-upload.request).
 import type { CheckpointCreateRequest, RouteCreateRequest, RouteVersionCreateRequest } from '@waypost/schema';
 
-import { locationFields, normalizeTagUid, type LocationFix } from '@/chain/payloads';
+import { locationFields, normalizeTagUid, type LocationFix, type PhotoFile } from '@/chain/payloads';
 
 import type { TagRead } from './scan';
 import type { NewId } from './state';
@@ -44,6 +45,8 @@ export interface PointDetails {
   name: string;
   /** Empty: no instruction. */
   instruction: string;
+  /** The photo of the place, taken on the phone (photo/photo.ts); null: none. */
+  photo: PhotoFile | null;
 }
 
 export type TrainingPoint =
@@ -54,6 +57,8 @@ export type TrainingPoint =
       tag_uid: string;
       name: string;
       instruction: string | null;
+      /** Missing in a draft stored before the photos came (M5-13): read with ?? / != null. */
+      photo: PhotoFile | null;
       location: CheckpointLocation;
       scanned: TrainingInstant;
     }
@@ -172,13 +177,14 @@ export function readTrainingTag(
 }
 
 /** The details trimmed; an empty instruction is none. */
-function cleanDetails(details: PointDetails): { name: string; instruction: string | null } {
+function cleanDetails(details: PointDetails): { name: string; instruction: string | null; photo: PhotoFile | null } {
   const name = details.name.trim();
   if (name === '') throw new TrainingError('name_required', 'A checkpoint needs a name');
   const instruction = details.instruction.trim();
   return {
     name: name.slice(0, CHECKPOINT_NAME_MAX),
     instruction: instruction === '' ? null : instruction.slice(0, CHECKPOINT_INSTRUCTION_MAX),
+    photo: details.photo,
   };
 }
 
@@ -228,6 +234,19 @@ export function updatePoint(draft: TrainingDraft, checkpointId: string, details:
   if (point.kind !== 'new') throw new TrainingError('not_new', 'Only a new checkpoint is changed in the training');
   const cleaned = cleanDetails(details);
   return { ...draft, points: draft.points.map((p) => (p === point ? { ...point, ...cleaned } : p)) };
+}
+
+/** The details of a new point as its form (S6) shows them; null for a point that is not new. */
+export function pointDetailsOf(point: TrainingPoint): PointDetails | null {
+  return point.kind === 'new' ? { name: point.name, instruction: point.instruction ?? '', photo: point.photo ?? null } : null;
+}
+
+/**
+ * The photos of the draft's new points: their files are kept until the save makes them device data, and deleted when
+ * the point or the draft is dropped.
+ */
+export function draftPhotos(draft: TrainingDraft): PhotoFile[] {
+  return draft.points.flatMap((point) => (point.kind === 'new' && point.photo != null ? [point.photo] : []));
 }
 
 /** Takes a point out of the draft; the walk times are measured between the points that remain. */
@@ -280,10 +299,15 @@ export function takenTags(draft: TrainingDraft, checkpoints: readonly SiteCheckp
   );
 }
 
-/** What the save sends, in this order: the route (new, or its order mode changed), the checkpoints, the version. */
+/**
+ * What the save sends, in this order: the route (new, or its order mode changed), the photos of the new checkpoints,
+ * the checkpoints, the version.
+ */
 export interface TrainingSave {
   createRoute: (RouteCreateRequest & { id: string }) | null;
   updateRoute: { id: string; order_mode: OrderMode } | null;
+  /** Uploaded before the checkpoints that refer to them (photo_media_id), with the checkpoint as their owner. */
+  uploadPhotos: { checkpoint_id: string; photo: PhotoFile }[];
   createCheckpoints: (CheckpointCreateRequest & { id: string; tag_uid: string })[];
   /** Inactive checkpoints of the draft, switched on: a guard's scan finds only active ones outside a round. */
   activateCheckpoints: string[];
@@ -312,6 +336,9 @@ export function trainingSave(draft: TrainingDraft, checkpoints: readonly SiteChe
       draft.saved_order_mode !== null && draft.saved_order_mode !== route.order_mode
         ? { id: route.id, order_mode: route.order_mode }
         : null,
+    uploadPhotos: draft.points.flatMap((point) =>
+      point.kind === 'new' && point.photo != null ? [{ checkpoint_id: point.checkpoint_id, photo: point.photo }] : [],
+    ),
     createCheckpoints: draft.points.flatMap((point) =>
       point.kind === 'new'
         ? [
@@ -323,6 +350,7 @@ export function trainingSave(draft: TrainingDraft, checkpoints: readonly SiteChe
               tag_type: 'nfc' as const,
               tag_uid: point.tag_uid,
               ...point.location,
+              photo_media_id: point.photo?.id ?? null,
               active: true,
             },
           ]

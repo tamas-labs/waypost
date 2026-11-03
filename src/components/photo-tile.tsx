@@ -52,16 +52,25 @@ export function PhotoSlot({ uri, number, onPress, accessibilityHint, style }: Ph
 export interface PhotoAddProps {
   onPress: () => void;
   disabled?: boolean;
+  /** Default: "Fotó"; e.g. "Újra" next to the photo it replaces. */
+  label?: string;
+  accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 }
 
 /** The "take a photo" tile (DESIGN_HANDOFF 5.14): dashed border, accent camera, "Fotó". */
-export function PhotoAdd({ onPress, disabled = false, style }: PhotoAddProps) {
+export function PhotoAdd({
+  onPress,
+  disabled = false,
+  label = t('common.photo'),
+  accessibilityLabel = t('common.addPhoto'),
+  style,
+}: PhotoAddProps) {
   const { color, typography, size, space, radius, border, iconSize, press } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={t('common.addPhoto')}
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
@@ -74,7 +83,7 @@ export function PhotoAdd({ onPress, disabled = false, style }: PhotoAddProps) {
       ]}
     >
       <Icon name="camera" size={iconSize.buttonHero} color={color.accent} />
-      <Text style={[typography.badge, { color: color.accent }]}>{t('common.photo')}</Text>
+      <Text style={[typography.badge, { color: color.accent }]}>{label}</Text>
     </Pressable>
   );
 }

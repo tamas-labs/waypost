@@ -187,14 +187,17 @@ function TrainingSummary({ draft }: { draft: TrainingDraft }) {
   );
 }
 
+/** A new point opens its details (S6) to change them or take it out; an existing checkpoint can only be taken out. */
 function PointList({ draft, onRemove }: { draft: TrainingDraft; onRemove: (point: TrainingPoint) => void }) {
   const { color, typography, space, size, radius, border } = useTheme();
   const times = walkTimes(draft);
-  const confirmRemove = (point: TrainingPoint) =>
-    Alert.alert(point.name, t('training.removeConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('training.remove'), style: 'destructive', onPress: () => onRemove(point) },
-    ]);
+  const open = (point: TrainingPoint) =>
+    point.kind === 'new'
+      ? router.push({ pathname: '/routes/[id]/train/point', params: { id: draft.route.id, edit: point.checkpoint_id } })
+      : Alert.alert(point.name, t('training.removeConfirm'), [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('training.remove'), style: 'destructive', onPress: () => onRemove(point) },
+        ]);
   return (
     <ScrollView style={styles.grow} contentContainerStyle={{ paddingHorizontal: space.l, paddingBottom: space.s, gap: space.s }}>
       {draft.points.map((point, index) => (
@@ -203,7 +206,7 @@ function PointList({ draft, onRemove }: { draft: TrainingDraft; onRemove: (point
           position={index + 1}
           point={point}
           walk={walkText(times[index] ?? null, index)}
-          onPress={() => confirmRemove(point)}
+          onPress={() => open(point)}
         />
       ))}
       <View
@@ -258,6 +261,7 @@ function TrainingPointRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={t('training.pointLabel', { n: position, name: point.name, meta, walk })}
+      accessibilityHint={t(point.kind === 'new' ? 'training.editHint' : 'training.removeHint')}
       onPress={onPress}
       style={[
         styles.row,

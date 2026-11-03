@@ -2,19 +2,23 @@ import type { SchemaPath } from '@waypost/schema';
 import { asc, sql } from 'drizzle-orm';
 
 import { useSession } from '@/auth/session';
+import type { PhotoFile } from '@/chain/payloads';
 import type { Database } from '@/db/database';
 import { getKv } from '@/db/kv';
-import { checkpoints, outbox, routes, routeVersionCheckpoints, routeVersions } from '@/db/schema';
+import { checkpoints, media, outbox, routes, routeVersionCheckpoints, routeVersions } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import {
   addExistingPoint,
   addNewPoint,
   readTrainingTag,
+  removePoint,
   setOrderMode,
   setRouteName,
   TrainingError,
+  updatePoint,
   type TrainingDraft,
 } from '@/domain/training';
+import { photoFile } from '@/photo/files';
 import { schemaErrors } from '@/schema/validation';
 
 import {
@@ -29,8 +33,11 @@ import {
   saveTraining,
   siteCheckpoints,
   storedTrainingDraft,
+  storeTrainingDraft,
 } from './training';
 
+jest.mock('expo-file-system');
+const { files: mockedFiles } = jest.requireMock<typeof import('../../__mocks__/expo-file-system')>('expo-file-system');
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 
 const AT = '2026-10-27T10:05:12.345Z';
@@ -100,8 +107,16 @@ beforeEach(async () => {
     .run();
 });
 
-/** The walk: a new tag (with a location), then the gate, then the inactive store. */
-function walk(draft: TrainingDraft): TrainingDraft {
+const PHOTO = '019a2b3c-4d5e-7f00-8a00-0000000000e1';
+/** A photo taken on the training's point screen: its file is in the photo directory. */
+function photo(id = PHOTO): PhotoFile {
+  mockedFiles.set(photoFile(id).uri, { size: 1234, modifiedAtMs: 0 });
+  return { id, sha256: 'ab'.repeat(32), mime: 'image/jpeg', size_bytes: 1234, local_uri: photoFile(id).uri, taken_at: AT };
+}
+const hasFile = (id: string) => mockedFiles.has(photoFile(id).uri);
+
+/** The walk: a new tag (with a location and maybe a photo), then the gate, then the inactive store. */
+function walk(draft: TrainingDraft, newPhoto: PhotoFile | null = null): TrainingDraft {
   const fix = { latitude: 47.4979, longitude: 19.0402, accuracy_m: 4.2, mocked: false, gnss_time: null };
   const read = readTrainingTag(
     draft,
@@ -111,7 +126,7 @@ function walk(draft: TrainingDraft): TrainingDraft {
     fix,
   );
   if (read.kind !== 'new_tag') throw new Error(`Unexpected read: ${read.kind}`);
-  let next = addNewPoint(draft, read.scan, { name: 'Hátsó kapu', instruction: 'Zárva van?' }, newId);
+  let next = addNewPoint(draft, read.scan, { name: 'Hátsó kapu', instruction: 'Zárva van?', photo: newPhoto }, newId);
   next = addExistingPoint(next, { checkpoint: siteCheckpoints(db, SITE).find((c) => c.id === GATE)!, scanned: after(95) });
   return addExistingPoint(next, { checkpoint: siteCheckpoints(db, SITE).find((c) => c.id === STORE)!, scanned: after(215) });
 }
@@ -164,6 +179,33 @@ describe('the draft', () => {
     expect(storedTrainingDraft(db)).toMatchObject({ supervisor_id: ME });
     discardTrainingDraft(db);
     expect(loadTrainingDraft(db, ME)).toBeNull();
+  });
+
+  it('keeps the files of its photos, and deletes those that leave it', () => {
+    const draft = walk(beginTraining(db, { siteId: SITE, routeId: ROUTE, supervisorId: ME, started }), photo());
+    storeTrainingDraft(db, draft);
+    expect(hasFile(PHOTO)).toBe(true);
+    // The point gets another photo: the first one goes.
+    const second = photo('019a2b3c-4d5e-7f00-8a00-0000000000e2');
+    const [point] = draft.points;
+    storeTrainingDraft(db, updatePoint(draft, point!.checkpoint_id, { name: 'Hátsó kapu', instruction: '', photo: second }));
+    expect(hasFile(PHOTO)).toBe(false);
+    expect(hasFile(second.id)).toBe(true);
+    discardTrainingDraft(db);
+    expect(hasFile(second.id)).toBe(false);
+  });
+
+  it('loses its photos when a new training replaces it', () => {
+    storeTrainingDraft(db, walk(beginTraining(db, { siteId: SITE, routeId: ROUTE, supervisorId: ME, started }), photo()));
+    beginTraining(db, { siteId: SITE, routeId: null, supervisorId: OTHER, started });
+    expect(hasFile(PHOTO)).toBe(false);
+  });
+
+  it('loses the photo of a removed point', () => {
+    const draft = walk(beginTraining(db, { siteId: SITE, routeId: ROUTE, supervisorId: ME, started }), photo());
+    storeTrainingDraft(db, draft);
+    storeTrainingDraft(db, removePoint(draft, draft.points[0]!.checkpoint_id));
+    expect(hasFile(PHOTO)).toBe(false);
   });
 });
 
@@ -339,6 +381,52 @@ describe('saving', () => {
       'POST /checkpoints',
       `PATCH /checkpoints/${STORE}`,
       `POST /routes/${draft.route.id}/versions`,
+    ]);
+    for (const call of calls) expect(schemaErrors(call.body_schema as SchemaPath, call.body)).toEqual([]);
+  });
+
+  it('uploads the photo of a new point before its checkpoint, with the checkpoint as its owner', () => {
+    const draft = walk(beginTraining(db, { siteId: SITE, routeId: ROUTE, supervisorId: ME, started }), photo());
+    storeTrainingDraft(db, draft);
+    saveTraining(db, draft, SAVED_AT, newId);
+
+    const NEW_POINT = '019a2b3c-4d5e-7f00-8b00-000000000001';
+    // The save does not delete the photo: it is device data now.
+    expect(hasFile(PHOTO)).toBe(true);
+    expect(db.select().from(media).all()).toEqual([
+      {
+        id: PHOTO,
+        device_id: null,
+        owner_type: 'checkpoint',
+        owner_id: NEW_POINT,
+        sha256: 'ab'.repeat(32),
+        mime: 'image/jpeg',
+        size_bytes: 1234,
+        local_uri: photoFile(PHOTO).uri,
+        taken_at: AT,
+        uploaded_at: null,
+      },
+    ]);
+    expect(
+      db
+        .select({ photo: checkpoints.photo_media_id })
+        .from(checkpoints)
+        .where(sql`id = ${NEW_POINT}`)
+        .get(),
+    ).toEqual({ photo: PHOTO });
+    const calls = db
+      .select({ path: outbox.path, body: outbox.body, body_schema: outbox.body_schema, media_id: outbox.media_id })
+      .from(outbox)
+      .orderBy(sql`rowid`)
+      .all();
+    expect(calls.slice(0, 2)).toEqual([
+      {
+        path: `/media/${PHOTO}`,
+        body: { sha256: 'ab'.repeat(32), owner_type: 'checkpoint', owner_id: NEW_POINT, taken_at: AT },
+        body_schema: 'api/media-upload.request',
+        media_id: PHOTO,
+      },
+      expect.objectContaining({ path: '/checkpoints', body: expect.objectContaining({ photo_media_id: PHOTO }), media_id: null }),
     ]);
     for (const call of calls) expect(schemaErrors(call.body_schema as SchemaPath, call.body)).toEqual([]);
   });

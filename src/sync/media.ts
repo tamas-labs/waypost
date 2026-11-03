@@ -3,7 +3,7 @@
 // could only answer 404, and an entry it rejected would cost the upload at every sync. A photo the server refuses (the
 // file is not the recorded one) does not stop the others, and is tried again at the next sync. What says the server
 // cannot be reached or does not want this phone now stops the step: the next sync goes on from there.
-import { and, eq, inArray, isNull, or } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 
 import type { ApiClient } from '@/api/client';
 import { uploadMedia } from '@/api/endpoints';
@@ -44,13 +44,16 @@ function ownersNotAcknowledged(db: Database): Set<string> {
 function photosToUpload(db: Database, deviceId: string, asked: ReadonlySet<string>) {
   const notUploaded = and(isNull(media.uploaded_at), photosOfThisDevice(deviceId));
   const notAcknowledged = ownersNotAcknowledged(db);
-  return db
-    .select()
-    .from(media)
-    .where(asked.size > 0 ? or(notUploaded, inArray(media.id, [...asked])) : notUploaded)
-    .orderBy(media.id)
-    .all()
-    .filter((photo) => !notAcknowledged.has(photo.owner_id));
+  return (
+    db
+      .select()
+      .from(media)
+      // A checkpoint photo goes with its outbox call (sync/outbox.ts), in the name of the supervisor who took it.
+      .where(asked.size > 0 ? or(notUploaded, and(inArray(media.id, [...asked]), ne(media.owner_type, 'checkpoint'))) : notUploaded)
+      .orderBy(media.id)
+      .all()
+      .filter((photo) => !notAcknowledged.has(photo.owner_id))
+  );
 }
 
 export async function uploadPhotos({ db, api, token, deviceId, mediaMissing }: MediaContext): Promise<void> {

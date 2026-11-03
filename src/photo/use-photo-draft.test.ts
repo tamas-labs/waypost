@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react-native';
 import type { PhotoFile } from '@/chain/payloads';
 
 import { discardPhoto } from './photo';
-import { usePhotoDraft } from './use-photo-draft';
+import { usePhotoDraft, useSinglePhotoDraft } from './use-photo-draft';
 
 jest.mock('./photo', () => ({ discardPhoto: jest.fn() }));
 
@@ -75,6 +75,41 @@ describe('the photos of a form', () => {
     const { add } = result.current;
     await unmount();
     add(photo('late'));
+    expect(jest.mocked(discardPhoto).mock.calls).toEqual([[photo('late')]]);
+  });
+});
+
+describe('the one photo of a form that edits something saved', () => {
+  it('never deletes the saved photo, and deletes the ones taken here that are replaced or left', async () => {
+    const { result, unmount } = await renderHook(() => useSinglePhotoDraft(photo('saved')));
+    expect(result.current.photo).toEqual(photo('saved'));
+    await act(async () => result.current.take(photo('a')));
+    await act(async () => result.current.take(photo('b')));
+    expect(result.current.photo).toEqual(photo('b'));
+    expect(jest.mocked(discardPhoto).mock.calls).toEqual([[photo('a')]]);
+    await unmount();
+    expect(jest.mocked(discardPhoto).mock.calls).toEqual([[photo('a')], [photo('b')]]);
+  });
+
+  it('deletes a removed photo taken here, and keeps the one the form saved', async () => {
+    const { result, unmount } = await renderHook(() => useSinglePhotoDraft(null));
+    await act(async () => result.current.take(photo('a')));
+    await act(async () => result.current.remove());
+    expect(result.current.photo).toBeNull();
+    expect(jest.mocked(discardPhoto).mock.calls).toEqual([[photo('a')]]);
+    await act(async () => result.current.take(photo('b')));
+    result.current.keep();
+    await unmount();
+    expect(jest.mocked(discardPhoto).mock.calls).toEqual([[photo('a')]]);
+  });
+
+  it('deletes a photo the camera finished after the form was left', async () => {
+    const { result, unmount } = await renderHook(() => useSinglePhotoDraft(photo('saved')));
+    const { take } = result.current;
+    await act(async () => result.current.remove());
+    expect(discardPhoto).not.toHaveBeenCalled();
+    await unmount();
+    take(photo('late'));
     expect(jest.mocked(discardPhoto).mock.calls).toEqual([[photo('late')]]);
   });
 });

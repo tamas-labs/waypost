@@ -10,6 +10,7 @@ import TrainingPointScreen from '@/app/(supervisor)/routes/[id]/train/point';
 import TrainingQrScreen from '@/app/(supervisor)/routes/[id]/train/qr';
 import SiteScreen from '@/app/(supervisor)/sites/[id]';
 import { useSession } from '@/auth/session';
+import type { PhotoFile } from '@/chain/payloads';
 import type { Database } from '@/db/database';
 import { getKv, setKv } from '@/db/kv';
 import { getDatabase } from '@/db/open';
@@ -20,6 +21,8 @@ import { currentLocation } from '@/location/location';
 import type { NfcStatus } from '@/nfc/reader';
 import type { TagReading } from '@/nfc/tag';
 import { useTagReader } from '@/nfc/use-tag-reader';
+import { photoFile } from '@/photo/files';
+import { discardPhoto, takePhoto } from '@/photo/photo';
 import { useSyncStatus } from '@/sync/status';
 import { ThemeProvider } from '@/theme/theme-provider';
 
@@ -34,6 +37,8 @@ jest.mock('@/nfc/reader', () => ({ openNfcSettings: jest.fn(() => Promise.resolv
 jest.mock('@/nfc/use-tag-reader', () => ({ useTagReader: jest.fn() }));
 jest.mock('expo-keep-awake', () => ({ useKeepAwake: jest.fn() }));
 jest.mock('expo-camera', () => ({ useCameraPermissions: jest.fn(), CameraView: (props: unknown) => mockCameraView(props) }));
+jest.mock('@/photo/photo', () => ({ takePhoto: jest.fn(), discardPhoto: jest.fn() }));
+const { files: mockedFiles } = jest.requireMock<typeof import('../__mocks__/expo-file-system')>('expo-file-system');
 
 function RootLayout() {
   const { Stack } = jest.requireActual<typeof import('expo-router')>('expo-router');
@@ -77,6 +82,19 @@ beforeEach(async () => {
     return { status: nfcStatus, listening: true, reading: false, read, error: null };
   });
   jest.mocked(currentLocation).mockResolvedValue(FIX);
+  // The photo camera needs its ref: the mocked view stands for it.
+  mockCameraView.mockImplementation(({ ref }: { ref?: { current: unknown } }) => {
+    if (ref !== undefined) ref.current = {};
+    return null;
+  });
+  mockedFiles.clear();
+  let photos = 0;
+  jest.mocked(takePhoto).mockImplementation(async () => {
+    photos += 1;
+    const id = `019a2b3c-4d5e-7f00-8a00-0000000000e${photos}`;
+    mockedFiles.set(photoFile(id).uri, { size: 1234, modifiedAtMs: 0 });
+    return { id, sha256: 'ab'.repeat(32), mime: 'image/jpeg', size_bytes: 1234, local_uri: photoFile(id).uri, taken_at: AT } as PhotoFile;
+  });
   jest
     .mocked(useCameraPermissions)
     .mockReturnValue([{ granted: true, canAskAgain: true }, jest.fn(), jest.fn()] as unknown as ReturnType<typeof useCameraPermissions>);
@@ -282,9 +300,19 @@ it('leaves a scanned point out, takes a point out, and discards the training aft
   expect(screen.queryByText('Kapu')).toBeNull();
 
   await addNewPoint('Hátsó kapu');
+  // A new point opens its details, where it can be taken out.
   await press(/^1\. Hátsó kapu/);
+  expect(screen.getByRole('header', { name: 'Pont adatai' })).toBeOnTheScreen();
+  await press('Pont kivétele');
   await answerAlert('Kivétel');
+  expect(screen).toHavePathname(trainPath());
   expect(screen.queryByText('Hátsó kapu')).toBeNull();
+  expect(draft()?.points).toEqual([]);
+  // An existing one only can be.
+  await touch(GATE_TAG);
+  await press('Pont hozzáadása');
+  await press(/^1\. Kapu/);
+  await answerAlert('Kivétel');
   expect(draft()?.points).toEqual([]);
 
   // Without points there is nothing to lose.
@@ -294,6 +322,61 @@ it('leaves a scanned point out, takes a point out, and discards the training aft
   await answerAlert('Elvetés');
   expect(screen).toHavePathname(`/sites/${SITE}`);
   expect(draft()).toBeNull();
+});
+
+it('takes a photo of a new point, changes its details later, and uploads the photo before the checkpoint', async () => {
+  await startNewTraining();
+  await touch(NEW_TAG);
+  await fireEvent.changeText(screen.getByLabelText(/Pont neve/), 'Hátsó kapu');
+  expect(screen.getByText('Fotó a pontról · segít megtalálni')).toBeOnTheScreen();
+  await press('Fotó készítése');
+  // The camera's shutter, over the tile.
+  await act(async () => fireEvent.press(screen.getAllByRole('button', { name: 'Fotó készítése' }).at(-1)!));
+  const [first] = await Promise.all(jest.mocked(takePhoto).mock.results.map((result) => result.value as Promise<PhotoFile>));
+  expect(screen.getByRole('button', { name: '1. fotó' })).toBeOnTheScreen();
+  // Another one instead: the first is deleted at once.
+  await press('Új fotó');
+  await act(async () => fireEvent.press(screen.getAllByRole('button', { name: 'Fotó készítése' }).at(-1)!));
+  expect(jest.mocked(discardPhoto).mock.calls).toEqual([[first]]);
+  await press('Mentés, jöhet a következő');
+  expect(screen.getByRole('button', { name: '1. Hátsó kapu, NFC · fotó · GPS ±4 m, start' })).toBeOnTheScreen();
+  const PHOTO = '019a2b3c-4d5e-7f00-8a00-0000000000e2';
+  expect(draft()?.points[0]).toMatchObject({ photo: { id: PHOTO } });
+  expect(discardPhoto).toHaveBeenCalledTimes(1);
+
+  // Its details again: the name changes, the photo stays.
+  await press(/^1\. Hátsó kapu/);
+  expect(screen.getByLabelText(/Pont neve/)).toHaveDisplayValue('Hátsó kapu');
+  await fireEvent.changeText(screen.getByLabelText(/Pont neve/), 'Hátsó kapu 2');
+  await press('Mentés');
+  expect(screen).toHavePathname(trainPath());
+  expect(screen.getByRole('button', { name: '1. Hátsó kapu 2, NFC · fotó · GPS ±4 m, start' })).toBeOnTheScreen();
+  expect(mockedFiles.has(photoFile(PHOTO).uri)).toBe(true);
+
+  // A photo of a point left out goes with it.
+  walkFor(60);
+  await touch('04A1B2C3D4E588');
+  await press('Fotó készítése');
+  await act(async () => fireEvent.press(screen.getAllByRole('button', { name: 'Fotó készítése' }).at(-1)!));
+  await press('Pont elvetése');
+  expect(jest.mocked(discardPhoto).mock.calls.at(-1)).toEqual([expect.objectContaining({ id: '019a2b3c-4d5e-7f00-8a00-0000000000e3' })]);
+
+  await press('Bejárás befejezése');
+  await fireEvent.changeText(screen.getByLabelText(/Útvonal neve/), 'Hétvégi kör');
+  await press('Mentés új verzióként');
+  expect(
+    db
+      .select({ path: outbox.path, media_id: outbox.media_id })
+      .from(outbox)
+      .all()
+      .map((row) => [row.path, row.media_id]),
+  ).toEqual([
+    ['/routes', null],
+    [`/media/${PHOTO}`, PHOTO],
+    ['/checkpoints', null],
+    [expect.stringMatching(/\/versions$/), null],
+  ]);
+  expect(mockedFiles.has(photoFile(PHOTO).uri)).toBe(true);
 });
 
 it('keeps the draft when the walk is left, and the site details continue it', async () => {

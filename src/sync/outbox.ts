@@ -8,17 +8,22 @@
 // - 409 with Retry-After: the same call is still running on the server, retried after that;
 // - any other 4xx: the call is dropped, the supervisor is told, and the next pull is a full one, so the local state
 //   becomes the server's again.
-import type { SchemaTypes, SyncPullResponse, Timestamp } from '@waypost/schema';
-import { eq, sql } from 'drizzle-orm';
+// The photo of a checkpoint goes through here too (multipart, the file from photo/files.ts), right before the
+// checkpoint call that refers to it, in the name of the supervisor who took it.
+import type { MediaUploadResponse, SchemaTypes, SyncPullResponse, Timestamp } from '@waypost/schema';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import type { ApiClient } from '@/api/client';
 import { actingUserId, useSession } from '@/auth/session';
 import type { ConfigCall, ConfigResponseSchema } from '@/api/config-calls';
+import { MEDIA_UPLOAD_TIMEOUT_MS } from '@/api/endpoints';
 import { ApiError, InvalidResponseError } from '@/api/errors';
 import type { Database } from '@/db/database';
 import { deleteKv, getKv, setKv, type OutboxRejection } from '@/db/kv';
-import { outbox } from '@/db/schema';
+import { checkpoints, media, outbox } from '@/db/schema';
+import { t } from '@/i18n';
 import { uuidv7 } from '@/id/uuidv7';
+import { photoFile } from '@/photo/files';
 import { nowTimestamp, toTimestamp } from '@/time/timestamp';
 
 import { emitOutboxQueued } from './events';
@@ -78,6 +83,7 @@ export function queueAction(
           record_ids: call.recordIds,
           idempotency_key: uuidv7(),
           acting_user_id: actingUserId,
+          media_id: call.mediaId ?? null,
           created_at: now,
         })
         .run();
@@ -125,6 +131,8 @@ const RESPONSE_RECORDS: { [S in ConfigResponseSchema]: (data: SchemaTypes[S]) =>
   }),
   'api/schedule.response': (data) => ({ schedules: [data.schedule] }),
   'api/report-subscription.response': (data) => ({ report_subscriptions: [data.report_subscription] }),
+  // Not a record of the pull: succeeded() marks the local media row uploaded.
+  'api/media-upload.response': () => ({}),
   // The local record is deleted by the action already.
   'api/deleted.response': () => ({}),
 };
@@ -138,7 +146,15 @@ function responseRecords(schema: string, data: unknown): Partial<Changes> {
 function succeeded(db: Database, row: OutboxRow, data: unknown): void {
   db.transaction((tx) => {
     tx.delete(outbox).where(eq(outbox.id, row.id)).run();
-    storeServerRecords(tx, responseRecords(row.response_schema, data));
+    if (row.media_id !== null && row.response_schema === 'api/media-upload.response') {
+      const { media: uploaded, server_time } = data as MediaUploadResponse;
+      tx.update(media)
+        .set({ uploaded_at: uploaded.uploaded_at ?? server_time })
+        .where(eq(media.id, row.media_id))
+        .run();
+    } else {
+      storeServerRecords(tx, responseRecords(row.response_schema, data));
+    }
   });
 }
 
@@ -151,6 +167,24 @@ function retryLater(db: Database, row: OutboxRow, delayMs: number, error: unknow
     })
     .where(eq(outbox.id, row.id))
     .run();
+}
+
+/**
+ * A checkpoint photo that cannot be uploaded: it is optional, so the checkpoint calls waiting for it go without it
+ * rather than be refused for it (and the route version after them). Its media row goes; its file is an orphan then.
+ */
+function dropPhoto(tx: Database, mediaId: string): void {
+  for (const call of tx.select({ id: outbox.id, body: outbox.body }).from(outbox).all()) {
+    const body = call.body;
+    if (typeof body === 'object' && body !== null && 'photo_media_id' in body && body.photo_media_id === mediaId) {
+      tx.update(outbox)
+        .set({ body: { ...body, photo_media_id: null } })
+        .where(eq(outbox.id, call.id))
+        .run();
+    }
+  }
+  tx.update(checkpoints).set({ photo_media_id: null }).where(eq(checkpoints.photo_media_id, mediaId)).run();
+  tx.delete(media).where(eq(media.id, mediaId)).run();
 }
 
 /** The server has refused the call: it is dropped, the supervisor is told, and the next pull brings the full state. */
@@ -168,6 +202,7 @@ function rejected(db: Database, row: OutboxRow, error: ApiError, nowMs: number):
   const rejections = [...(getKv(db, 'outbox.rejected') ?? []), rejection].slice(-MAX_REJECTIONS);
   db.transaction((tx) => {
     tx.delete(outbox).where(eq(outbox.id, row.id)).run();
+    if (row.media_id !== null) dropPhoto(tx, row.media_id);
     setKv(tx, 'outbox.rejected', rejections);
     // An incremental pull would not bring a record the server did not change.
     deleteKv(tx, 'sync.cursor');
@@ -197,12 +232,20 @@ export async function sendOutbox(
   { now = Date.now, random = Math.random }: SendOutboxOptions = {},
 ): Promise<void> {
   for (let row = firstCall(db); row !== undefined && isDue(row, now()); row = firstCall(db)) {
+    const file = row.media_id === null ? null : photoFile(row.media_id);
+    if (file !== null && !file.exists) {
+      // Retrying cannot bring the file back: the call is dropped like a refused one.
+      rejected(db, row, new ApiError(404, 'not_found', t('sync.photoFileMissing'), null, null, false), now());
+      continue;
+    }
     let data: unknown;
     try {
       ({ data } = await api.request({
         method: row.method,
         path: row.path,
-        body: row.body ?? undefined,
+        ...(file === null
+          ? { body: row.body ?? undefined }
+          : { form: { fields: { ...(row.body as Record<string, string>) }, file }, timeoutMs: MEDIA_UPLOAD_TIMEOUT_MS }),
         bodySchema: row.body_schema ?? undefined,
         responseSchema: row.response_schema,
         token,
@@ -261,8 +304,14 @@ export function dismissOutboxRejections(db: Database): void {
   useSyncStatus.setState({ rejectedCalls: [] });
 }
 
-/** Drops the calls and the refusals: they cannot be sent any more (revoked phone, supervisor logout). */
+/**
+ * Drops the calls and the refusals: they cannot be sent any more (revoked phone, supervisor logout). The checkpoint
+ * photos not uploaded go with them: only a call could send them (their files: the cleanup's orphans).
+ */
 export function clearOutbox(tx: Database): void {
   tx.delete(outbox).run();
   deleteKv(tx, 'outbox.rejected');
+  tx.delete(media)
+    .where(and(eq(media.owner_type, 'checkpoint'), isNull(media.uploaded_at)))
+    .run();
 }

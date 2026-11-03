@@ -4,6 +4,7 @@
 import type {
   CheckpointCreateRequest,
   CheckpointUpdateRequest,
+  MediaUploadRequest,
   ReportSubscriptionCreateRequest,
   ReportSubscriptionUpdateRequest,
   RouteCreateRequest,
@@ -29,6 +30,7 @@ export type ConfigResponseSchema =
   | 'api/route-version.response'
   | 'api/schedule.response'
   | 'api/report-subscription.response'
+  | 'api/media-upload.response'
   | 'api/deleted.response';
 
 export interface ConfigCall {
@@ -40,6 +42,8 @@ export interface ConfigCall {
   responseSchema: ConfigResponseSchema;
   /** IDs of the local records the call changes (a site_user change: the user's). */
   recordIds: string[];
+  /** A multipart upload: body holds its text fields, and the file is the photo of this media ID (photo/files.ts). */
+  mediaId?: string;
 }
 
 type WithId<T> = T & { id: string };
@@ -109,6 +113,16 @@ export const configCalls = {
   updateCheckpoint: (id: string, body: CheckpointUpdateRequest) =>
     update('/checkpoints', id, body, 'api/checkpoint-update.request', 'api/checkpoint.response'),
   deleteCheckpoint: (id: string) => remove('/checkpoints', id),
+  /** The photo of a checkpoint, before the checkpoint call that refers to it (photo_media_id): it need not exist yet. */
+  uploadCheckpointPhoto: (mediaId: string, body: MediaUploadRequest & { owner_type: 'checkpoint' }): ConfigCall => ({
+    method: 'PUT',
+    path: `/media/${mediaId}`,
+    body,
+    bodySchema: 'api/media-upload.request',
+    responseSchema: 'api/media-upload.response',
+    recordIds: [mediaId],
+    mediaId,
+  }),
 
   createRoute: (body: WithId<RouteCreateRequest>) => create('/routes', body, 'api/route-create.request', 'api/route.response'),
   updateRoute: (id: string, body: RouteUpdateRequest) => update('/routes', id, body, 'api/route-update.request', 'api/route.response'),

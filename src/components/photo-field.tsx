@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { PhotoFile } from '@/chain/payloads';
 import { MAX_PHOTOS } from '@/domain/scan';
 import { t } from '@/i18n';
+import { photoFile } from '@/photo/files';
 import { takePhoto } from '@/photo/photo';
 import { useTheme } from '@/theme/theme-provider';
 
@@ -79,6 +80,23 @@ function PhotoCamera({ onTaken, onClose }: { onTaken: (photo: PhotoFile) => void
   );
 }
 
+/** The camera over the form. It gives way to a screen pushed over the form (an alarm), which it would cover. */
+function CameraModal({ open, onTaken, onClose }: { open: boolean; onTaken: (photo: PhotoFile) => void; onClose: () => void }) {
+  const focused = useIsFocused();
+  return (
+    <Modal visible={open && focused} animationType="slide" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
+      <PhotoCamera onTaken={onTaken} onClose={onClose} />
+    </Modal>
+  );
+}
+
+function confirmRemove(onRemove: () => void): void {
+  Alert.alert(t('photoField.removeTitle'), undefined, [
+    { text: t('common.cancel'), style: 'cancel' },
+    { text: t('photoField.remove'), style: 'destructive', onPress: onRemove },
+  ]);
+}
+
 export interface PhotoFieldProps {
   photos: readonly PhotoFile[];
   onAdd: (photo: PhotoFile) => void;
@@ -91,15 +109,7 @@ export interface PhotoFieldProps {
 /** The photos of a form: the taken ones (a tap asks whether to delete it), and the tile that opens the camera, up to 5. */
 export function PhotoField({ photos, onAdd, onRemove, required = false, disabled = false }: PhotoFieldProps) {
   const { color, typography, space } = useTheme();
-  const focused = useIsFocused();
   const [cameraOpen, setCameraOpen] = useState(false);
-
-  const askRemove = (photo: PhotoFile) => {
-    Alert.alert(t('photoField.removeTitle'), undefined, [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('photoField.remove'), style: 'destructive', onPress: () => onRemove(photo) },
-    ]);
-  };
 
   return (
     <View style={{ gap: space.s }}>
@@ -114,22 +124,66 @@ export function PhotoField({ photos, onAdd, onRemove, required = false, disabled
             uri={photo.local_uri}
             number={index + 1}
             accessibilityHint={t('photoField.removeHint')}
-            onPress={disabled ? undefined : () => askRemove(photo)}
+            onPress={disabled ? undefined : () => confirmRemove(() => onRemove(photo))}
             style={styles.tile}
           />
         ))}
         {photos.length < MAX_PHOTOS && <PhotoAdd disabled={disabled} onPress={() => setCameraOpen(true)} style={styles.tile} />}
       </View>
-      {/* It gives way to a screen pushed over the form (an alarm), which it would cover. */}
-      <Modal
-        visible={cameraOpen && focused}
-        animationType="slide"
-        statusBarTranslucent
-        navigationBarTranslucent
-        onRequestClose={() => setCameraOpen(false)}
-      >
-        <PhotoCamera onTaken={onAdd} onClose={() => setCameraOpen(false)} />
-      </Modal>
+      <CameraModal open={cameraOpen} onTaken={onAdd} onClose={() => setCameraOpen(false)} />
+    </View>
+  );
+}
+
+export interface SinglePhotoFieldProps {
+  label: string;
+  /** After the label in the secondary colour: "· segít megtalálni". */
+  hint?: string;
+  photo: PhotoFile | null;
+  /** A new photo, instead of the one shown. */
+  onTake: (photo: PhotoFile) => void;
+  onRemove: () => void;
+  disabled?: boolean;
+}
+
+/**
+ * One photo (S-PontAdatai): the photo with an "Újra" tile next to it that takes another instead, or the tile that
+ * takes the first. A tap on the photo asks whether to delete it.
+ */
+export function SinglePhotoField({ label, hint, photo, onTake, onRemove, disabled = false }: SinglePhotoFieldProps) {
+  const { color, typography, fontFamily, size, space } = useTheme();
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const open = () => setCameraOpen(true);
+  return (
+    <View style={{ gap: space.s }}>
+      <Text style={[typography.label, { color: color.text, paddingLeft: space.xs }]}>
+        {label}
+        {hint !== undefined && <Text style={{ color: color.text2, fontFamily: fontFamily.semibold }}>{` · ${hint}`}</Text>}
+      </Text>
+      <View style={[styles.tiles, { gap: space.s }]}>
+        {photo === null ? (
+          <PhotoAdd disabled={disabled} onPress={open} style={{ height: size.photoTileLarge }} />
+        ) : (
+          <>
+            <PhotoSlot
+              // Found by its ID: iOS moves the app's documents at an update, so the URI of an older draft goes stale.
+              uri={photoFile(photo.id).uri}
+              number={1}
+              accessibilityHint={t('photoField.removeHint')}
+              onPress={disabled ? undefined : () => confirmRemove(onRemove)}
+              style={{ height: size.photoTileLarge }}
+            />
+            <PhotoAdd
+              disabled={disabled}
+              onPress={open}
+              label={t('training.retakePhoto')}
+              accessibilityLabel={t('training.retakePhotoLabel')}
+              style={{ flex: 0, width: size.photoRetake, height: size.photoTileLarge }}
+            />
+          </>
+        )}
+      </View>
+      <CameraModal open={cameraOpen} onTaken={onTake} onClose={() => setCameraOpen(false)} />
     </View>
   );
 }

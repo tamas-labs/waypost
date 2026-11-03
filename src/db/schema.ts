@@ -280,6 +280,8 @@ export const outbox = sqliteTable('outbox', {
   idempotency_key: text().notNull(),
   /** X-Acting-User on the site phone; null with a supervisor token. */
   acting_user_id: text(),
+  /** A multipart upload of this photo (media.id, the file: photo/files.ts), body holding its text fields; null: JSON. */
+  media_id: text(),
   created_at: timestamp().notNull(),
   attempts: integer().notNull().default(0),
   /** Not sent before this time (device wall clock); null: at the next sync. */
