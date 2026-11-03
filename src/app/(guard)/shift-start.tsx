@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -11,9 +11,10 @@ import { CheckRow } from '@/components/check-row';
 import { InfoBanner } from '@/components/info-banner';
 import { ScreenHeader } from '@/components/screen-header';
 import { getDatabase } from '@/db/open';
+import { useReadiness } from '@/hooks/use-readiness';
 import type { ScheduleOfRoute } from '@/domain/schedule';
 import { loadShiftStartInfo, type ShiftStartInfo } from '@/guard/login-screens';
-import { fixReadiness, getReadiness, readinessRows, type Readiness, type ReadinessItem, type ReadinessRow } from '@/device/readiness';
+import { readinessRows, type ReadinessItem, type ReadinessRow } from '@/device/readiness';
 import { t, type TranslationKey } from '@/i18n';
 import { scheduleCadence } from '@/i18n/schedule';
 import { onConfigurationPulled } from '@/sync/events';
@@ -37,20 +38,6 @@ const ROW_TEXT: Record<ReadinessItem, { ok: TranslationKey; label: TranslationKe
   location: { ok: 'shiftStart.locationOn', label: 'shiftStart.location', detail: 'shiftStart.locationOff' },
   battery: { ok: 'shiftStart.batteryOn', label: 'shiftStart.battery', detail: 'shiftStart.batteryWarn' },
 };
-
-/** The readiness of the phone, checked again when the app comes back (from a system dialog or the settings). */
-function useReadiness(): [Readiness | null, () => void] {
-  const [readiness, setReadiness] = useState<Readiness | null>(null);
-  const check = useCallback(() => {
-    getReadiness().then(setReadiness, (error: unknown) => __DEV__ && console.warn('Checking the readiness failed', error));
-  }, []);
-  useEffect(() => {
-    check();
-    const subscription = AppState.addEventListener('change', (state) => state === 'active' && check());
-    return () => subscription.remove();
-  }, [check]);
-  return [readiness, check];
-}
 
 /** The shift's night, reloaded after a pull. */
 function useShiftStartInfo(guardId: string | null): ShiftStartInfo | null {
@@ -136,12 +123,7 @@ function ShiftDayCard({ day, time }: { day: NonNullable<ShiftStartInfo['day']>; 
 
 function ReadinessSection() {
   const { color, typography, space } = useTheme();
-  const [readiness, recheck] = useReadiness();
-
-  const fix = (item: ReadinessItem) => {
-    if (readiness === null) return;
-    fixReadiness(item, readiness).then(recheck, (error: unknown) => __DEV__ && console.warn(`Fixing ${item} failed`, error));
-  };
+  const { readiness, fix } = useReadiness();
 
   return (
     <>

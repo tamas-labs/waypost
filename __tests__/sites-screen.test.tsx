@@ -3,6 +3,7 @@ import { renderRouter } from 'expo-router/testing-library';
 import { Alert } from 'react-native';
 
 import SupervisorLayout from '@/app/(supervisor)/_layout';
+import DeviceSetupScreen from '@/app/(supervisor)/device-setup';
 import SitesScreen from '@/app/(supervisor)/sites/index';
 import SiteScreen from '@/app/(supervisor)/sites/[id]';
 import NewSiteScreen from '@/app/(supervisor)/sites/new';
@@ -12,6 +13,7 @@ import { enrollThisPhone, UnsentActionsError } from '@/auth/supervisor';
 import type { Database } from '@/db/database';
 import { getKv, setKv, type OutboxRejection } from '@/db/kv';
 import { getDatabase } from '@/db/open';
+import { getReadiness, type Readiness } from '@/device/readiness';
 import { devices, outbox, routes, siteUser, sites, users } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import { AppStack } from '@/navigation/app-stack';
@@ -29,6 +31,12 @@ jest.mock('@/auth/supervisor', () => ({
   // The enrollment itself is tested in src/auth/supervisor.test.ts.
   enrollThisPhone: jest.fn(),
 }));
+// The readiness and its fixes are tested in src/device/readiness.test.ts and __tests__/device-setup-screen.test.tsx.
+jest.mock('@/device/readiness', () => ({ ...jest.requireActual<object>('@/device/readiness'), getReadiness: jest.fn() }));
+jest.mock('@/alarms/permissions', () => ({}));
+jest.mock('@/nfc/reader', () => ({}));
+jest.mock('@/photo/camera', () => ({}));
+jest.mock('@/location/location', () => ({}));
 
 function RootLayout() {
   return (
@@ -47,6 +55,7 @@ const ROUTES = {
   '(supervisor)/sites/index': SitesScreen,
   '(supervisor)/sites/new': NewSiteScreen,
   '(supervisor)/sites/[id]': SiteScreen,
+  '(supervisor)/device-setup': DeviceSetupScreen,
   'dev/_layout': () => null,
   'prototype/_layout': () => null,
 };
@@ -54,6 +63,12 @@ const ROUTES = {
 const AT = '2026-10-27T10:05:12.345Z';
 const ME = { id: '019a2b3c-4d5e-7f00-8a00-000000000002', name: 'Kovács Anna', email: 'kovacs.anna@example.com' };
 const SITE = '019a2b3c-4d5e-7f00-8a00-0000000000a1';
+const READY: Readiness = {
+  nfc: { supported: true, enabled: true },
+  alarms: { notifications: { granted: true, canAskAgain: true }, exactAlarms: true, batteryExempt: true },
+  location: { granted: true, canAskAgain: true },
+  camera: { granted: true, canAskAgain: true },
+};
 
 let db: Database;
 
@@ -62,6 +77,7 @@ beforeEach(async () => {
   jest.mocked(getDatabase).mockReturnValue(db);
   setKv(db, 'supervisor.account', ME);
   useSyncStatus.setState({ online: true, rejectedCalls: [] });
+  jest.mocked(getReadiness).mockResolvedValue(READY);
 });
 
 async function start(
@@ -148,14 +164,21 @@ it('tells offline that the new site is uploaded later', async () => {
   expect(screen.getByText('Offline is menthető: a kapcsolat visszatérésekor feltöltődik.')).toBeOnTheScreen();
 });
 
-it('shows the account and the logout in the account menu', async () => {
+it('shows the account, the device setup and the logout in the account menu', async () => {
   const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   await start();
   await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Fiók: Kovács Anna' })));
   expect(alert).toHaveBeenCalledWith('Kovács Anna', 'kovacs.anna@example.com', [
     expect.objectContaining({ text: 'Mégse' }),
+    expect.objectContaining({ text: 'Telefon beállítása' }),
     expect.objectContaining({ text: 'Kijelentkezés' }),
   ]);
+
+  await act(async () => alert.mock.calls[0]![2]!.find((button) => button.text === 'Telefon beállítása')!.onPress!());
+  expect(screen).toHavePathname('/device-setup');
+  expect(screen.getByText('Kamera engedélyezve')).toBeOnTheScreen();
+  // No alarms on the supervisor's own phone.
+  expect(screen.queryByText('Értesítések engedélyezve')).toBeNull();
   alert.mockRestore();
 });
 
@@ -170,9 +193,30 @@ it('has no new site on the site phone, and its menu leads back to the PIN login'
   await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Fiók: Kovács Anna' })));
   expect(alert).toHaveBeenCalledWith('Kovács Anna', 'PIN-kóddal belépve ezen a telephelyi telefonon.', [
     expect.objectContaining({ text: 'Mégse' }),
+    expect.objectContaining({ text: 'Telefon beállítása' }),
     expect.objectContaining({ text: 'Kilépés a supervisor módból' }),
   ]);
+  // A ready phone has nothing to warn about.
+  expect(screen.queryByText('A telefon beállítása hiányos')).toBeNull();
   alert.mockRestore();
+});
+
+it('warns on the site phone about a missing setting, and leads to the device setup', async () => {
+  db.insert(users).values({ id: ME.id, name: ME.name, role: 'supervisor', active: true, created_at: AT, updated_at: AT }).run();
+  jest.mocked(getReadiness).mockResolvedValue({ ...READY, alarms: { ...READY.alarms, batteryExempt: false } });
+  await start({ mode: 'site_phone', activeUser: { id: ME.id, role: 'supervisor' } });
+
+  expect(screen.getByText('A telefon beállítása hiányos')).toBeOnTheScreen();
+  await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Telefon beállítása' })));
+  expect(screen).toHavePathname('/device-setup');
+  expect(screen.getByText('A rendszer elhalaszthatja az ébresztést')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Javítás' })).toBeOnTheScreen();
+});
+
+it("does not warn about the alarms on a supervisor's own phone", async () => {
+  jest.mocked(getReadiness).mockResolvedValue({ ...READY, alarms: { ...READY.alarms, batteryExempt: false } });
+  await start();
+  expect(screen.queryByText('A telefon beállítása hiányos')).toBeNull();
 });
 
 it('lists the refused actions until the supervisor has seen them', async () => {

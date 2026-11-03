@@ -3,8 +3,9 @@ import { Linking, Platform } from 'react-native';
 import { requestBatteryExemption, requestExactAlarms, requestNotifications } from '@/alarms/permissions';
 import { requestLocationPermission } from '@/location/location';
 import { openNfcSettings } from '@/nfc/reader';
+import { requestCameraPermission } from '@/photo/camera';
 
-import { fixReadiness, readinessRows, type Readiness } from './readiness';
+import { fixReadiness, needsSetup, readinessRows, setupRows, type Readiness } from './readiness';
 
 jest.mock('@/alarms/permissions', () => ({
   getAlarmPermissions: jest.fn(),
@@ -14,11 +15,13 @@ jest.mock('@/alarms/permissions', () => ({
 }));
 jest.mock('@/location/location', () => ({ getLocationPermission: jest.fn(), requestLocationPermission: jest.fn() }));
 jest.mock('@/nfc/reader', () => ({ getNfcStatus: jest.fn(), openNfcSettings: jest.fn() }));
+jest.mock('@/photo/camera', () => ({ getCameraPermission: jest.fn(), requestCameraPermission: jest.fn() }));
 
 const READY: Readiness = {
   nfc: { supported: true, enabled: true },
   alarms: { notifications: { granted: true, canAskAgain: true }, exactAlarms: true, batteryExempt: true },
   location: { granted: true, canAskAgain: true },
+  camera: { granted: true, canAskAgain: true },
 };
 
 beforeEach(() => {
@@ -41,6 +44,7 @@ describe('the readiness rows', () => {
       nfc: { supported: true, enabled: false },
       alarms: { notifications: { granted: true, canAskAgain: true }, exactAlarms: false, batteryExempt: false },
       location: { granted: false, canAskAgain: true },
+      camera: { granted: false, canAskAgain: true },
     });
     expect(rows.map(({ item, ok }) => [item, ok])).toEqual([
       ['nfc', false],
@@ -62,6 +66,43 @@ describe('the readiness rows', () => {
       { item: 'alarms', ok: true, fixable: true },
       { item: 'location', ok: true, fixable: true },
     ]);
+  });
+});
+
+describe('the device setup rows', () => {
+  it('list every setting of the site phone on Android, in the specification order', () => {
+    expect(setupRows(READY, 'site_phone')).toEqual([
+      { item: 'notifications', ok: true, fixable: true },
+      { item: 'exactAlarms', ok: true, fixable: true },
+      { item: 'battery', ok: true, fixable: true },
+      { item: 'location', ok: true, fixable: true },
+      { item: 'camera', ok: true, fixable: true },
+      { item: 'nfc', ok: true, fixable: true },
+    ]);
+  });
+
+  it('have no exact alarm and battery row on iOS', () => {
+    jest.replaceProperty(Platform, 'OS', 'ios');
+    const rows = setupRows({ ...READY, alarms: { ...READY.alarms, exactAlarms: null, batteryExempt: null } }, 'site_phone');
+    expect(rows.map((row) => row.item)).toEqual(['notifications', 'location', 'camera', 'nfc']);
+    // iOS has no NFC switch to open.
+    expect(rows.find((row) => row.item === 'nfc')).toEqual({ item: 'nfc', ok: true, fixable: false });
+  });
+
+  it("leave out the alarms on a supervisor's own phone", () => {
+    const rows = setupRows(
+      { ...READY, alarms: { notifications: { granted: false, canAskAgain: true }, exactAlarms: false, batteryExempt: false } },
+      'supervisor_phone',
+    );
+    expect(rows.map((row) => row.item)).toEqual(['location', 'camera', 'nfc']);
+    expect(needsSetup(rows)).toBe(false);
+  });
+
+  it('need setup when something fixable is missing, not for a phone without NFC', () => {
+    expect(needsSetup(setupRows(READY, 'site_phone'))).toBe(false);
+    expect(needsSetup(setupRows({ ...READY, camera: { granted: false, canAskAgain: false } }, 'site_phone'))).toBe(true);
+    expect(needsSetup(setupRows({ ...READY, alarms: { ...READY.alarms, exactAlarms: false } }, 'site_phone'))).toBe(true);
+    expect(needsSetup(setupRows({ ...READY, nfc: { supported: false, enabled: false } }, 'site_phone'))).toBe(false);
   });
 });
 
@@ -90,6 +131,23 @@ describe('fixing', () => {
     expect(requestLocationPermission).toHaveBeenCalled();
     expect(openSettings).not.toHaveBeenCalled();
     await fixReadiness('location', { ...READY, location: { granted: false, canAskAgain: false } });
+    expect(openSettings).toHaveBeenCalled();
+  });
+
+  it('asks for notifications and exact alarms one by one', async () => {
+    await fixReadiness('notifications', { ...READY, alarms: { ...READY.alarms, notifications: { granted: false, canAskAgain: true } } });
+    expect(requestNotifications).toHaveBeenCalledWith(true);
+    expect(requestExactAlarms).not.toHaveBeenCalled();
+    await fixReadiness('exactAlarms', READY);
+    expect(requestExactAlarms).toHaveBeenCalled();
+  });
+
+  it('asks for the camera while the system lets it, then opens the settings', async () => {
+    const openSettings = jest.spyOn(Linking, 'openSettings').mockResolvedValue();
+    await fixReadiness('camera', { ...READY, camera: { granted: false, canAskAgain: true } });
+    expect(requestCameraPermission).toHaveBeenCalled();
+    expect(openSettings).not.toHaveBeenCalled();
+    await fixReadiness('camera', { ...READY, camera: { granted: false, canAskAgain: false } });
     expect(openSettings).toHaveBeenCalled();
   });
 });

@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
 
@@ -39,9 +40,9 @@ function useSupervisorLogout(): [() => void, boolean] {
 }
 
 /**
- * The account button's menu (S2): who is logged in, and the way out – on the supervisor's own phone the logout, on the
- * site phone back to the PIN login (an open shift stays open). Returns the function that opens it, and whether a
- * logout runs.
+ * The account button's menu (S2): who is logged in, the device setup (M5-10), and the way out – on the supervisor's own
+ * phone the logout, on the site phone back to the PIN login (an open shift stays open). Returns the function that opens
+ * it, and whether a logout runs. Three buttons at most: Android shows no more in a dialog.
  */
 export function useAccountMenu(account: SupervisorAccount | null): [() => void, boolean] {
   const mode = useSession((state) => state.mode);
@@ -49,15 +50,18 @@ export function useAccountMenu(account: SupervisorAccount | null): [() => void, 
   const open = () => {
     if (busy) return;
     const title = account?.name ?? t('supervisor.accountUnknown');
+    const setup = { text: t('deviceSetup.title'), onPress: () => router.push('/device-setup') };
     if (mode === 'site_phone') {
       Alert.alert(title, t('supervisor.accountSitePhone'), [
         { text: t('common.cancel'), style: 'cancel' },
+        setup,
         { text: t('supervisor.exit'), onPress: logOut },
       ]);
       return;
     }
     Alert.alert(title, account?.email ?? undefined, [
       { text: t('common.cancel'), style: 'cancel' },
+      setup,
       { text: t('supervisor.logout'), style: 'destructive', onPress: logout },
     ]);
   };

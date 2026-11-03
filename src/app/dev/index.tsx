@@ -2,10 +2,8 @@ import { Link, Stack, type Href } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { useSession } from '@/auth/session';
-import { SegmentedControl } from '@/components/segmented-control';
 import { t, type TranslationKey } from '@/i18n';
-import { useTheme, useThemePreference } from '@/theme/theme-provider';
-import type { ThemePreference } from '@/theme/tokens';
+import { useTheme } from '@/theme/theme-provider';
 
 const SCREENS: { href: Href; title: TranslationKey }[] = [
   { href: '/dev/server', title: 'dev.screens.server' },
@@ -18,14 +16,11 @@ const SCREENS: { href: Href; title: TranslationKey }[] = [
   { href: '/prototype/benchmark', title: 'prototype.screens.benchmark' },
 ];
 
-const THEME_PREFERENCES: ThemePreference[] = ['system', 'dark', 'light'];
-
-// Developer tools: the API address (instead of the developer enrollment of M3-06), the base components (M3-26), the
-// device test screens of the M1 prototype (and of the location and the photo, M3-20 / M3-21), and the theme choice until
-// the app has a settings screen (M3-25).
+// Developer tools: the API address (instead of the developer enrollment of M3-06), the base components (M3-26), and the
+// device test screens of the M1 prototype (and of the location and the photo, M3-20 / M3-21). The theme is chosen on the
+// device setup screen (M5-10).
 export default function DevToolsScreen() {
   const { color, typography, space, radius, size } = useTheme();
-  const { preference, setPreference } = useThemePreference();
   const mode = useSession((session) => session.mode);
   return (
     <ScrollView style={{ backgroundColor: color.bg }} contentContainerStyle={{ padding: space.l, gap: space.m }}>
@@ -51,13 +46,6 @@ export default function DevToolsScreen() {
           </Pressable>
         </Link>
       ))}
-      <Text style={[typography.label, { color: color.text2, marginTop: space.l }]}>{t('theme.title')}</Text>
-      <SegmentedControl
-        accessibilityLabel={t('theme.title')}
-        options={THEME_PREFERENCES.map((value) => ({ value, label: t(`theme.${value}`) }))}
-        value={preference}
-        onChange={setPreference}
-      />
     </ScrollView>
   );
 }

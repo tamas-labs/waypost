@@ -24,7 +24,7 @@ A Waypost mobilapp (Expo / React Native, TypeScript): az őrök a telephelyi tel
 src/
   app/        # expo-router képernyők – csak route-fájl lehet benne (teszt, segéd nem); (auth)/ (guard)/ (supervisor)/, dev/ és prototype/ (M1 eszközpróbák) csak fejlesztői buildben
   navigation/ # melyik csoport nyitott az állapot szerint (Stack.Protected), kezdőképernyő
-  hooks/      # képernyők közös hookjai: useLiveQuery (élő betöltés az adatbázisból), usePinEntry (PIN-beírás és ellenőrzés), useRecordForm (űrlap: helyadat, mentés), useScanRecorder (leolvasás rögzítése és visszajelzése), usePinLock (a PIN zárolása), useAccountMenu (a supervisor fiókmenüje: kijelentkezés, kilépés), useEnrollThisPhone (a telefon hozzárendelése)
+  hooks/      # képernyők közös hookjai: useLiveQuery (élő betöltés az adatbázisból), usePinEntry (PIN-beírás és ellenőrzés), useRecordForm (űrlap: helyadat, mentés), useScanRecorder (leolvasás rögzítése és visszajelzése), usePinLock (a PIN zárolása), useAccountMenu (a supervisor fiókmenüje: telefon beállítása, kijelentkezés, kilépés), useEnrollThisPhone (a telefon hozzárendelése), useReadiness (a telefon készenléte, újraellenőrzés előtérbe kerüléskor)
   components/ # közös UI-komponensek (DESIGN_HANDOFF 5); ikon: icon.tsx (lucide, ikononként importálva); képernyőfejléc: screen-header.tsx (jobbra a szinkronjelző); rövid üzenet: toast.tsx (`showToast`)
   api/        # API-kliens: client.ts (token, Idempotency-Key, típusos hibák, __DEV__ Ajv), endpoints.ts, config-calls.ts (a supervisorműveletek hívásai az outboxnak)
   auth/       # indulási állapot, munkamenet (Zustand), hozzárendelés, PIN, supervisor belépés, kijelentkezés és a telefon hozzárendelése a saját telefonon (supervisor.ts), a belépés és a hozzárendelés hibáinak szövege (login-error.ts, enroll-error.ts)
@@ -34,14 +34,14 @@ src/
   domain/     # üzleti szabályok (menetrend → körök, műszak, kör, leolvasás) és a képernyők nézetmodelljei (shift-view.ts) – UI és I/O nélkül
   guard/      # a domain és az adatbázis között: a GuardState betöltése, az ütemező futtató; testing.ts (a domain-fixture az adatbázisban)
   supervisor/ # a supervisor mód képernyőinek adatai az adatbázisból és a műveletei az outboxon át (sites.ts: telephelylista, új telephely; site-detail.ts: a telephely részletei és szövegei)
-  device/     # a telefon saját adatai és állapota, a domaintól függetlenül: tokenek és eszköztitok a secure store-ban (credentials.ts), készenlét (readiness.ts), előtér-figyelés és intervallum (foreground.ts)
+  device/     # a telefon saját adatai és állapota, a domaintól függetlenül: tokenek és eszköztitok a secure store-ban (credentials.ts), készenlét és a „Telefon beállítása” ellenőrzőlistája (readiness.ts), előtér-figyelés és intervallum (foreground.ts)
   schema/     # JSON Schema-ellenőrzés fejlesztői módban (validation.ts, Ajv)
   sync/       # pull, push (push.ts: kötegek, elutasítás, diagnosztika), média (media.ts), visszavont telefon (revocation.ts), helyi takarítás (cleanup.ts), outbox (outbox.ts: supervisorműveletek, visszatartás, elutasítás); testing.ts: hamis API a tesztekhez
   chain/      # láncbejegyzés: kanonikus JSON, HMAC
   nfc/        # olvasás (reader.ts), Androidon az app-szintű figyelés (tag-events.ts), useTagReader a kör és a betanítás képernyőjére
   qr/ alarms/
   location/   # helyadat a leolvasáshoz (location.ts), saját helyzet a térképen (use-position.ts), térkép elérhetősége (maps.ts)
-  photo/      # fotó: tömörítés, SHA-256, fájl a dokumentumok media/ mappájában (a media sort a láncíró írja); files.ts: a fájl helye az azonosítóból; use-photo-draft.ts: egy űrlap még nem rögzített fotói
+  photo/      # fotó: tömörítés, SHA-256, fájl a dokumentumok media/ mappájában (a media sort a láncíró írja); files.ts: a fájl helye az azonosítóból; use-photo-draft.ts: egy űrlap még nem rögzített fotói; camera.ts: a kamera engedélye kameranézet nélkül
   feedback/   # leolvasási visszajelzés: rezgés és hang (siker / hiba / figyelmeztetés)
   theme/      # tokens.ts (a design tokenjei), theme-provider.tsx: ThemeProvider, useTheme(), useThemePreference()
   i18n/       # hu.json (minden felirat), index.ts: t(key, params), schedule.ts: a menetrend szövegesen (napok, gyakoriság, egysoros összegzés)

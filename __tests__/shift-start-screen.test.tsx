@@ -30,6 +30,7 @@ const READY: Readiness = {
   nfc: { supported: true, enabled: true },
   alarms: { notifications: { granted: true, canAskAgain: true }, exactAlarms: true, batteryExempt: true },
   location: { granted: true, canAskAgain: true },
+  camera: { granted: true, canAskAgain: true },
 };
 
 let db: Database;

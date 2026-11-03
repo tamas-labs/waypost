@@ -11,9 +11,11 @@ import { InfoBanner } from '@/components/info-banner';
 import { ScreenHeader } from '@/components/screen-header';
 import { StatusBadge } from '@/components/status-badge';
 import { SyncStatusIndicator } from '@/components/sync-status-indicator';
+import { needsSetup, setupRows } from '@/device/readiness';
 import { getDatabase } from '@/db/open';
 import { useAccountMenu } from '@/hooks/use-account-menu';
 import { useLiveQuery } from '@/hooks/use-live-query';
+import { useReadiness } from '@/hooks/use-readiness';
 import { t } from '@/i18n';
 import { loadSiteList, supervisorAccount, type SiteListItem } from '@/supervisor/sites';
 import { dismissOutboxRejections } from '@/sync/outbox';
@@ -32,6 +34,8 @@ const loadSites = () => loadSiteList(getDatabase());
 
 // Sites (S2, S-Telephelyek): the supervisor's sites (on the site phone its own), each opening its details (S3), the account button with the way out,
 // the actions the server refused, and "Új telephely" on the supervisor's own phone (the site phone cannot create one).
+// On the site phone a missing setting of the device setup (M5-10) warns here too: the PIN screen sends the guard to a
+// supervisor for it.
 export default function SitesScreen() {
   const { color, typography, space } = useTheme();
   const insets = useSafeAreaInsets();
@@ -61,6 +65,8 @@ export default function SitesScreen() {
         <Text style={[typography.title1, { color: color.text, paddingHorizontal: space.xs }]} accessibilityRole="header">
           {t('supervisor.sites')}
         </Text>
+
+        {mode === 'site_phone' && <SetupWarning />}
 
         <RejectedCalls />
 
@@ -113,6 +119,19 @@ function SiteCard({ site }: { site: SiteListItem }) {
         )}
       </Card>
     </Pressable>
+  );
+}
+
+/** The site phone misses a setting of the device setup checklist; the button opens it. */
+function SetupWarning() {
+  const { readiness } = useReadiness();
+  const { space } = useTheme();
+  if (readiness === null || !needsSetup(setupRows(readiness, 'site_phone'))) return null;
+  return (
+    <View style={{ gap: space.s }}>
+      <InfoBanner variant="warn" title={t('deviceSetup.missingTitle')} text={t('deviceSetup.missing')} />
+      <Button label={t('deviceSetup.title')} variant="secondary" onPress={() => router.push('/device-setup')} />
+    </View>
   );
 }
 

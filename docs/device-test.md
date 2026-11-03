@@ -117,6 +117,18 @@ A workbench demó-telephelye kell (`laravel-waypost`: `composer serve`), olyan c
 | V3 | Android: a „Fejlesztői eszközök” listán (nem olvasó képernyőn) érints egy URL-es NDEF-rekordot tartalmazó címkét (pl. NTAG 424 DNA). Utána tedd háttérbe az appot, és érintsd újra. | Az appban nem történik semmi, nincs „új címke” ablak, és nem nyílik böngésző. Háttérben a rendszer szokott viselkedése jön (ez nem hiba). |
 | V4 | Android: kapcsold ki az NFC-t, indítsd el az appot, majd kapcsold be a beállításokban, és térj vissza az „NFC-címke olvasása” képernyőre. | Bekapcsolás után gomb nélkül olvas. |
 
+### M5 – Telefon beállítása (M5-10, a fiókmenüben „Telefon beállítása”; fejlesztői build)
+
+Friss telepítés, hozzárendelés után PIN-nel belépett supervisorral (a telephelyi telefon), ill. a B5-höz supervisor belépéssel (saját telefon). Androidon a pontos riasztás és az akkumulátorkímélés is megjelenik, iPhone-on nem.
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| B1 | A telephelylista egy friss telepítés után, PIN-nel belépve. | „A telefon beállítása hiányos” sáv, alatta „Telefon beállítása”; ez és a fiókmenü ugyanazt a képernyőt nyitja. |
+| B2 | Sorban minden „Javítás”: értesítések, pontos riasztás (Android), akkumulátorkímélés (Android), helymeghatározás, kamera, NFC (Android). | Mindegyik a saját rendszer-párbeszédét vagy beállítását nyitja; a visszatérés után a sor zöld pipás, és a végén nincs „Javítás”. Vissza a listára: a sáv eltűnt. |
+| B3 | Az értesítés és a kamera engedélyét utasítsd el kétszer (Android), ill. egyszer (iPhone), majd „Javítás”. | Párbeszéd helyett az app rendszerbeállításai nyílnak; ott engedélyezve, visszatérve zöld a sor. |
+| B4 | „Téma”: Sötét, majd Világos, majd Rendszer; utána zárd be és nyisd meg újra az appot. | Az egész app azonnal vált, és újraindítás után is megmarad. A PIN-képernyőn és az őr képernyőin nincs témaválasztó. |
+| B5 | A supervisor saját telefonján a fiókmenüből „Telefon beállítása”. | Csak helymeghatározás, kamera és NFC; a telephelylistán nincs figyelmeztető sáv. |
+
 ## Eredmények
 
 Sablon (egy futáshoz másold le, és a fejlécbe írd a dátumot és a mérföldkövet):
