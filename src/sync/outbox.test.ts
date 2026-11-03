@@ -516,6 +516,37 @@ describe('the photo of a checkpoint', () => {
     expect(outboxRejections(db)).toEqual([expect.objectContaining({ path: `/media/${PHOTO}`, status: 413, message: 'A fájl túl nagy.' })]);
   });
 
+  it('is left out of a change, which keeps the photo the checkpoint has, and a change of the photo alone is not sent', async () => {
+    mockedFiles.set(photoFile(PHOTO).uri, { size: 1234, modifiedAtMs: 0 });
+    // What the editing of a route saves (supervisor/route-edit.ts): a new name with the photo, and the photo alone.
+    queueAction(
+      db,
+      {
+        apply: (tx) => {
+          localCheckpoint(tx);
+          tx.update(checkpoints).set({ photo_media_id: PHOTO }).run();
+        },
+        calls: [
+          upload,
+          configCalls.updateCheckpoint(CHECKPOINT, { name: 'Hátsó kapu', photo_media_id: PHOTO }),
+          configCalls.updateCheckpoint(CHECKPOINT, { photo_media_id: PHOTO }),
+        ],
+      },
+      SUPERVISOR,
+    );
+    const { api, requests } = server({
+      [`PUT /media/${PHOTO}`]: [error(413, 'bad_request', 'A fájl túl nagy.')],
+      [`PATCH /checkpoints/${CHECKPOINT}`]: [new TypeError('Network request failed')],
+    });
+
+    await expect(sendOutbox({ db, api, token: 't' }, options())).rejects.toBeInstanceOf(NetworkError);
+
+    expect(requests[1]!.body).toEqual({ name: 'Hátsó kapu' });
+    expect(rows().map((row) => row.body)).toEqual([{ name: 'Hátsó kapu' }]);
+    // Until the full pull after the refusal brings the server's photo back.
+    expect(localPhoto()).toBeNull();
+  });
+
   it('is left out the same way if its file is gone, without a request', async () => {
     queueCheckpointWithPhoto();
     mockedFiles.clear();

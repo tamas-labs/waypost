@@ -176,16 +176,20 @@ export function readTrainingTag(
   );
 }
 
-/** The details trimmed; an empty instruction is none. */
-function cleanDetails(details: PointDetails): { name: string; instruction: string | null; photo: PhotoFile | null } {
-  const name = details.name.trim();
-  if (name === '') throw new TrainingError('name_required', 'A checkpoint needs a name');
+/** The name and instruction of a checkpoint trimmed to the schema's limits; an empty instruction is none, an empty name stays empty. */
+export function trimPointText(details: { name: string; instruction: string }): { name: string; instruction: string | null } {
   const instruction = details.instruction.trim();
   return {
-    name: name.slice(0, CHECKPOINT_NAME_MAX),
+    name: details.name.trim().slice(0, CHECKPOINT_NAME_MAX),
     instruction: instruction === '' ? null : instruction.slice(0, CHECKPOINT_INSTRUCTION_MAX),
-    photo: details.photo,
   };
+}
+
+/** The details trimmed; an empty instruction is none. */
+function cleanDetails(details: PointDetails): { name: string; instruction: string | null; photo: PhotoFile | null } {
+  const text = trimPointText(details);
+  if (text.name === '') throw new TrainingError('name_required', 'A checkpoint needs a name');
+  return { ...text, photo: details.photo };
 }
 
 /** The details of a checkpoint are required before it is added (S6); null: nothing to fix. */

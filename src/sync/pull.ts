@@ -3,7 +3,7 @@
 // whole pull is applied or nothing, so the guard never works with half of a new configuration. A record with a
 // supervisor action still waiting in the outbox keeps its local state: the server's copy comes after the call.
 import type { SyncPullResponse } from '@waypost/schema';
-import { eq, inArray, notInArray } from 'drizzle-orm';
+import { and, eq, inArray, max, ne, notInArray } from 'drizzle-orm';
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 
 import type { ApiClient } from '@/api/client';
@@ -149,6 +149,30 @@ const clearOf =
 
 const byId = (row: { id: string }) => row.id;
 
+/**
+ * A version saved on this phone has the number the phone estimated (supervisor/route-version.ts) until the server's
+ * response comes. Meanwhile another supervisor's version may get that number on the server, or the response gives this
+ * one a number another local estimate has: the local version that has it moves to the next free number, and its own
+ * response (or a pull) sets the real one. Without this, UNIQUE(route_id, version) would stop every pull.
+ */
+function makeRoomForVersion(tx: Database, row: { id: string; route_id: string; version: number }): void {
+  const taken = tx
+    .select({ id: routeVersions.id })
+    .from(routeVersions)
+    .where(and(eq(routeVersions.route_id, row.route_id), eq(routeVersions.version, row.version), ne(routeVersions.id, row.id)))
+    .get();
+  if (taken === undefined) return;
+  const last = tx
+    .select({ version: max(routeVersions.version) })
+    .from(routeVersions)
+    .where(eq(routeVersions.route_id, row.route_id))
+    .get();
+  tx.update(routeVersions)
+    .set({ version: Math.max(last?.version ?? 0, row.version) + 1 })
+    .where(eq(routeVersions.id, taken.id))
+    .run();
+}
+
 /** A list whose rows are one table's rows, by their id. */
 const plainList = <T extends TableWithId>(table: T) => ({
   recordId: byId,
@@ -208,7 +232,15 @@ const SYNCED_LISTS: { [K in keyof Changes]: SyncedList<K> } = {
       ),
   },
   routes: plainList(routes),
-  route_versions: { recordId: byId, upsert: upsertOn(routeVersions, routeVersions.id), remove: null, clear: null },
+  route_versions: {
+    recordId: byId,
+    upsert: (tx, row) => {
+      makeRoomForVersion(tx, row);
+      upsertOn(routeVersions, routeVersions.id)(tx, row);
+    },
+    remove: null,
+    clear: null,
+  },
   route_version_checkpoints: {
     recordId: (row) => row.route_version_id,
     upsert: upsertOn(routeVersionCheckpoints, [routeVersionCheckpoints.route_version_id, routeVersionCheckpoints.position]),

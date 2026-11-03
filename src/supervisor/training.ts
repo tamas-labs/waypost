@@ -7,13 +7,13 @@
 // (its point removed, replaced by another, the draft discarded) is deleted, a saved one becomes the media row that its
 // upload call sends before the checkpoint (decisions: "Betanítás – pont adatai").
 import type { Timestamp } from '@waypost/schema';
-import { and, eq, inArray, max } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 
 import { configCalls, type ConfigCall } from '@/api/config-calls';
 import type { LocationFix } from '@/chain/payloads';
 import type { Database } from '@/db/database';
 import { deleteKv, getKv, setKv } from '@/db/kv';
-import { checkpoints, media, routes, routeVersionCheckpoints, routeVersions } from '@/db/schema';
+import { checkpoints, routes } from '@/db/schema';
 import type { TagRead } from '@/domain/scan';
 import type { NewId } from '@/domain/state';
 import {
@@ -33,6 +33,8 @@ import { uuidv7 } from '@/id/uuidv7';
 import { photoFile } from '@/photo/files';
 import { queueSupervisorAction } from '@/sync/outbox';
 import { nowTimestamp } from '@/time/timestamp';
+
+import { checkpointPhotoCall, insertCheckpointPhoto, insertRouteVersion } from './route-version';
 
 /** A new route starts with free order; the supervisor can switch it during the walk (S5). */
 export const NEW_ROUTE_ORDER_MODE: OrderMode = 'free';
@@ -205,16 +207,6 @@ export function existingScanOf(db: Database, draft: TrainingDraft, pending: Pend
   return checkpoint === undefined ? null : { checkpoint, scanned: pending.scanned };
 }
 
-/** The next version number as the phone knows it; the server's response sets the real one (M5-14). */
-function nextVersion(tx: Database, routeId: string): number {
-  const row = tx
-    .select({ last: max(routeVersions.version) })
-    .from(routeVersions)
-    .where(eq(routeVersions.route_id, routeId))
-    .get();
-  return (row?.last ?? 0) + 1;
-}
-
 /**
  * Saves the draft as the route's new version: the route (created, or its order mode changed), the photos and the new checkpoints,
  * the inactive ones of the draft switched on, the version as the route's current one – locally at once and through
@@ -232,14 +224,7 @@ export function saveTraining(db: Database, draft: TrainingDraft, now: Timestamp 
 
   const calls: ConfigCall[] = [
     ...(save.createRoute === null ? [] : [configCalls.createRoute(save.createRoute)]),
-    ...save.uploadPhotos.map(({ checkpoint_id, photo }) =>
-      configCalls.uploadCheckpointPhoto(photo.id, {
-        sha256: photo.sha256,
-        owner_type: 'checkpoint',
-        owner_id: checkpoint_id,
-        taken_at: photo.taken_at,
-      }),
-    ),
+    ...save.uploadPhotos.map(({ checkpoint_id, photo }) => checkpointPhotoCall(checkpoint_id, photo)),
     ...save.createCheckpoints.map((body) => configCalls.createCheckpoint(body)),
     ...save.activateCheckpoints.map((id) => configCalls.updateCheckpoint(id, { active: true })),
     ...(save.updateRoute === null ? [] : [configCalls.updateRoute(route.id, { order_mode: save.updateRoute.order_mode })]),
@@ -258,22 +243,7 @@ export function saveTraining(db: Database, draft: TrainingDraft, now: Timestamp 
           .values({ ...save.createRoute, current_version_id: version.id, active: true, created_at: now, updated_at: now })
           .run();
       }
-      for (const { checkpoint_id, photo } of save.uploadPhotos) {
-        tx.insert(media)
-          .values({
-            id: photo.id,
-            // A checkpoint photo is no chain entry's: its outbox call sends it (sync/outbox.ts).
-            device_id: null,
-            owner_type: 'checkpoint',
-            owner_id: checkpoint_id,
-            sha256: photo.sha256,
-            mime: photo.mime,
-            size_bytes: photo.size_bytes,
-            local_uri: photoFile(photo.id).uri,
-            taken_at: photo.taken_at,
-          })
-          .run();
-      }
+      for (const { checkpoint_id, photo } of save.uploadPhotos) insertCheckpointPhoto(tx, checkpoint_id, photo);
       for (const body of save.createCheckpoints) {
         tx.insert(checkpoints)
           .values({
@@ -294,26 +264,7 @@ export function saveTraining(db: Database, draft: TrainingDraft, now: Timestamp 
       if (save.activateCheckpoints.length > 0) {
         tx.update(checkpoints).set({ active: true, updated_at: now }).where(inArray(checkpoints.id, save.activateCheckpoints)).run();
       }
-      tx.insert(routeVersions)
-        .values({
-          id: version.id,
-          route_id: route.id,
-          version: nextVersion(tx, route.id),
-          walk_duration_s: version.walk_duration_s,
-          created_by: draft.supervisor_id,
-          created_at: now,
-        })
-        .run();
-      tx.insert(routeVersionCheckpoints)
-        .values(
-          version.checkpoints.map((point, index) => ({
-            route_version_id: version.id,
-            checkpoint_id: point.checkpoint_id,
-            position: index + 1,
-            walk_time_from_prev_s: point.walk_time_from_prev_s ?? null,
-          })),
-        )
-        .run();
+      insertRouteVersion(tx, route.id, version, { created_by: draft.supervisor_id, created_at: now });
       deleteKv(tx, 'training.draft');
     },
     calls,

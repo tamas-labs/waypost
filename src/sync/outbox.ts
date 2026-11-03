@@ -171,17 +171,24 @@ function retryLater(db: Database, row: OutboxRow, delayMs: number, error: unknow
 
 /**
  * A checkpoint photo that cannot be uploaded: it is optional, so the checkpoint calls waiting for it go without it
- * rather than be refused for it (and the route version after them). Its media row goes; its file is an orphan then.
+ * rather than be refused for it (and the route version after them). A new checkpoint is created without a photo; a
+ * change keeps the photo the checkpoint has (an edit with nothing else to change is not sent), and the full pull after
+ * the refusal brings it back to the phone. Its media row goes; its file is an orphan then.
  */
 function dropPhoto(tx: Database, mediaId: string): void {
-  for (const call of tx.select({ id: outbox.id, body: outbox.body }).from(outbox).all()) {
+  for (const call of tx.select({ id: outbox.id, method: outbox.method, body: outbox.body }).from(outbox).all()) {
     const body = call.body;
-    if (typeof body === 'object' && body !== null && 'photo_media_id' in body && body.photo_media_id === mediaId) {
+    if (typeof body !== 'object' || body === null || !('photo_media_id' in body) || body.photo_media_id !== mediaId) continue;
+    if (call.method !== 'PATCH') {
       tx.update(outbox)
         .set({ body: { ...body, photo_media_id: null } })
         .where(eq(outbox.id, call.id))
         .run();
+      continue;
     }
+    const { photo_media_id: _dropped, ...rest } = body;
+    if (Object.keys(rest).length === 0) tx.delete(outbox).where(eq(outbox.id, call.id)).run();
+    else tx.update(outbox).set({ body: rest }).where(eq(outbox.id, call.id)).run();
   }
   tx.update(checkpoints).set({ photo_media_id: null }).where(eq(checkpoints.photo_media_id, mediaId)).run();
   tx.delete(media).where(eq(media.id, mediaId)).run();

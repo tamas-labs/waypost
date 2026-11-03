@@ -6,12 +6,12 @@ import { createApiClient } from '@/api/client';
 import { ApiError, NetworkError } from '@/api/errors';
 import type { Database } from '@/db/database';
 import { getKv, setKv } from '@/db/kv';
-import { rounds } from '@/db/schema';
+import { outbox, routeVersions, rounds } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import type { ClockReading } from '@/time/clock';
 
 import { onConfigurationPulled, type PullSummary } from './events';
-import { applyPullPages, pullConfiguration } from './pull';
+import { applyPullPages, pullConfiguration, storeServerRecords } from './pull';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 
@@ -359,5 +359,69 @@ describe('pull', () => {
     const { api } = fakeApi(page({ cursor: CURSOR_1, has_more: true }));
     await expect(pullConfiguration(db, api, 'device-token', { readClock: fakeClock() })).rejects.toThrow('the cursor did not move');
     expect(getKv(db, 'sync.cursor')).toBe(CURSOR_1);
+  });
+});
+
+describe('a version number the phone estimated', () => {
+  const MINE = '019a2b3c-4d5e-7f00-8b00-000000000001';
+  const MINE_NEXT = '019a2b3c-4d5e-7f00-8b00-000000000002';
+  const THEIRS = '019a2b3c-4d5e-7f00-8a00-000000000018';
+  const version = (id: string, n: number) => ({
+    id,
+    route_id: ROUTE,
+    version: n,
+    walk_duration_s: 840,
+    created_by: SUPERVISOR,
+    created_at: '2026-10-27T10:05:12.345Z',
+  });
+  /** A version saved on this phone with its number estimated, its call still waiting in the outbox. */
+  function savedHere(db: Database, id: string, n: number, waiting = true) {
+    db.insert(routeVersions).values(version(id, n)).run();
+    if (!waiting) return;
+    db.insert(outbox)
+      .values({
+        id: id.replace('8b00', '8c00'),
+        method: 'POST',
+        path: `/routes/${ROUTE}/versions`,
+        body: { id, checkpoints: [{ checkpoint_id: CHECKPOINT }] },
+        body_schema: 'api/route-version-create.request',
+        response_schema: 'api/route-version.response',
+        record_ids: [id, ROUTE],
+        idempotency_key: id,
+        acting_user_id: null,
+        created_at: '2026-10-27T10:05:12.345Z',
+      })
+      .run();
+  }
+  const numbers = (db: Database) =>
+    Object.fromEntries(
+      db
+        .select({ id: routeVersions.id, version: routeVersions.version })
+        .from(routeVersions)
+        .all()
+        .map((row) => [row.id, row.version]),
+    );
+
+  it("moves out of the way of another supervisor's version that got it on the server", async () => {
+    const { db } = await fullyPulled();
+    savedHere(db, MINE, 2);
+    savedHere(db, MINE_NEXT, 3);
+
+    applyPullPages(db, [{ page: page({ changes: { route_versions: [version(THEIRS, 2)] } }), clock: fakeClock()() }]);
+
+    expect(numbers(db)).toEqual({ [ROUTE_VERSION]: 1, [THEIRS]: 2, [MINE]: 4, [MINE_NEXT]: 3 });
+  });
+
+  it("makes room for the number the server's response gives it", async () => {
+    const { db } = await fullyPulled();
+    // The call of this one is done, the next one still waits.
+    savedHere(db, MINE, 2, false);
+    savedHere(db, MINE_NEXT, 3);
+    db.insert(routeVersions).values(version(THEIRS, 4)).run();
+
+    // Another supervisor's version 2 came first on the server: this one is 3, which the next one estimated.
+    db.transaction((tx) => storeServerRecords(tx, { route_versions: [version(MINE, 3)] }));
+
+    expect(numbers(db)).toEqual({ [ROUTE_VERSION]: 1, [MINE]: 3, [MINE_NEXT]: 5, [THEIRS]: 4 });
   });
 });
