@@ -615,15 +615,18 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
 
 ### Figyelmeztetés és megőrzés
 
-- [ ] **M6-10 „Nincs adat” figyelmeztetés**
+- [x] **M6-10 „Nincs adat” figyelmeztetés**
   - Mit: 15 percenkénti job: ha az utolsó várt kör határidejétől `no_data_alert_after_min` perc eltelt, és az eszköz `last_seen_at` értéke ennél régebbi, e-mail a supervisoroknak; menetrendi ablakonként legfeljebb egyszer.
   - Kész, ha: Pest tesztek (szól, nem szól, nem szól kétszer).
+  - Megjegyzés (2026-11-04): `Waypost\Jobs\SendNoDataAlerts`. Az utolsó várt kör a tegnapi és a mai menetrendből az, amelynek a határideje a legkésőbbi a legalább `no_data_alert_after_min` perce lejártak közül; nem szól, ha a kör megvan a szerveren, ha a telephelynek nincs a határidő előtt hozzárendelt, nem visszavont telefonja, vagy ha bármelyik ilyen telefon jelentkezett a határidő óta. Az ablak a menetrendi kezdőnap; az új `no_data_alerts` tábla (egyedi: telephely + ablak) foglal a küldés előtt. Címzett a telephely minden aktív supervisora. Tesztek: `tests/Feature/Reports/NoDataAlertTest.php`. Döntés: „A »Nincs adat« figyelmeztetés”.
 
-- [ ] **M6-11 Adatmegőrzési job**
+- [x] **M6-11 Adatmegőrzési job**
   - Mit: telephelyenként `max(31, 2 × leghosszabb előfizetett időszak)` nap; naponta törli a régebbi láncbejegyzéseket, vetületeket, médiafájlokat és PDF-eket; a `devices.last_seq` és `last_hash` megmarad; a konfiguráció nem törlődik.
   - Kész, ha: Pest tesztek (31 és 62 napos eset, a lánc folytonossága törlés után is ellenőrizhető).
+  - Megjegyzés (2026-11-04): `Waypost\Jobs\PruneExpiredData` naponta 03:30-kor. A műszak a lezárása szerint törlődik mindenével (körök, leolvasások, események, fotók fájllal); a körön kívüli leolvasás, a fotó, a diagnosztika a saját ideje szerint; a láncbejegyzés a `received_at` szerint, ha már nem hivatkozik rá vetület. A tárolt PDF fájlja törlődik, a `reports` sor `path = null`-lal marad. Tesztek: `tests/Feature/Reports/PruneExpiredDataTest.php` (31 és 62 nap; a lánc a törlés után folytatódik, és a törölt bejegyzés újraküldése elfogadott). Döntés: „Az adatmegőrzés”.
 
-- [ ] **M6-12 Elfogadás**: Pest tesztek fixture-ökkel és `Mail::fake()`-kel zöldek; a PDF-ek és az e-mailek kézi átnézése rendben (mintapéldányok a workbench demóadataiból).
+- [x] **M6-12 Elfogadás**: Pest tesztek fixture-ökkel és `Mail::fake()`-kel zöldek; a PDF-ek és az e-mailek kézi átnézése rendben (mintapéldányok a workbench demóadataiból).
+  - Megjegyzés (2026-11-04): a tesztek zöldek. A mintapéldányok: `composer seed-reports` (`ReportDemoSeeder`, 40 éjszaka), előnézet a workbench `/reports` oldalán. Az első átnézés javításai: a havi PDF memóriaigénye (25 soros táblázatok, legfeljebb 100 jelölt leolvasás a heti és havi listában, 512M a renderelés idejére), a kétfotós események képei a megjegyzés fölött, a keskeny dátumoszlop, az éjfél utáni körök dátuma. A kézi átnézés rendben (2026-11-04); kiadva: `laravel-waypost` 0.2.0, `waypost-schema` 0.5.0. Döntés: „A jelentések átnézése és a PDF memóriaigénye”.
 
 ---
 
