@@ -579,34 +579,39 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
 
 ### Előkészítés
 
-- [ ] **M6-01 Séma: `GET /reports`**: a válasz (jelentéslista aláírt letöltési URL-ekkel); minor verzió.
+- [x] **M6-01 Séma: `GET /reports`**: a válasz (jelentéslista aláírt letöltési URL-ekkel); minor verzió.
 
-- [ ] **M6-02 Menetrend-kibontás (PHP, `src/Schedule`)**
+- [x] **M6-02 Menetrend-kibontás (PHP, `src/Schedule`)**
   - Mit: ugyanazok a szabályok, mint az appban (M3-13).
   - Kész, ha: a `schedule/test-vectors.json` minden esete zöld (Pest).
 
-- [ ] **M6-03 Jelentésadat-összesítő**
+- [x] **M6-03 Jelentésadat-összesítő**
   - Mit: egy időszakra és telephelyre: várt körök (menetrendből), tényleges körök, elmaradt (várt időpont kör nélkül), teljesített, hiányos; jelölések, események; a lánc állapota (hibás bejegyzések száma); „nem teljes adat” jelzés, ha az eszköz még nem szinkronizált az időszak vége óta. A „nap” a kezdő nap.
   - Kész, ha: unit tesztek fixture-ökkel (éjfélen átnyúló ablak, DST-éjszaka, telefon nélküli éjszaka).
 
-- [ ] **M6-04 Aláírt fotó-URL-ek és `GET /reports`**
+- [x] **M6-04 Aláírt fotó-URL-ek és `GET /reports`**
   - Mit: aláírt, lejáró URL-ek a fotókhoz (az adatmegőrzés végéig) és a tárolt PDF-ekhez; jelentésarchívum supervisor tokennel.
   - Kész, ha: feature tesztek (lejárt URL, idegen telephely).
 
 ### Jelentések
 
-- [ ] **M6-05 Műszakjelentés**
+- [x] **M6-05 Műszakjelentés**
   - Mit: a `shift_closed` feldolgozása indítja; legfeljebb 30 perc várakozás a hiányzó fotókra (késleltetett job); HTML e-mail a design `email/shift-report.blade.php` sablonjával; címzettek a `report_subscriptions` szerint; bejegyzés a `reports` táblába; egy kiküldött műszakjelentés nem megy ki újra.
   - Kész, ha: Pest tesztek `Mail::fake()`-kel (időben és későn érkező fotó, átadásos műszak, auto zárás).
   - Spec: Jelentések / Tartalom.
+  - Megjegyzés (2026-11-04): `Waypost\Jobs\SendShiftReport` (a `Projector` indítja a push tranzakciója után; percenként újranézi a fotókat a feldolgozás + 30 percig, a `sync` queue-n azonnal küld), az adat `Summarizer::shift()` (a műszak körei, a műszak alatt kör nélkül lejárt időpontok, események, körön kívüli leolvasások, a telefon lánca), a sablon adata `ReportContent::shift()`, a küldés `ReportSender` (címzettenként egy levél, a `reports` sor előbb foglalódik, ezért nem megy ki kétszer). A sablon a designé „Waypost” fejléccel, kiegészítve a „nem teljes adat” sávval, a körön kívüli leolvasásokkal és a napló állapotával. A lecserélt telefon nyitva maradt műszakjáé (M4-11) az utolsó feltöltés lezárásakor megy ki, az utolsó bejegyzés idejével zárva. Tesztek: `tests/Feature/Reports/ShiftReportTest.php`. Döntés: „A műszakjelentés”.
 
-- [ ] **M6-06 Napi jelentés**: scheduler minden nap 10:00 telephelyi időben, az előző napról; HTML e-mail. Kész, ha: Pest tesztek (két különböző időzónájú telephely is helyes időben fut).
+- [x] **M6-06 Napi jelentés**: scheduler minden nap 10:00 telephelyi időben, az előző napról; HTML e-mail. Kész, ha: Pest tesztek (két különböző időzónájú telephely is helyes időben fut).
+  - Megjegyzés (2026-11-04): `SendDueReports` 15 percenként (a Laravel ütemezője egy időzónájú), telephelyenként a `ReportPeriod` szerint; a kimaradt futást 12 órán belül pótolja. `SendPeriodReport` küld a `ReportSender`-rel. Tesztek: `tests/Feature/Reports/PeriodReportTest.php` (Budapest és New York), `tests/Unit/Reports/ReportPeriodTest.php` (DST, Auckland). Döntés: „A napi, heti és havi jelentés”.
 
-- [ ] **M6-07 PDF-alap (dompdf)**: sablon beágyazott bélyegképekkel (a fotók a törlés után is bizonyítékként megmaradnak), magyar ékezetes betűtípus.
+- [x] **M6-07 PDF-alap (dompdf)**: sablon beágyazott bélyegképekkel (a fotók a törlés után is bizonyítékként megmaradnak), magyar ékezetes betűtípus.
+  - Megjegyzés (2026-11-04): `Waypost\Reports\Pdf` a `dompdf/dompdf`-fel közvetlenül, saját beállításokkal (a `barryvdh/laravel-dompdf` helyett: annak beállításait a gazda `config/dompdf.php`-je írná felül), DejaVu Sans; a fotók 480 px-es JPEG data URI-k (`Thumbnails`, GD; új követelmény az `ext-gd`). Sablon: `resources/views/pdf/period-report.blade.php`, lapszámos lábléccel. Döntés: „A napi, heti és havi jelentés”.
 
-- [ ] **M6-08 Heti jelentés**: hétfő 10:00, az előző hétfő–vasárnap; HTML e-mail + PDF; teljesítési arány, elmaradt és hiányos körök, események kategóriánként.
+- [x] **M6-08 Heti jelentés**: hétfő 10:00, az előző hétfő–vasárnap; HTML e-mail + PDF; teljesítési arány, elmaradt és hiányos körök, események kategóriánként.
+  - Megjegyzés (2026-11-04): napi bontású táblázattal; a PDF csatolva és a `waypost/reports/<id>.pdf` alá tárolva, a `GET /reports` linkje erre mutat.
 
-- [ ] **M6-09 Havi jelentés**: a hónap 1-je 10:00, az előző naptári hónap; HTML e-mail + PDF.
+- [x] **M6-09 Havi jelentés**: a hónap 1-je 10:00, az előző naptári hónap; HTML e-mail + PDF.
+  - Megjegyzés (2026-11-04): ugyanaz a sablon és job, mint a hetié. A minták kézi átnézése az M6-12-ben.
 
 ### Figyelmeztetés és megőrzés
 
