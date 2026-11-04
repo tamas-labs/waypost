@@ -1,8 +1,8 @@
-import type { MediaUploadRequest, SyncPullResponse } from '@waypost/schema';
+import { SCHEMA_VERSION, type MediaUploadRequest, type SyncPullResponse } from '@waypost/schema';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { createApiClient } from './client';
+import { createApiClient, SCHEMA_VERSION_HEADER, schemaVersionDiffers } from './client';
 import { enrollDevice, login, pull, uploadMedia } from './endpoints';
 import { ApiError, InvalidResponseError, isApiError, NetworkError } from './errors';
 
@@ -205,6 +205,37 @@ describe('API client', () => {
     const error = await pull(createApiClient({ baseUrl: BASE_URL, fetch: fetchMock, timeoutMs: 10 }), 't', null).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(NetworkError);
     expect(error).toMatchObject({ timedOut: true });
+  });
+
+  it("compares the server's schema version with the app's in the major and the minor", () => {
+    expect(schemaVersionDiffers('0.6.0', '0.6.0')).toBe(false);
+    expect(schemaVersionDiffers('0.6.3', '0.6.0')).toBe(false);
+    expect(schemaVersionDiffers('0.5.0', '0.6.0')).toBe(true);
+    expect(schemaVersionDiffers('1.6.0', '0.6.0')).toBe(true);
+    expect(schemaVersionDiffers(SCHEMA_VERSION)).toBe(false);
+  });
+
+  it('warns once in development mode if the server uses another schema version', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const body = example('sync-pull.response/valid/full-state');
+    const other = respond(200, body, { [SCHEMA_VERSION_HEADER]: '99.0.0' });
+    const api = createApiClient({ baseUrl: BASE_URL, fetch: other, validate: true });
+
+    await pull(api, 't', null);
+    await pull(api, 't', null);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toContain(`@waypost/schema 99.0.0, the app ${SCHEMA_VERSION}`);
+
+    warn.mockClear();
+    await pull(
+      createApiClient({ baseUrl: BASE_URL, fetch: respond(200, body, { [SCHEMA_VERSION_HEADER]: SCHEMA_VERSION }), validate: true }),
+      't',
+      null,
+    );
+    await pull(createApiClient({ baseUrl: BASE_URL, fetch: respond(200, body), validate: true }), 't', null);
+    await pull(createApiClient({ baseUrl: BASE_URL, fetch: other, validate: false }), 't', null);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it('rejects an invalid base URL', () => {

@@ -32,8 +32,10 @@ A formátum a [Keep a Changelog](https://keepachangelog.com/hu/1.1.0/) ajánlás
 - Helyadat a leolvasáshoz (legfeljebb 60 mp-es utolsó ismert hely, különben legfeljebb 5 mp várakozás; Androidon hamisított hely és GNSS-idő), fotó (csak kamera, 1600 px, JPEG 0,7, SHA-256; a `media` sor a bejegyzéssel együtt), app-szintű NFC-figyelés Androidon (a címke csak a kör és a betanítás képernyőjén számít), leolvasási visszajelzés rezgéssel és hanggal; próbaképernyő „Helyadat, fotó, visszajelzés” (M3-20 – M3-22).
 - Függőség: `@react-native-community/netinfo` (natív: új development build kell).
 - Függőség: `expo-location`, `expo-image-manipulator`, `expo-file-system`, `expo-haptics`, `expo-audio` (és a peer függősége, `expo-asset`); a `waypost-clock` modulban új `getGnssTimeMs` (natív: új development build kell).
+- Fejlesztői módban az API-kliens figyelmeztet, ha a szerver `X-Waypost-Schema` fejléce más `@waypost/schema` major- vagy minorverziót mond, mint amivel az app épült.
 - Függőség: `react-native-quick-crypto` (a `react-native-nitro-modules` és a `react-native-quick-base64` csomaggal; natív: új development build kell).
 
 ### Módosítva
 
+- A `waypost-schema` várt verziója `v0.6.0` (`.waypost-schema-version`).
 - Az M1 prototípus-képernyői csak fejlesztői buildben érhetők el, a „Fejlesztői eszközök” menüből.

@@ -1,6 +1,7 @@
 // HTTP client of the Waypost API: Bearer token, Idempotency-Key on every write, the error format as typed errors,
-// and in development builds a check of every request and response against @waypost/schema.
-import type { ErrorCode, ErrorResponse, SchemaPath, SchemaTypes } from '@waypost/schema';
+// and in development builds a check of every request and response against @waypost/schema, and of the schema
+// version the server tells (X-Waypost-Schema) against the app's.
+import { SCHEMA_VERSION, type ErrorCode, type ErrorResponse, type SchemaPath, type SchemaTypes } from '@waypost/schema';
 
 import { uuidv7 } from '@/id/uuidv7';
 import { schemaErrors } from '@/schema/validation';
@@ -103,12 +104,22 @@ function retryAfter(headers: Headers): number | null {
   return Number.isNaN(date) ? null : Math.max(0, Math.ceil((date - Date.now()) / 1000));
 }
 
+/** The header in which the server tells the version of @waypost/schema it was made with (waypost-schema decisions). */
+export const SCHEMA_VERSION_HEADER = 'X-Waypost-Schema';
+
+/** Whether the server's schema version differs from the app's in the major or the minor (a patch keeps the valid instances). */
+export function schemaVersionDiffers(server: string, app: string = SCHEMA_VERSION): boolean {
+  const majorMinor = (version: string) => version.split('.').slice(0, 2).join('.');
+  return majorMinor(server) !== majorMinor(app);
+}
+
 export function createApiClient(options: ApiClientOptions): ApiClient {
   const baseUrl = options.baseUrl.replace(/\/+$/, '');
   if (!/^https?:\/\/[^/]+/.test(baseUrl)) throw new Error(`Invalid API base URL: ${options.baseUrl}`);
   const doFetch = options.fetch ?? fetch;
   const validate = options.validate ?? __DEV__;
   const timeoutMs = options.timeoutMs ?? 30_000;
+  let schemaVersionWarned = false;
 
   async function request<P extends SchemaPath>(req: ApiRequest<P>): Promise<ApiResponse<SchemaTypes[P]>> {
     if (validate && req.bodySchema !== undefined) {
@@ -141,6 +152,12 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       throw new NetworkError(controller.signal.aborted, { cause: error });
     } finally {
       clearTimeout(timer);
+    }
+
+    const serverSchema = response.headers.get(SCHEMA_VERSION_HEADER);
+    if (validate && !schemaVersionWarned && serverSchema !== null && schemaVersionDiffers(serverSchema)) {
+      schemaVersionWarned = true;
+      console.warn(`The server uses @waypost/schema ${serverSchema}, the app ${SCHEMA_VERSION}: one of them is out of date`);
     }
 
     let body: unknown;
