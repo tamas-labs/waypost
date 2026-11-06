@@ -12,13 +12,15 @@ import {
   scheduleNotificationAsync,
   type NotificationRequestInput,
 } from 'expo-notifications';
+import { Platform } from 'react-native';
 
 import { useSession } from '@/auth/session';
 import { onChainEntries } from '@/chain/events';
 import type { Database } from '@/db/database';
 import { routes } from '@/db/schema';
 import { onForeground } from '@/device/foreground';
-import { alarmPlan, type AlarmSlot, type PlannedAlarm } from '@/domain/alarms';
+import { logError } from '@/diagnostics/error-log';
+import { alarmPlan, MAX_ALARMS_ANDROID, MAX_ALARMS_IOS, type AlarmSlot, type PlannedAlarm } from '@/domain/alarms';
 import { loadGuardStateNow } from '@/guard/state';
 import { t } from '@/i18n';
 import { onConfigurationPulled, onOutboxQueued } from '@/sync/events';
@@ -99,7 +101,7 @@ export async function replaceRoundAlarms(requests: readonly RoundAlarmRequest[])
 export async function rescheduleRoundAlarms(db: Database, readClock: ReadClock = readDeviceClock): Promise<void> {
   const clock = readClock();
   const { now, state } = loadGuardStateNow(db, () => clock);
-  const plan = state === null ? [] : alarmPlan(state, now);
+  const plan = state === null ? [] : alarmPlan(state, now, Platform.OS === 'android' ? MAX_ALARMS_ANDROID : MAX_ALARMS_IOS);
   const routeIds = [...new Set(plan.map((alarm) => alarm.route_id))];
   const routeNames = new Map(
     db
@@ -155,6 +157,7 @@ export function requestAlarmReschedule(): Promise<void> {
         await rescheduleRoundAlarms(db);
       } catch (error) {
         if (__DEV__) console.warn('Rescheduling the round alarms failed', error);
+        logError('alarms', error, 'reschedule');
       }
     } while (again);
     running = null;
@@ -190,6 +193,7 @@ export function startRoundAlarms(db: Database): () => void {
   ensureRoundsChannel()
     .catch((error: unknown) => {
       if (__DEV__) console.warn('Creating the rounds channel failed', error);
+      logError('alarms', error, 'channel');
     })
     .finally(() => void requestAlarmReschedule());
 

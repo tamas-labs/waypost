@@ -13,6 +13,7 @@ import { useSession } from '@/auth/session';
 import { onChainEntries } from '@/chain/events';
 import type { Database } from '@/db/database';
 import { getKv, setKv } from '@/db/kv';
+import { logError } from '@/diagnostics/error-log';
 import { readClock } from '@/time/clock';
 import { nowTimestamp } from '@/time/timestamp';
 import { trustedTime } from '@/time/trusted-time';
@@ -143,6 +144,7 @@ function finished(db: Database, outcome: SyncOutcome): void {
       cleanUpIfDue(db);
     } catch (error) {
       console.error('The local cleanup failed', error);
+      logError('sync', error, 'cleanup');
     }
   } else if (outcome.status === 'failed') {
     const { step, error } = outcome;
@@ -166,7 +168,10 @@ function finished(db: Database, outcome: SyncOutcome): void {
 function followRevocation(db: Database, outcome: SyncOutcome, sync: SyncController): void {
   if (outcome.status !== 'failed' || !isApiError(outcome.error, 'device_revoked') || useSession.getState().mode !== 'site_phone') return;
   if (isRevoked(db)) {
-    forgetDevice(db).catch((error: unknown) => console.error('Forgetting the revoked device failed', error));
+    forgetDevice(db).catch((error: unknown) => {
+      console.error('Forgetting the revoked device failed', error);
+      logError('sync', error, 'forget_device');
+    });
   } else {
     markRevoked(db);
     void sync.sync('revoked');

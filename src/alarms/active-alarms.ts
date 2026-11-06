@@ -13,6 +13,7 @@ import {
 import { useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
 import { onForeground } from '@/device/foreground';
+import { logError } from '@/diagnostics/error-log';
 import type { AlarmSlot } from '@/domain/alarms';
 import { loadAlarmScreenInfo } from '@/guard/alarm';
 
@@ -69,6 +70,7 @@ function dismissAlarmNotifications(slot: AlarmSlot): void {
   for (const kind of ['round', 'reminder'] as const) {
     dismissNotificationAsync(alarmIdentifier(kind, slot)).catch((error: unknown) => {
       if (__DEV__) console.warn('Dismissing an alarm notification failed', error);
+      logError('alarm_screen', error, 'dismiss');
     });
   }
 }
@@ -99,6 +101,7 @@ export function startAlarmScreen(db: Database): () => void {
   const stopForeground = onForeground(() => {
     raisePresentedAlarms(db).catch((error: unknown) => {
       if (__DEV__) console.warn('Checking the presented alarms failed', error);
+      logError('alarm_screen', error, 'presented');
     });
   });
 

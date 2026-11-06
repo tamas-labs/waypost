@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState, type ReactNode } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -10,6 +10,7 @@ import { Card } from '@/components/card';
 import { Icon, type IconName } from '@/components/icon';
 import { InfoBanner } from '@/components/info-banner';
 import { ScreenHeader } from '@/components/screen-header';
+import { Sheet, SheetModal } from '@/components/sheet';
 import { formatSyncTime } from '@/components/sync-status-indicator';
 import { getDatabase } from '@/db/open';
 import type { TrainingDraft } from '@/domain/training';
@@ -129,14 +130,7 @@ export default function SiteScreen() {
           {session.mode === 'supervisor_phone' && <EnrollThisPhone siteId={site.id} siteName={site.name} phone={site.phone} />}
         </Section>
       </ScrollView>
-      <Modal
-        visible={pickingRoute}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        navigationBarTranslucent
-        onRequestClose={() => setPickingRoute(false)}
-      >
+      <SheetModal visible={pickingRoute} onClose={() => setPickingRoute(false)}>
         <RoutePicker
           site={site}
           onPick={(routeId) => {
@@ -145,7 +139,7 @@ export default function SiteScreen() {
           }}
           onClose={() => setPickingRoute(false)}
         />
-      </Modal>
+      </SheetModal>
     </View>
   );
 }
@@ -154,36 +148,21 @@ const openSchedule = (routeId: string) => router.push({ pathname: '/routes/[id]/
 
 /** The routes of the site with their schedules in one line each, to choose whose schedule to edit (S8). */
 function RoutePicker({ site, onPick, onClose }: { site: SiteDetail; onPick: (routeId: string) => void; onClose: () => void }) {
-  const { color, typography, space, radius } = useTheme();
-  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.grow}>
-      <Pressable
-        style={[styles.grow, { backgroundColor: color.scrim }]}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel={t('common.cancel')}
-      />
-      <View style={[styles.sheet, { backgroundColor: color.bg, borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card }]}>
-        <ScrollView contentContainerStyle={{ padding: space.l, paddingBottom: insets.bottom + space.l, gap: space.m }}>
-          <Text accessibilityRole="header" style={[typography.title2, { color: color.text }]}>
-            {t('scheduleEdit.pickRoute')}
-          </Text>
-          <Card divided>
-            {site.routes.map((route) => (
-              <Row
-                key={route.id}
-                title={route.name}
-                subtitle={schedulesSummary(site.schedules.filter((schedule) => schedule.route_id === route.id))}
-                dimmed={!route.active}
-                onPress={() => onPick(route.id)}
-              />
-            ))}
-          </Card>
-          <Button variant="secondary" label={t('common.cancel')} onPress={onClose} />
-        </ScrollView>
-      </View>
-    </View>
+    <Sheet title={t('scheduleEdit.pickRoute')} onClose={onClose}>
+      <Card divided>
+        {site.routes.map((route) => (
+          <Row
+            key={route.id}
+            title={route.name}
+            subtitle={schedulesSummary(site.schedules.filter((schedule) => schedule.route_id === route.id))}
+            dimmed={!route.active}
+            onPress={() => onPick(route.id)}
+          />
+        ))}
+      </Card>
+      <Button variant="secondary" label={t('common.cancel')} onPress={onClose} />
+    </Sheet>
   );
 }
 
@@ -398,7 +377,6 @@ function PhoneRow({ phone, timeZone }: { phone: SitePhone | null; timeZone: stri
 
 const styles = StyleSheet.create({
   grow: { flex: 1 },
-  sheet: { maxHeight: '92%' },
   row: { flexDirection: 'row', alignItems: 'center' },
   tile: { alignItems: 'center', justifyContent: 'center' },
 });

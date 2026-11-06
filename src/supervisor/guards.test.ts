@@ -7,7 +7,18 @@ import { setKv, type OutboxRejection } from '@/db/kv';
 import { outbox, shifts, sites, siteUser, users } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 
-import { attachGuard, changePin, createGuard, freshPin, guardName, loadSiteGuards, setGuardActive } from './guards';
+import {
+  attachGuard,
+  changePin,
+  createGuard,
+  createSupervisor,
+  freshPin,
+  guardName,
+  loadSiteGuards,
+  setGuardActive,
+  supervisorEmail,
+  validPassword,
+} from './guards';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 
@@ -100,10 +111,35 @@ describe('loading', () => {
         { id: PETER, name: 'Nagy Péter', active: true, pin: 'unknown', on_shift: true, last_shift_at: '2026-10-27T19:00:00.000Z' },
         { id: ESZTER, name: 'Tóth Eszter', active: false, pin: 'unknown', on_shift: false, last_shift_at: null },
       ],
+      supervisors: [],
       me: { id: ME.id, name: ME.name, pin: 'unknown' },
-      attachable: [{ id: ZOLTAN, name: 'Szabó Zoltán' }],
+      attachable: [{ id: ZOLTAN, name: 'Szabó Zoltán', role: 'guard' }],
       pinConflicts: [],
     });
+  });
+
+  test('the other supervisors of the site, and those of the other sites to assign, after the guards', async () => {
+    const BELA = '019a2b3c-4d5e-7f00-8a00-000000000031';
+    const CSILLA = '019a2b3c-4d5e-7f00-8a00-000000000032';
+    const DORA = '019a2b3c-4d5e-7f00-8a00-000000000033';
+    await addUser(ME.id, ME.name, [SITE, OTHER_SITE], { role: 'supervisor' });
+    await addUser(CSILLA, 'Varga Csilla', [SITE], { role: 'supervisor', active: false });
+    await addUser(BELA, 'Balogh Béla', [SITE], { role: 'supervisor' });
+    await addUser(DORA, 'Fehér Dóra', [OTHER_SITE], { role: 'supervisor' });
+    await addUser(ZOLTAN, 'Szabó Zoltán', [OTHER_SITE]);
+
+    const loaded = loadSiteGuards(db, SITE, ME, [])!;
+    expect(loaded.guards).toEqual([]);
+    expect(loaded.supervisors).toEqual([
+      { id: BELA, name: 'Balogh Béla', active: true, pin: 'unknown' },
+      { id: CSILLA, name: 'Varga Csilla', active: false, pin: 'unknown' },
+    ]);
+    expect(loaded.attachable).toEqual([
+      { id: ZOLTAN, name: 'Szabó Zoltán', role: 'guard' },
+      { id: DORA, name: 'Fehér Dóra', role: 'supervisor' },
+    ]);
+    // The supervisor using the phone is not one of the others, not even on a site of theirs where they are not.
+    expect(loadSiteGuards(db, OTHER_SITE, ME, [])!.attachable.map((person) => person.id)).toEqual([BELA]);
   });
 
   test('the site phone knows who has a PIN; a supervisor not on the site', async () => {
@@ -183,6 +219,35 @@ describe('the actions', () => {
         body: { id: NEW_ID, name: 'Kiss Péter', role: 'guard', pin: '482913', active: true, site_ids: [SITE] },
       },
     ]);
+  });
+
+  test('a new supervisor: the local user with a working PIN at once, the create with the login and the PIN', async () => {
+    const login = { email: 'balogh.bela@example.com', password: 'jelszo-1234' };
+    expect(await createSupervisor(db, { siteId: SITE, name: 'Balogh Béla', ...login, pin: '482913' }, LATER, () => NEW_ID)).toBe(NEW_ID);
+    expect(db.select().from(users).get()).toEqual(
+      expect.objectContaining({ id: NEW_ID, name: 'Balogh Béla', role: 'supervisor', active: true }),
+    );
+    expect(await verifies(NEW_ID, '482913')).toBe(true);
+    expect(db.select().from(siteUser).all()).toEqual([{ site_id: SITE, user_id: NEW_ID }]);
+    expect(queued()).toEqual([
+      {
+        method: 'POST',
+        path: '/users',
+        body: { id: NEW_ID, name: 'Balogh Béla', role: 'supervisor', ...login, pin: '482913', active: true, site_ids: [SITE] },
+      },
+    ]);
+  });
+
+  test('the e-mail address and the password of a new supervisor, as the server takes them', () => {
+    expect(supervisorEmail('  balogh.bela@example.com ')).toBe('balogh.bela@example.com');
+    expect(supervisorEmail('bela@localhost')).toBeNull();
+    expect(supervisorEmail('béla@example.com')).toBeNull();
+    expect(supervisorEmail('bela@[127.0.0.1]')).toBeNull();
+    expect(supervisorEmail('')).toBeNull();
+    expect(supervisorEmail(`${'a'.repeat(250)}@example.com`)).toBeNull();
+    expect(validPassword('1234567')).toBe(false);
+    expect(validPassword('12345678')).toBe(true);
+    expect(validPassword('x'.repeat(256))).toBe(false);
   });
 
   test('a new PIN: the old one stops working at once', async () => {

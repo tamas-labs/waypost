@@ -2,8 +2,8 @@ import { useState } from 'react';
 
 import { createApiClient } from '@/api/client';
 import { apiBaseUrl } from '@/api/config';
-import { enrollErrorText } from '@/auth/enroll-error';
-import { enrollThisPhone } from '@/auth/supervisor';
+import { enrollErrorText } from '@/account/enroll-error';
+import { enrollThisPhone } from '@/account/supervisor';
 import { getDatabase } from '@/db/open';
 import { t } from '@/i18n';
 

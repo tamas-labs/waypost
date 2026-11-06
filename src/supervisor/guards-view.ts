@@ -5,7 +5,7 @@ import { t } from '@/i18n';
 import { parseTimestamp } from '@/time/timestamp';
 import { DAY_MS, localDateOf, localTimeOf, parseLocalDate } from '@/time/zone';
 
-import type { PinConflict, PinState, SiteGuard } from './guards';
+import type { PinConflict, PinState, SiteGuard, SiteSupervisor } from './guards';
 
 /** "ma 20:00", "tegnap 20:00", otherwise "10. 24. 20:00", in the site's time zone. */
 export function shiftTime(at: Timestamp, nowMs: number, timeZone: string): string {
@@ -30,6 +30,13 @@ export function guardLine(guard: SiteGuard, nowMs: number, timeZone: string): st
       ? []
       : [t('guards.lastShift', { when: shiftTime(guard.last_shift_at, nowMs, timeZone) })];
   const parts = [...pinText(guard.pin), ...shift];
+  return parts.length === 0 ? t('guards.canLogIn') : parts.join(' · ');
+}
+
+/** Another supervisor of the site: "PIN beállítva"; suspended: "Felfüggesztve · nem tud belépni". */
+export function supervisorLine(supervisor: SiteSupervisor): string {
+  if (!supervisor.active) return t('guards.suspended');
+  const parts = pinText(supervisor.pin);
   return parts.length === 0 ? t('guards.canLogIn') : parts.join(' · ');
 }
 

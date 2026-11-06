@@ -14,7 +14,7 @@ import { NetworkError } from '@/api/errors';
 import { changePin as changeUserPin, createGuard, freshPin } from '@/supervisor/guards';
 import { pinLogin } from '@/auth/pin';
 import { logIn, useSession } from '@/auth/session';
-import { enrollThisPhone, signInSupervisor } from '@/auth/supervisor';
+import { enrollThisPhone, signInSupervisor } from '@/account/supervisor';
 import type { Database } from '@/db/database';
 import { getKv } from '@/db/kv';
 import { checkpoints, outbox, reportSubscriptions, routes, routeVersionCheckpoints, schedules, sites, siteUser, users } from '@/db/schema';

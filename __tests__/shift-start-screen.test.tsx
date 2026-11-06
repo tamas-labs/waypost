@@ -8,15 +8,15 @@ import { getDatabase } from '@/db/open';
 import { siteUser, users } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import { GUARD, local, ROUTE_A, ROUTE_B, SITE } from '@/domain/testing';
-import { fixReadiness, getReadiness, type Readiness } from '@/device/readiness';
+import { fixReadiness, getReadiness, type Readiness } from '@/setup/readiness';
 import { seedSite } from '@/guard/testing';
 import { ThemeProvider } from '@/theme/theme-provider';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
-jest.mock('@/device/readiness', () => ({
-  ...jest.requireActual<object>('@/device/readiness'),
+jest.mock('@/setup/readiness', () => ({
+  ...jest.requireActual<object>('@/setup/readiness'),
   getReadiness: jest.fn(),
   fixReadiness: jest.fn(),
 }));

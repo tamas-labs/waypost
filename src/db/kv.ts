@@ -34,7 +34,7 @@ export interface OutboxRejection {
 }
 
 /**
- * The supervisor using the supervisor mode: on their own phone as POST /auth/login answered (auth/supervisor.ts); on the
+ * The supervisor using the supervisor mode: on their own phone as POST /auth/login answered (account/supervisor.ts); on the
  * site phone from the users table, without the e-mail address, which the phone does not get.
  */
 export type SupervisorAccount = Pick<AuthLoginResponse['user'], 'id' | 'name'> & { email: string | null };
@@ -43,6 +43,20 @@ export type SupervisorAccount = Pick<AuthLoginResponse['user'], 'id' | 'name'> &
 export interface ConfirmedRecords {
   ids: string[];
   server_time: string;
+}
+
+/** Where a logged error happened (diagnostics/error-log.ts); the screen names it. */
+export type ErrorSource = 'scheduler' | 'alarms' | 'alarm_screen' | 'nfc' | 'scan' | 'record' | 'pin' | 'sync' | 'render';
+
+/** An error of the background or a screen, kept on the phone for a later look (diagnostics/error-log.ts). */
+export interface LoggedError {
+  /** Device wall clock. */
+  at: string;
+  source: ErrorSource;
+  /** What was being done, e.g. the scheduler's trigger; null if nothing more. */
+  detail: string | null;
+  /** The error's name and message (English, technical). */
+  message: string;
 }
 
 /** Every key of the kv table and the type of its value. */
@@ -73,6 +87,8 @@ export interface KvValues {
   'device.id': string;
   /** The server answered device_revoked: no more chain entries, the last upload is running (sync/revocation.ts). */
   'device.revoked': true;
+  /** The last errors, the oldest first (diagnostics/error-log.ts); it stays over logout, enrollment and revocation. */
+  'diagnostics.errors': LoggedError[];
   /** The manual theme choice (System / Dark / Light, theme/preference.ts); absent = follow the system. */
   'ui.theme_preference': ThemePreference;
   /** Development builds only: API base URL entered on the developer API address screen (/dev/server). */

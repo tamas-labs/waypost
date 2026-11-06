@@ -1,4 +1,4 @@
-import { alarmPlan, MAX_ALARMS, roundAlarmInfo } from './alarms';
+import { alarmPlan, MAX_ALARMS_ANDROID, MAX_ALARMS_IOS, REMINDER_ROUNDS, roundAlarmInfo } from './alarms';
 import { guardState, local, OPEN_SHIFT, round, ROUTE_A, ROUTE_B, SCHEDULE_A, SCHEDULE_B, SCHEDULES, VERSION_A2 } from './testing';
 
 /** kind, route and local time of fire_at, e.g. 'round A 20:00'. */
@@ -6,7 +6,7 @@ const describeAlarms = (alarms: ReturnType<typeof alarmPlan>) =>
   alarms.map((alarm) => `${alarm.kind} ${alarm.route_id === ROUTE_A ? 'A' : 'B'} ${alarm.fire_at}`);
 
 describe('alarm plan', () => {
-  it('has two alarms for every round of the next 36 hours: at the time and 5 minutes later', () => {
+  it('has an alarm for every round of the next 36 hours, and for the next rounds a reminder 5 minutes later', () => {
     const alarms = alarmPlan(guardState(), local('19:00'));
     expect(describeAlarms(alarms).slice(0, 6)).toEqual([
       `round A ${local('20:00')}`,
@@ -16,24 +16,38 @@ describe('alarm plan', () => {
       `round A ${local('21:00')}`,
       `reminder A ${local('21:05')}`,
     ]);
-    // Two nights of 6 rounds; the third night starts after 36 hours.
-    expect(alarms).toHaveLength(24);
+    // Two nights of 6 rounds; the third night starts after 36 hours. Only the first 4 rounds have a reminder.
+    expect(alarms).toHaveLength(12 + REMINDER_ROUNDS);
+    expect(alarms.filter((alarm) => alarm.kind === 'reminder').map((alarm) => alarm.scheduled_at)).toEqual([
+      local('20:00'),
+      local('20:30'),
+      local('21:00'),
+      local('22:00'),
+    ]);
     expect(alarms.at(-1)).toEqual({
-      kind: 'reminder',
+      kind: 'round',
       route_id: ROUTE_A,
       schedule_id: SCHEDULE_A,
       scheduled_at: local('23:00', '2026-11-04'),
-      fire_at: local('23:05', '2026-11-04'),
+      fire_at: local('23:00', '2026-11-04'),
       login: true,
     });
   });
 
-  it('includes a round exactly 36 hours ahead, with its reminder, and nothing later', () => {
-    const alarms = alarmPlan(guardState(), local('08:00'));
-    expect(describeAlarms(alarms).slice(-2)).toEqual([
-      `round A ${local('20:00', '2026-11-04')}`,
-      `reminder A ${local('20:05', '2026-11-04')}`,
+  it('gives the reminders to the next rounds that have not started', () => {
+    const rounds = [round('A', '20:00', { status: 'in_progress' }), round('B', '20:30', { status: 'completed' })];
+    const alarms = alarmPlan(guardState({ shift: OPEN_SHIFT, rounds }), local('20:02'));
+    expect(alarms.filter((alarm) => alarm.kind === 'reminder').map((alarm) => alarm.scheduled_at)).toEqual([
+      local('21:00'),
+      local('22:00'),
+      local('22:30'),
+      local('23:00'),
     ]);
+  });
+
+  it('includes a round exactly 36 hours ahead, and nothing later', () => {
+    const alarms = alarmPlan(guardState(), local('08:00'));
+    expect(describeAlarms(alarms).slice(-2)).toEqual([`round A ${local('23:00')}`, `round A ${local('20:00', '2026-11-04')}`]);
   });
 
   it('keeps the reminder of a round just past its time until it starts, and drops it once started or closed', () => {
@@ -65,12 +79,20 @@ describe('alarm plan', () => {
     expect(alarmPlan(guardState(), local('20:10')).every((alarm) => alarm.login)).toBe(true);
   });
 
-  it('keeps the first 48 alarms', () => {
+  it('keeps the first 48 alarms on iOS, and 192 on Android: with rounds every 15 minutes, 11 and 36 hours', () => {
     const everyQuarter = { ...SCHEDULES[0]!, interval_from: '00:00', interval_to: '23:45', interval_every_min: 15 };
-    const alarms = alarmPlan(guardState({ schedules: [everyQuarter] }), local('19:00'));
-    expect(alarms).toHaveLength(MAX_ALARMS);
-    expect(alarms[0]?.fire_at).toBe(local('19:05'));
-    expect(alarms.at(-1)?.fire_at).toBe(local('01:00', '2026-11-04'));
+    const state = guardState({ schedules: [everyQuarter] });
+    const ios = alarmPlan(state, local('19:00'));
+    expect(ios).toHaveLength(MAX_ALARMS_IOS);
+    // The 19:00 round's own time is now; its reminder is still to come.
+    expect(ios[0]?.fire_at).toBe(local('19:05'));
+    expect(ios.filter((alarm) => alarm.kind === 'reminder')).toHaveLength(REMINDER_ROUNDS);
+    expect(ios.at(-1)?.fire_at).toBe(local('06:00', '2026-11-04'));
+
+    const android = alarmPlan(state, local('19:00'), MAX_ALARMS_ANDROID);
+    // Every round of the 36 hours, 19:15 to 07:00 two days later, with 4 reminders.
+    expect(android).toHaveLength(36 * 4 + REMINDER_ROUNDS);
+    expect(android.at(-1)?.fire_at).toBe(local('07:00', '2026-11-05'));
   });
 
   it('has no alarm for a route without rounds or an inactive schedule', () => {

@@ -5,7 +5,7 @@ import { Alert } from 'react-native';
 import { createApiClient } from '@/api/client';
 import { apiBaseUrl } from '@/api/config';
 import { logOut, useSession } from '@/auth/session';
-import { signOutSupervisor, unsentSupervisorActions } from '@/auth/supervisor';
+import { signOutSupervisor, unsentSupervisorActions } from '@/account/supervisor';
 import { showToast } from '@/components/toast';
 import type { SupervisorAccount } from '@/db/kv';
 import { getDatabase } from '@/db/open';

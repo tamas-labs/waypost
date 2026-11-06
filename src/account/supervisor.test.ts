@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 
 import { configCalls } from '@/api/config-calls';
 import { NetworkError } from '@/api/errors';
+import { useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
 import { getKv, setKv } from '@/db/kv';
 import { devices, outbox, routeVersions, sites } from '@/db/schema';
@@ -15,7 +16,6 @@ import { whenSyncIdle } from '@/sync/runtime';
 import { fakeApi, type FakeAnswer } from '@/sync/testing';
 import { useSyncStatus } from '@/sync/status';
 
-import { useSession } from './session';
 import { enrollThisPhone, signInSupervisor, signOutSupervisor, UnsentActionsError, unsentSupervisorActions } from './supervisor';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));

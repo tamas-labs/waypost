@@ -1,6 +1,8 @@
 // The round alarms (specification: Mobilapp / Ébresztés): which local notifications the phone should have now. The
-// rounds of the next 36 hours, two alarms each – at the time, and a reminder 5 minutes later unless the round has
-// started –, at most 48. The plan is recomputed and the whole list replaced at every change (src/alarms).
+// rounds of the next 36 hours, each with an alarm at its time, and the next few with a reminder 5 minutes later unless
+// the round has started; at most 48 on iOS, 192 on Android. The plan is recomputed and the whole list replaced at
+// every change (src/alarms). The reminders of the later rounds come with a later reschedule: the budget goes to
+// the rounds themselves, so that a dense schedule still rings for hours with the app closed (audit WP-APP-003).
 import type { Timestamp } from '@waypost/schema';
 
 import { parseTimestamp, toTimestamp } from '@/time/timestamp';
@@ -13,8 +15,12 @@ import { isClosedStatus, roundKey, type ClosedStatus, type GuardState } from './
 
 export const ALARM_HORIZON_MS = 36 * 60 * MINUTE_MS;
 /** Under iOS's limit of 64 pending notifications. */
-export const MAX_ALARMS = 48;
+export const MAX_ALARMS_IOS = 48;
+/** Android has no such limit, but some makers cap an app's pending alarms at 500. */
+export const MAX_ALARMS_ANDROID = 192;
 export const REMINDER_AFTER_MS = 5 * MINUTE_MS;
+/** How many of the coming rounds get a reminder. */
+export const REMINDER_ROUNDS = 4;
 
 export interface PlannedAlarm {
   /** round: at the round's time; reminder: 5 minutes later, if the round has not started. */
@@ -28,11 +34,12 @@ export interface PlannedAlarm {
 }
 
 /**
- * The alarms to be pending at now: of the rounds scheduled in the next 36 hours (a round still unstarted from the
- * last 5 minutes keeps its reminder), on routes that have rounds, in time order, the first 48. A round already
- * started or closed on the phone has no reminder.
+ * The alarms to be pending at now: of the rounds scheduled in the next 36 hours, on routes that have rounds, in time
+ * order, the first maxAlarms. Every round has its alarm; the first REMINDER_ROUNDS rounds that have not started (a
+ * round still unstarted from the last 5 minutes among them) have their reminder too. A round already started or
+ * closed on the phone has no reminder.
  */
-export function alarmPlan(state: GuardState, now: Timestamp): PlannedAlarm[] {
+export function alarmPlan(state: GuardState, now: Timestamp, maxAlarms: number = MAX_ALARMS_IOS): PlannedAlarm[] {
   const nowMs = parseTimestamp(now);
   const horizonMs = nowMs + ALARM_HORIZON_MS;
   const shiftStartedMs = state.shift === null ? null : parseTimestamp(state.shift.started_at);
@@ -41,7 +48,8 @@ export function alarmPlan(state: GuardState, now: Timestamp): PlannedAlarm[] {
   const statuses = new Map(state.rounds.map((round) => [roundKey(round), round.status]));
 
   const alarms: PlannedAlarm[] = [];
-  for (const slot of slots) {
+  let reminders = 0;
+  for (const slot of [...slots].sort((a, b) => parseTimestamp(a.scheduled_at) - parseTimestamp(b.scheduled_at))) {
     const at = parseTimestamp(slot.scheduled_at);
     if (at <= nowMs - REMINDER_AFTER_MS || at > horizonMs) continue;
     const status = statuses.get(roundKey(slot));
@@ -49,10 +57,12 @@ export function alarmPlan(state: GuardState, now: Timestamp): PlannedAlarm[] {
     const alarm = { route_id: slot.route_id, schedule_id: slot.schedule_id, scheduled_at: slot.scheduled_at, login };
     if (at > nowMs) alarms.push({ ...alarm, kind: 'round', fire_at: slot.scheduled_at });
     const reminderMs = at + REMINDER_AFTER_MS;
-    if (reminderMs > nowMs && (status === undefined || status === 'open'))
+    if (reminderMs > nowMs && reminders < REMINDER_ROUNDS && (status === undefined || status === 'open')) {
+      reminders += 1;
       alarms.push({ ...alarm, kind: 'reminder', fire_at: toTimestamp(reminderMs) });
+    }
   }
-  return alarms.sort((a, b) => parseTimestamp(a.fire_at) - parseTimestamp(b.fire_at)).slice(0, MAX_ALARMS);
+  return alarms.sort((a, b) => parseTimestamp(a.fire_at) - parseTimestamp(b.fire_at)).slice(0, maxAlarms);
 }
 
 /** The round time an alarm belongs to. */

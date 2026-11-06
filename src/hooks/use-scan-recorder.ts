@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 
 import { getDatabase } from '@/db/open';
+import { logError } from '@/diagnostics/error-log';
 import type { PointOutcome, ScanOutcome, TagRead } from '@/domain/scan';
 import { playFeedback } from '@/feedback/feedback';
 import { previewTagRead, recordTagRead, scanFeedback } from '@/guard/scan';
@@ -54,6 +55,7 @@ export function useScanRecorder(navigate: 'push' | 'replace', roundId: string): 
         router[navigate]({ pathname: '/scan-result', params: scanResultParams(outcome, read, roundId) });
       } catch (error) {
         if (__DEV__) console.warn('Recording a scan failed', error);
+        logError('scan', error, read.method);
         playFeedback('error');
         setFailed(true);
       } finally {

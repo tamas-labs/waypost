@@ -3,13 +3,13 @@ import * as SecureStore from 'expo-secure-store';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
+import { loadSession, useSession } from '@/auth/session';
 import { getKv, setKv } from '@/db/kv';
 import { devices } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 
 import { getDeviceCredentials, getSupervisorToken, setSupervisorToken } from '@/device/credentials';
 import { enrollmentRequest, saveEnrollment } from './enrollment';
-import { loadSession, useSession } from './session';
 
 const EXAMPLES = join(dirname(require.resolve('@waypost/schema/package.json')), 'examples', 'api');
 const ENROLLED = JSON.parse(readFileSync(join(EXAMPLES, 'devices-enroll.response/valid/enrolled.json'), 'utf8')) as DevicesEnrollResponse;

@@ -1,5 +1,5 @@
 import * as Notifications from 'expo-notifications';
-import { AppState, type AppStateStatus } from 'react-native';
+import { AppState, Platform, type AppStateStatus } from 'react-native';
 
 import { useSession } from '@/auth/session';
 import { appendChainEntries } from '@/chain/writer';
@@ -7,6 +7,7 @@ import type { Database } from '@/db/database';
 import { deleteKv, setKv } from '@/db/kv';
 import { createTestDatabase } from '@/db/testing';
 import { scan } from '@/chain/payloads';
+import * as domainAlarms from '@/domain/alarms';
 import { guardLogin } from '@/domain/shift';
 import { C1, GUARD, idSequence, local, ROUTE_A, SCHEDULE_A } from '@/domain/testing';
 import { runSchedulerStep } from '@/guard/scheduler';
@@ -136,11 +137,22 @@ describe('round alarm requests', () => {
 describe('rescheduling the round alarms', () => {
   it('schedules the plan of the next 36 hours', async () => {
     await rescheduleRoundAlarms(db);
-    expect(roundAlarms()).toHaveLength(24);
+    expect(roundAlarms()).toHaveLength(16);
     expect(pending.get(`round:${SCHEDULE_A}:${local('20:00')}`)?.content).toMatchObject({
       title: 'Útvonal 61',
       body: '20:00 – indul a kör. Lépj be a PIN-kódoddal.',
     });
+  });
+
+  it.each([
+    ['ios', domainAlarms.MAX_ALARMS_IOS],
+    ['android', domainAlarms.MAX_ALARMS_ANDROID],
+  ] as const)('plans at most as many alarms as %s allows', async (os, max) => {
+    jest.replaceProperty(Platform, 'OS', os);
+    const plan = jest.spyOn(domainAlarms, 'alarmPlan');
+    await rescheduleRoundAlarms(db);
+    expect(plan).toHaveBeenCalledWith(expect.anything(), expect.any(String), max);
+    plan.mockRestore();
   });
 
   it('touches only what changed, e.g. the texts of the rounds a shift now covers', async () => {
@@ -152,11 +164,11 @@ describe('rescheduling the round alarms', () => {
 
     await login();
     await rescheduleRoundAlarms(db);
-    // Tonight's 6 rounds need no login any more; the next night's still do.
-    expect(native.cancelScheduledNotificationAsync).toHaveBeenCalledTimes(12);
-    expect(native.scheduleNotificationAsync).toHaveBeenCalledTimes(12);
+    // Tonight's 6 rounds and 4 reminders need no login any more; the next night's still do.
+    expect(native.cancelScheduledNotificationAsync).toHaveBeenCalledTimes(10);
+    expect(native.scheduleNotificationAsync).toHaveBeenCalledTimes(10);
     expect(pending.get(`round:${SCHEDULE_A}:${local('20:00')}`)?.content.body).toBe('20:00 – indul a kör.');
-    expect(roundAlarms()).toHaveLength(24);
+    expect(roundAlarms()).toHaveLength(16);
   });
 
   it('fires by the device clock when it differs from the trusted time', async () => {
@@ -180,7 +192,7 @@ describe('round alarm triggers', () => {
   it('reschedule at start, after a pull and a supervisor action, at every notification and in the foreground', async () => {
     const stop = startRoundAlarms(db);
     await flush();
-    expect(roundAlarms()).toHaveLength(24);
+    expect(roundAlarms()).toHaveLength(16);
     expect(native.setNotificationHandler).toHaveBeenCalled();
 
     const reschedules = () => native.getAllScheduledNotificationsAsync.mock.calls.length;
@@ -210,12 +222,12 @@ describe('round alarm triggers', () => {
     useSession.setState({ mode: 'site_phone' });
     const stop = startRoundAlarms(db);
     await flush();
-    expect(roundAlarms()).toHaveLength(24);
+    expect(roundAlarms()).toHaveLength(16);
 
     deleteKv(db, 'device.id');
     useSession.setState({ activeUser: { id: 'u', role: 'guard' } });
     await flush();
-    expect(roundAlarms()).toHaveLength(24);
+    expect(roundAlarms()).toHaveLength(16);
 
     useSession.setState({ mode: 'unassigned' });
     await flush();

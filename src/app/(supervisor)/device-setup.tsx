@@ -1,13 +1,19 @@
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSession } from '@/auth/session';
+import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { CheckRow } from '@/components/check-row';
 import { ScreenHeader } from '@/components/screen-header';
+import { SectionTitle } from '@/components/section-title';
 import { SegmentedControl } from '@/components/segmented-control';
-import { setupRows, type SetupItem, type SetupRow } from '@/device/readiness';
+import { getDatabase } from '@/db/open';
+import { setupRows, type SetupItem, type SetupRow } from '@/setup/readiness';
+import { clearErrorLog, ERROR_LOG_SIZE, onErrorLogged, readErrorLog } from '@/diagnostics/error-log';
+import { deviceTimeZone, errorLogRows } from '@/diagnostics/error-log-view';
 import { useReadiness } from '@/hooks/use-readiness';
 import { t, type TranslationKey } from '@/i18n';
 import { useTheme, useThemePreference } from '@/theme/theme-provider';
@@ -34,8 +40,8 @@ function rowText(row: SetupRow) {
 
 // Device setup (specification: (supervisor)/device-setup; no design screen, it follows the readiness of B-Muszakkezdes):
 // the checklist of what the phone needs, each missing item with its fix (the system dialog or settings screen), checked
-// again when the app comes back; and the theme, which only a supervisor changes. On the site phone all items, on a
-// supervisor's own phone those of training and photos.
+// again when the app comes back; the theme, which only a supervisor changes; and the phone's error log (audit
+// WP-APP-008). On the site phone all items, on a supervisor's own phone those of training and photos.
 export default function DeviceSetupScreen() {
   const { color, typography, space } = useTheme();
   const insets = useSafeAreaInsets();
@@ -51,7 +57,7 @@ export default function DeviceSetupScreen() {
           {t(sitePhone ? 'deviceSetup.introSitePhone' : 'deviceSetup.introOwnPhone')}
         </Text>
 
-        <SectionTitle title={t('deviceSetup.checklist')} />
+        <SectionTitle text={t('deviceSetup.checklist')} />
         {readiness !== null && (
           <Card divided>
             {setupRows(readiness, sitePhone ? 'site_phone' : 'supervisor_phone').map((row) => (
@@ -60,7 +66,7 @@ export default function DeviceSetupScreen() {
           </Card>
         )}
 
-        <SectionTitle title={t('theme.title')} />
+        <SectionTitle text={t('theme.title')} />
         <SegmentedControl
           accessibilityLabel={t('theme.title')}
           options={THEME_PREFERENCES.map((value) => ({ value, label: t(`theme.${value}`) }))}
@@ -68,17 +74,41 @@ export default function DeviceSetupScreen() {
           onChange={setPreference}
         />
         <Text style={[typography.small, { color: color.text2, paddingHorizontal: space.xs }]}>{t('deviceSetup.themeHint')}</Text>
+
+        <ErrorLog />
       </ScrollView>
     </View>
   );
 }
 
-function SectionTitle({ title }: { title: string }) {
+/** The last errors of the phone, the newest first, with a clear. */
+function ErrorLog() {
   const { color, typography, space } = useTheme();
+  const [entries, setEntries] = useState(() => readErrorLog(getDatabase()));
+  useEffect(() => onErrorLogged(() => setEntries(readErrorLog(getDatabase()))), []);
+  const rows = errorLogRows(entries, deviceTimeZone());
   return (
-    <Text style={[typography.label, { color: color.text2, paddingHorizontal: space.xs, paddingTop: space.s }]} accessibilityRole="header">
-      {title}
-    </Text>
+    <>
+      <SectionTitle text={t('errorLog.title')} />
+      <Text style={[typography.small, { color: color.text2, paddingHorizontal: space.xs }]}>
+        {t('errorLog.hint', { count: ERROR_LOG_SIZE })}
+      </Text>
+      <Card divided>
+        {rows.length === 0 ? (
+          <Text style={[typography.bodyRegular, { color: color.text2, padding: space.l }]}>{t('errorLog.empty')}</Text>
+        ) : (
+          rows.map((row) => (
+            <View key={row.key} style={{ padding: space.l, gap: space.xs }}>
+              <Text style={[typography.label, { color: color.text }]}>{row.title}</Text>
+              <Text style={[typography.small, { color: color.text2 }]} selectable>
+                {row.detail}
+              </Text>
+            </View>
+          ))
+        )}
+      </Card>
+      {rows.length > 0 && <Button label={t('errorLog.clear')} variant="dangerText" onPress={() => clearErrorLog(getDatabase())} />}
+    </>
   );
 }
 

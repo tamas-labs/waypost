@@ -6,6 +6,7 @@ import type { DevicesEnrollResponse } from '@waypost/schema';
 
 import type { ApiClient } from '@/api/client';
 import { enrollDevice, login, logout } from '@/api/endpoints';
+import { loadSession, useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
 import { deleteDeviceSyncState, deleteKv, setKv } from '@/db/kv';
 import { routeVersionCheckpoints, routeVersions } from '@/db/schema';
@@ -17,7 +18,6 @@ import { refreshPendingCount, whenSyncIdle } from '@/sync/runtime';
 import { useSyncStatus } from '@/sync/status';
 
 import { enrollmentRequest, phoneName, saveEnrollment } from './enrollment';
-import { loadSession, useSession } from './session';
 
 /** Deletes what the phone keeps of a supervisor account: the configuration, the pull cursor, the outbox, who it is. */
 function deleteAccountData(db: Database): void {

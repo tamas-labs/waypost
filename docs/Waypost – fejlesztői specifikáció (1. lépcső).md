@@ -428,7 +428,7 @@ Minden képernyő tetején ott van a szinkronállapot jelzője: online, offline,
 
 ### Ébresztés
 
-- Az app mindig a következő 36 óra köreit ütemezi helyi értesítésként, legfeljebb 48 darabot (az iOS 64-es korlátja alatt). Minden körhöz két értesítés tartozik: az ütemezett időpontban, és ha addig nem indult el, 5 perccel később egy emlékeztető. Az emlékeztetőt az app törli, amint a kör elindul.
+- Az app mindig a következő 36 óra köreit ütemezi helyi értesítésként: iOS-en legfeljebb 48 darabot (a 64-es korlát alatt), Androidon legfeljebb 192-t. Minden körhöz tartozik egy értesítés az ütemezett időpontban. A következő 4 még el nem indult körhöz emellett 5 perccel később egy emlékeztető is tartozik. Az emlékeztetőt az app törli, amint a kör elindul. A későbbi körök emlékeztetője egy későbbi újraütemezéssel kerül be, így sűrű menetrendnél a keret a körök értesítéseire megy (15 perces köröknél iOS-en kb. 11 óra, Androidon a teljes 36 óra).
 - Az újraütemezés induláskor, pull után, műszakkezdéskor és minden értesítés megérkezésekor fut, és mindig az egész listát cseréli.
 - Android: külön értesítési csatorna (`rounds`, MAX fontosság, saját riasztáshang, rezgés), pontos riasztás engedély és kivétel az akkumulátor-optimalizálás alól. Ha valamelyik hiányzik, a PIN-képernyőn figyelmeztető sáv jelenik meg.
 - iOS: `timeSensitive` megszakítási szint (Time Sensitive Notifications jogosultság), saját hang.

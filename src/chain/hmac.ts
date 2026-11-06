@@ -4,7 +4,7 @@ import type { ChainEntry, ChainEntryOf, ChainEntryType, Hash, UnsignedChainEntry
 import { Buffer, createHmac } from 'react-native-quick-crypto';
 
 import { canonicalJson } from './canonical-json';
-import { isDeviceSecret } from './secret';
+import { isDeviceSecret } from '@/device/secret';
 
 /** prev_hash of the first entry of a chain. */
 export const GENESIS_HASH: Hash = '0'.repeat(64);

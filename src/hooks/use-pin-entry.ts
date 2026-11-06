@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import type { PinLoginResult } from '@/auth/pin';
 import { PIN_LENGTH } from '@/components/pin-pad';
+import { logError } from '@/diagnostics/error-log';
 import { playFeedback } from '@/feedback/feedback';
 import { t, type TranslationKey } from '@/i18n';
 import { pinLockedText, usePinLock, wrongPinText } from './use-pin-lock';
@@ -53,6 +54,7 @@ export function usePinEntry(
       refreshLock();
     } catch (error) {
       if (__DEV__) console.warn('Checking the PIN failed', error);
+      logError('pin', error);
       setPin('');
       playFeedback('error');
       setMessage({ kind: 'failed' });

@@ -67,6 +67,17 @@ module.exports = defineConfig([
     regex: '^@/(domain|sync|guard|api|auth|alarms|navigation|app|components)(/|$)',
     message: 'The chain is below these: they follow it through its events.',
   }),
+  // WP-APP-006: the phone's own data and the session stay below the flows that use them, so the folders keep no cycle.
+  ...layerRule('src/device', {
+    regex: '^@/(?!db|device|time|id|api|i18n)[^/]+(/|$)',
+    allowTypeImports: true,
+    message: "The device holds the phone's own data and state: the checklist is in src/setup, the flows above it.",
+  }),
+  ...layerRule('src/auth', {
+    regex: '^@/(sync|account|setup|guard|alarms|nfc|supervisor|hooks|components|navigation|app)(/|$)',
+    allowTypeImports: true,
+    message: 'The session and the PIN are below the sync: the flows that use both are in src/account.',
+  }),
   ...layerRule('src/db', {
     regex: '^@/domain(/|$)',
     allowTypeImports: true,

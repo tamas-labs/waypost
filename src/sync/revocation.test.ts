@@ -114,6 +114,11 @@ const settle = async () => {
 let stop: () => void;
 
 beforeEach(async () => {
+  // The device clock runs from the server time of the answers: the cleanup after a good sync reads it (with no time
+  // reference here), and with the real date the acknowledged entries would be past their 7 days (audit WP-APP-004).
+  const realNow = Date.now.bind(Date);
+  const offset = realNow() - Date.parse(SERVER_TIME);
+  jest.spyOn(Date, 'now').mockImplementation(() => realNow() - offset);
   ({ db } = await createTestDatabase());
   mockedFiles.clear();
   setKv(db, 'device.id', DEVICE);

@@ -1,35 +1,23 @@
 import { router, useLocalSearchParams, usePreventRemove } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Icon, type IconName } from '@/components/icon';
 import { InfoBanner } from '@/components/info-banner';
-import { SinglePhotoField } from '@/components/photo-field';
+import { PointSheet } from '@/components/route-edit/point-sheet';
 import { ScreenHeader } from '@/components/screen-header';
+import { SheetModal } from '@/components/sheet';
 import { SegmentedControl } from '@/components/segmented-control';
-import { TextArea, TextField } from '@/components/text-field';
 import { showToast } from '@/components/toast';
-import type { PhotoFile } from '@/chain/payloads';
 import { getDatabase } from '@/db/open';
-import {
-  RouteEditError,
-  editPointDetails,
-  removeEditPoint,
-  reorderEditPoints,
-  setEditOrderMode,
-  updateEditPoint,
-  type EditPhoto,
-  type EditPoint,
-  type RouteEdit,
-} from '@/domain/route-edit';
-import { CHECKPOINT_INSTRUCTION_MAX, CHECKPOINT_NAME_MAX, checkPointDetails, type OrderMode } from '@/domain/training';
+import { removeEditPoint, reorderEditPoints, setEditOrderMode, type EditPoint, type RouteEdit } from '@/domain/route-edit';
+import { type OrderMode } from '@/domain/training';
 import { useRouteEdit } from '@/hooks/use-route-edit';
 import { trainingNow, useSupervisorId } from '@/hooks/use-training';
 import { t } from '@/i18n';
-import { useSinglePhotoDraft } from '@/photo/use-photo-draft';
 import { editHeaderLine, editPointMeta, routeEditErrorText } from '@/supervisor/route-edit-view';
 import { nextVersionNumber } from '@/supervisor/route-version';
 import { beginTraining, storedTrainingDraft } from '@/supervisor/training';
@@ -196,18 +184,11 @@ export default function RouteEditScreen() {
         )}
       />
       <EditActions nextVersion={nextVersion} canSave={changed && !routeEdit.stale} error={error} onAddPoint={addPoint} onSave={save} />
-      <Modal
-        visible={sheetPoint !== null}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        navigationBarTranslucent
-        onRequestClose={() => setSheet(null)}
-      >
+      <SheetModal visible={sheetPoint !== null} onClose={() => setSheet(null)}>
         {sheetPoint !== null && (
           <PointSheet edit={edit} point={sheetPoint} onChange={change} onClose={() => setSheet(null)} key={sheetPoint.checkpoint_id} />
         )}
-      </Modal>
+      </SheetModal>
     </View>
   );
 }
@@ -343,126 +324,8 @@ function EditActions({
   );
 }
 
-/** A saved photo of the sheet: the checkpoint's own, by its media ID. */
-interface SavedPhoto {
-  id: string;
-}
-
-const sheetPhotoOf = (photo: EditPhoto): SavedPhoto | PhotoFile | null =>
-  photo === null ? null : photo.kind === 'saved' ? { id: photo.media_id } : photo.photo;
-
-/** The sheet's photo back as the editing has it: the one it started with stays what it was. */
-function editPhotoOf(shown: SavedPhoto | PhotoFile | null, started: EditPhoto): EditPhoto {
-  if (shown === null) return null;
-  if (started !== null && shown.id === (started.kind === 'saved' ? started.media_id : started.photo.id)) return started;
-  return { kind: 'new', photo: shown as PhotoFile };
-}
-
-/** The name, instruction and photo of a point (S7 → the S6 fields). */
-function PointSheet({
-  edit,
-  point,
-  onChange,
-  onClose,
-}: {
-  edit: RouteEdit;
-  point: EditPoint;
-  onChange: (next: RouteEdit) => void;
-  onClose: () => void;
-}) {
-  const { color, typography, space, radius } = useTheme();
-  const insets = useSafeAreaInsets();
-  const [started] = useState(() => editPointDetails(edit, point.checkpoint_id));
-  const [name, setName] = useState(started.name);
-  const [instruction, setInstruction] = useState(started.instruction);
-  const [nameMissing, setNameMissing] = useState(false);
-  const photo = useSinglePhotoDraft<SavedPhoto>(sheetPhotoOf(started.photo));
-
-  /** Takes the sheet's fields into the editing; false (the name marked) if the name is missing. */
-  const apply = (): boolean => {
-    const details = { name, instruction, photo: editPhotoOf(photo.photo, started.photo) };
-    if (checkPointDetails({ ...details, photo: null }) !== null) {
-      setNameMissing(true);
-      return false;
-    }
-    try {
-      onChange(updateEditPoint(edit, point.checkpoint_id, details));
-    } catch (e) {
-      if (!(e instanceof RouteEditError) || e.code !== 'name_required') throw e;
-      setNameMissing(true);
-      return false;
-    }
-    photo.keep();
-    return true;
-  };
-
-  const save = () => {
-    if (apply()) onClose();
-  };
-
-  // The label leaves the screen: what was typed on the sheet goes into the editing first, so it is not lost.
-  const openQr = () => {
-    if (!apply()) return;
-    onClose();
-    router.push({ pathname: '/checkpoints/[id]/qr', params: { id: point.checkpoint_id } });
-  };
-
-  return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.grow}>
-      <Pressable
-        style={[styles.grow, { backgroundColor: color.scrim }]}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel={t('common.cancel')}
-      />
-      <View style={[styles.sheet, { backgroundColor: color.bg, borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card }]}>
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ padding: space.l, paddingBottom: insets.bottom + space.l, gap: space.l }}
-        >
-          <Text accessibilityRole="header" style={[typography.title2, { color: color.text }]}>
-            {t('training.editPoint')}
-          </Text>
-          <TextField
-            label={t('training.name')}
-            requirement="required"
-            value={name}
-            onChangeText={(value) => {
-              setName(value);
-              setNameMissing(false);
-            }}
-            error={nameMissing ? t('training.nameMissing') : undefined}
-            maxLength={CHECKPOINT_NAME_MAX}
-            autoCapitalize="sentences"
-            returnKeyType="next"
-          />
-          <TextArea
-            label={t('training.instruction')}
-            requirement="optional"
-            value={instruction}
-            onChangeText={setInstruction}
-            maxLength={CHECKPOINT_INSTRUCTION_MAX}
-            autoCapitalize="sentences"
-          />
-          <SinglePhotoField
-            label={t('training.pointPhoto')}
-            hint={t('training.photoHint')}
-            photo={photo.photo}
-            onTake={photo.take}
-            onRemove={photo.remove}
-          />
-          <Button variant="secondary" icon="qr" label={t('qrLabel.title')} onPress={openQr} />
-          <Button label={t('training.savePoint')} onPress={save} />
-          <Button variant="secondary" label={t('common.cancel')} onPress={onClose} />
-        </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
-  );
-}
-
 const styles = StyleSheet.create({
   grow: { flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center' },
   centre: { alignItems: 'center', justifyContent: 'center' },
-  sheet: { maxHeight: '92%' },
 });

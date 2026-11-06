@@ -8,6 +8,7 @@ import type { Database } from '@/db/database';
 import { deleteKv, setKv } from '@/db/kv';
 import { rounds, shifts } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
+import { readErrorLog, startErrorLog } from '@/diagnostics/error-log';
 import { guardLogin } from '@/domain/shift';
 import { GUARD, idSequence, local } from '@/domain/testing';
 import { requestSync } from '@/sync/runtime';
@@ -188,8 +189,9 @@ describe('scheduler runner', () => {
     expect(roundStatuses()).toEqual([]);
   });
 
-  it('logs a failed step in development and keeps running', async () => {
+  it('logs a failed step, in the error log too, and keeps running', async () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const stopErrorLog = startErrorLog(db);
     await login();
     const stop = startScheduler(db);
     await settle();
@@ -198,6 +200,12 @@ describe('scheduler runner', () => {
     notificationReceived();
     await settle();
     expect(warn).toHaveBeenCalledWith('Scheduler step failed (notification)', expect.any(Error));
+    expect(readErrorLog(db)[0]).toMatchObject({
+      source: 'scheduler',
+      detail: 'notification',
+      message: expect.stringContaining('ChainWriteError'),
+    });
     stop();
+    stopErrorLog();
   });
 });

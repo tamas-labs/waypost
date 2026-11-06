@@ -4,13 +4,18 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import DeviceSetupScreen from '@/app/(supervisor)/device-setup';
 import { useSession } from '@/auth/session';
-import { fixReadiness, getReadiness, type Readiness } from '@/device/readiness';
+import type { Database } from '@/db/database';
+import { getDatabase } from '@/db/open';
+import { createTestDatabase } from '@/db/testing';
+import { logError, readErrorLog, startErrorLog } from '@/diagnostics/error-log';
+import { fixReadiness, getReadiness, type Readiness } from '@/setup/readiness';
 import { ThemeProvider } from '@/theme/theme-provider';
 import type { ThemePreference } from '@/theme/tokens';
 
 jest.mock('expo-router', () => ({ router: { back: jest.fn() } }));
-jest.mock('@/device/readiness', () => ({
-  ...jest.requireActual<object>('@/device/readiness'),
+jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
+jest.mock('@/setup/readiness', () => ({
+  ...jest.requireActual<object>('@/setup/readiness'),
   getReadiness: jest.fn(),
   fixReadiness: jest.fn(),
 }));
@@ -28,13 +33,21 @@ const READY: Readiness = {
 };
 const SUPERVISOR = { id: '019a2b3c-4d5e-7f00-8a00-000000000020', role: 'supervisor' as const };
 
-beforeEach(() => {
+let db: Database;
+let stopErrorLog: () => void;
+
+beforeEach(async () => {
   jest.clearAllMocks();
+  ({ db } = await createTestDatabase());
+  jest.mocked(getDatabase).mockReturnValue(db);
+  stopErrorLog = startErrorLog(db);
   jest.replaceProperty(Platform, 'OS', 'android');
   jest.mocked(getReadiness).mockResolvedValue(READY);
   jest.mocked(fixReadiness).mockResolvedValue();
   useSession.setState({ mode: 'site_phone', deviceId: '019a2b3c-4d5e-7f00-8a00-000000000004', activeUser: SUPERVISOR });
 });
+
+afterEach(() => stopErrorLog());
 
 async function renderScreen(onPreferenceChange?: (preference: ThemePreference) => void) {
   await render(
@@ -127,4 +140,25 @@ it('chooses the theme', async () => {
   await act(async () => fireEvent.press(screen.getByRole('radio', { name: 'Sötét' })));
   expect(onPreferenceChange).toHaveBeenCalledWith('dark');
   expect(screen.getByRole('radio', { name: 'Sötét' })).toBeChecked();
+});
+
+it('shows the error log, the newest first, follows new errors, and clears it', async () => {
+  jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
+    ...new Intl.DateTimeFormat().resolvedOptions(),
+    timeZone: 'Europe/Budapest',
+  });
+  jest.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 10, 3, 19, 0));
+  logError('scheduler', new TypeError('x is undefined'), 'interval');
+  await renderScreen();
+  expect(screen.getByText('2026-11-03 20:00 · Körök ütemezése')).toBeOnTheScreen();
+  expect(screen.getByText('interval · TypeError: x is undefined')).toBeOnTheScreen();
+
+  await act(async () => logError('nfc', 'no reader'));
+  expect(screen.getByText('2026-11-03 20:00 · NFC-figyelés')).toBeOnTheScreen();
+  expect(screen.getByText('no reader')).toBeOnTheScreen();
+
+  await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Napló törlése' })));
+  expect(screen.getByText('Nincs rögzített hiba.')).toBeOnTheScreen();
+  expect(readErrorLog(db)).toEqual([]);
+  expect(screen.queryByRole('button', { name: 'Napló törlése' })).toBeNull();
 });

@@ -5,6 +5,8 @@
 // no browser for a URL record. iOS has no such listening: a tag is read only in a session started by a button.
 import { Platform } from 'react-native';
 
+import { logError } from '@/diagnostics/error-log';
+
 import { getNfcStatus, listenForTags } from './reader';
 import type { TagReading } from './tag';
 
@@ -40,6 +42,7 @@ export function startTagEvents(): () => void {
   starting = register(current)
     .catch((error: unknown) => {
       if (__DEV__) console.warn('Starting the NFC tag listening failed', error);
+      logError('nfc', error, 'start');
     })
     .finally(() => {
       if (current === generation) starting = null;

@@ -24,7 +24,7 @@ import DevLayout from '@/app/dev/_layout';
 import DevToolsScreen from '@/app/dev/index';
 import Index from '@/app/index';
 import { useSession, type SessionState } from '@/auth/session';
-import { signOutSupervisor, unsentSupervisorActions } from '@/auth/supervisor';
+import { signOutSupervisor, unsentSupervisorActions } from '@/account/supervisor';
 import { appendChainEntries } from '@/chain/writer';
 import type { Database } from '@/db/database';
 import { getDatabase } from '@/db/open';
@@ -73,8 +73,8 @@ const ROUTES = {
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
 jest.mock('@/sync/runtime', () => ({ requestSync: jest.fn() }));
-// The logout itself is tested in src/auth/supervisor.test.ts.
-jest.mock('@/auth/supervisor', () => ({ signOutSupervisor: jest.fn(), unsentSupervisorActions: jest.fn(() => 0) }));
+// The logout itself is tested in src/account/supervisor.test.ts.
+jest.mock('@/account/supervisor', () => ({ signOutSupervisor: jest.fn(), unsentSupervisorActions: jest.fn(() => 0) }));
 jest.mock('expo-keep-awake', () => ({ useKeepAwake: jest.fn() }));
 jest.mock('expo-camera', () => ({ useCameraPermissions: () => [null, jest.fn()] }));
 // The tag reader is native.
@@ -83,7 +83,7 @@ jest.mock('@/nfc/use-tag-reader', () => ({
 }));
 jest.mock('@/nfc/reader', () => ({ openNfcSettings: jest.fn() }));
 // The readiness check stays pending (NFC is native).
-jest.mock('@/device/readiness', () => ({ getReadiness: () => new Promise(() => {}), readinessRows: () => [], fixReadiness: jest.fn() }));
+jest.mock('@/setup/readiness', () => ({ getReadiness: () => new Promise(() => {}), readinessRows: () => [], fixReadiness: jest.fn() }));
 jest.mock('@/alarms/permissions', () => ({
   ...jest.requireActual<object>('@/alarms/permissions'),
   getAlarmPermissions: () =>

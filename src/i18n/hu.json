@@ -4,6 +4,7 @@
   },
   "startup": {
     "failed": "Az app nem tudott elindulni",
+    "crashed": "Váratlan hiba történt",
     "retry": "Újrapróbálás"
   },
   "dev": {
@@ -241,6 +242,24 @@
     "themeHint": "Ezen a telefonon minden képernyőre érvényes. Az őrök nem változtathatják.",
     "missingTitle": "A telefon beállítása hiányos",
     "missing": "Lehet, hogy nem szól az ébresztő, vagy nem működik a leolvasás."
+  },
+  "errorLog": {
+    "title": "Hibanapló",
+    "hint": "A telefon itt őrzi a legutóbbi {{count}} hibát (ütemező, ébresztés, leolvasás). Hibabejelentéskor ezt érdemes megmutatni.",
+    "empty": "Nincs rögzített hiba.",
+    "clear": "Napló törlése",
+    "entry": "{{time}} · {{source}}",
+    "sources": {
+      "scheduler": "Körök ütemezése",
+      "alarms": "Ébresztések beállítása",
+      "alarm_screen": "Ébresztés képernyője",
+      "nfc": "NFC-figyelés",
+      "scan": "Leolvasás rögzítése",
+      "record": "Esemény rögzítése",
+      "pin": "PIN ellenőrzése",
+      "sync": "Szinkron",
+      "render": "Képernyő összeomlása"
+    }
   },
   "theme": {
     "title": "Téma",
@@ -869,11 +888,25 @@
     "suspendConfirm": "Nem tud belépni, amíg vissza nem kapcsolod. A PIN-kódja megmarad.",
     "activeSwitch": "{{name}} beléphet",
     "attach": "Meglévő őr hozzáadása",
+    "attachAny": "Meglévő őr vagy supervisor hozzáadása",
     "attachTitle": "Melyik őr dolgozik ezen a telephelyen is?",
+    "attachTitleAny": "Ki dolgozik ezen a telephelyen is?",
     "attachHint": "A többi telephelyed őrei. A hozzáadott őr új PIN-kódot kap.",
+    "attachHintAny": "A többi telephelyed őrei és supervisorai. Aki ide kerül, új PIN-kódot kap.",
+    "roleSupervisor": "Supervisor",
+    "supervisors": "Supervisorok a telephelyen",
+    "newSupervisor": "Új supervisor",
+    "newSupervisorHint": "A saját telefonján az e-mail-címével és a jelszavával lép be, a telephelyi telefonon a PIN-kódjával.",
+    "email": "E-mail-cím",
+    "emailInvalid": "Adj meg egy érvényes e-mail-címet.",
+    "password": "Jelszó",
+    "passwordShort": "A jelszó legalább {{min}} karakter legyen.",
+    "handOverNewSupervisor": "Add át személyesen. Ezzel léphet be a telephelyi telefonon; a saját telefonján az e-mail-címével és a jelszavával.",
     "newGuardName": "Az őr neve",
+    "newSupervisorName": "A supervisor neve",
     "next": "Tovább",
     "nameMissing": "Add meg az őr nevét.",
+    "supervisorNameMissing": "Add meg a supervisor nevét.",
     "created": "{{name}} felvéve",
     "attached": "{{name}} hozzáadva a telephelyhez",
     "pinChanged": "Az új PIN-kód beállítva",

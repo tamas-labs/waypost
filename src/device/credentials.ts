@@ -1,7 +1,7 @@
 // Tokens and the device secret in the secure store (iOS Keychain, Android Keystore); never in the database.
 import * as SecureStore from 'expo-secure-store';
 
-import { isDeviceSecret } from '@/chain/secret';
+import { isDeviceSecret } from './secret';
 
 const SUPERVISOR_TOKEN = 'waypost.supervisor_token';
 const DEVICE_TOKEN = 'waypost.device_token';

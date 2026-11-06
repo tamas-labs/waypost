@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { eq } from 'drizzle-orm';
 import { renderRouter } from 'expo-router/testing-library';
 import { Alert, type AlertButton } from 'react-native';
@@ -153,6 +153,75 @@ it('a new guard: the name, the PIN shown once, another one drawn, saved with “
     { call: 'POST /users', body: { id: created.id, name: 'Kiss Gábor', role: 'guard', pin, active: true, site_ids: [SITE] } },
   ]);
   expect(await verifies(created.id, pin)).toBe(true);
+});
+
+it('a new supervisor: the name, the login checked, the PIN shown once, saved with “Kész”; listed among the supervisors', async () => {
+  await addUser(ME.id, ME.name, [SITE], { role: 'supervisor' });
+  await renderRouter(ROUTES, { initialUrl: `/sites/${SITE}/guards` });
+
+  await press('Új supervisor');
+  await press('Tovább');
+  expect(screen.getByText('Add meg a supervisor nevét.')).toBeOnTheScreen();
+  expect(screen.getByText('Adj meg egy érvényes e-mail-címet.')).toBeOnTheScreen();
+  expect(screen.getByText('A jelszó legalább 8 karakter legyen.')).toBeOnTheScreen();
+
+  await act(async () => fireEvent.changeText(screen.getByLabelText(/A supervisor neve/), 'Balogh Béla'));
+  await act(async () => fireEvent.changeText(screen.getByLabelText(/E-mail-cím/), ' balogh.bela@example.com '));
+  await act(async () => fireEvent.changeText(screen.getByLabelText(/^Jelszó, /), 'jelszo-1234'));
+  await press('Tovább');
+  expect(
+    screen.getByText('Add át személyesen. Ezzel léphet be a telephelyi telefonon; a saját telefonján az e-mail-címével és a jelszavával.'),
+  ).toBeOnTheScreen();
+  const pin = shownPin();
+  expect(queued()).toEqual([]);
+  await press('Kész');
+
+  expect(await screen.findByText('Balogh Béla felvéve')).toBeOnTheScreen();
+  expect(screen.getByText('Supervisorok a telephelyen')).toBeOnTheScreen();
+  const created = db.select().from(users).where(eq(users.name, 'Balogh Béla')).get()!;
+  expect(created.role).toBe('supervisor');
+  expect(queued()).toEqual([
+    {
+      call: 'POST /users',
+      body: {
+        id: created.id,
+        name: 'Balogh Béla',
+        role: 'supervisor',
+        email: 'balogh.bela@example.com',
+        password: 'jelszo-1234',
+        pin,
+        active: true,
+        site_ids: [SITE],
+      },
+    },
+  ]);
+  expect(await verifies(created.id, pin)).toBe(true);
+});
+
+it('another supervisor suspended, and a supervisor of another site assigned here', async () => {
+  const BELA = '019a2b3c-4d5e-7f00-8a00-000000000031';
+  const DORA = '019a2b3c-4d5e-7f00-8a00-000000000033';
+  await addUser(ME.id, ME.name, [SITE, OTHER_SITE], { role: 'supervisor' });
+  await addUser(BELA, 'Balogh Béla', [SITE], { role: 'supervisor' });
+  await addUser(DORA, 'Fehér Dóra', [OTHER_SITE], { role: 'supervisor' });
+  await renderRouter(ROUTES, { initialUrl: `/sites/${SITE}/guards` });
+
+  await press(/Balogh Béla/);
+  await press('Felfüggesztés');
+  await answerAlert('Felfüggesztés');
+  expect(screen.getByRole('switch', { name: 'Balogh Béla beléphet' })).toBeOnTheScreen();
+
+  await press('Meglévő őr vagy supervisor hozzáadása');
+  expect(screen.getByText('Ki dolgozik ezen a telephelyen is?')).toBeOnTheScreen();
+  expect(within(screen.getByRole('button', { name: /Fehér Dóra/ })).getByText('Supervisor')).toBeOnTheScreen();
+  await press(/Fehér Dóra/);
+  const pin = shownPin();
+  await press('Kész');
+  expect(await screen.findByText('Fehér Dóra hozzáadva a telephelyhez')).toBeOnTheScreen();
+  expect(queued()).toEqual([
+    { call: `PATCH /users/${BELA}`, body: { active: false } },
+    { call: `POST /sites/${SITE}/users`, body: { user_id: DORA, pin } },
+  ]);
 });
 
 it('a new guard cancelled: nothing saved', async () => {

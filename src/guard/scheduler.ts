@@ -7,6 +7,7 @@ import { addNotificationReceivedListener, addNotificationResponseReceivedListene
 import { appendDecidedEntries } from '@/chain/writer';
 import type { Database } from '@/db/database';
 import { whileInForeground } from '@/device/foreground';
+import { logError } from '@/diagnostics/error-log';
 import { schedulerStep } from '@/domain/rounds';
 import { uuidv7 } from '@/id/uuidv7';
 import { requestSync } from '@/sync/runtime';
@@ -42,6 +43,7 @@ let stopScheduler: (() => void) | null = null;
 function run(db: Database, trigger: SchedulerTrigger): void {
   runSchedulerStep(db).catch((error: unknown) => {
     if (__DEV__) console.warn(`Scheduler step failed (${trigger})`, error);
+    logError('scheduler', error, trigger);
   });
 }
 

@@ -937,3 +937,46 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
 - **Indok:** Specifikáció *Szinkron protokoll* (Mikor fut, Push és média, Outbox, Pull: a konfigurációt a szerver birtokolja, a pull nem függ a feltöltéstől), *Alapszabályok* (az eszközön létrejött adat a szinkron előtt nem módosul és nem törlődik); laravel-waypost `src/Http/Middleware/ValidateSchema.php`, `src/Validation/SchemaValidator.php` (a `details` kulcsai). A pull a még várakozó outboxhívások rekordjait eddig is megtartotta, így a pull egy elbukott outbox után is biztonságos.
 - **Ami marad:** a WP-APP-001 (telefonos elfogadás) kódból nem javítható, a gazdánál van. Ha a push tartósan 422-t kap, ezt a supervisor nem látja a jelentésben, csak a telefon jelzője mutatja („Szinkronhiba”). Ehhez a diagnosztika sémájába egy új kód (`validation_failed`) kellene, előbb a `waypost-schema`-ban.
 - **Érintett:** `src/sync/controller.ts`, `src/sync/runtime.ts` (`stopsSync`, `SyncContext.completed`), `src/sync/push.ts`, `src/chain/writer.ts`, `src/schema/validation.ts`, `CLAUDE.md`; tesztek: `src/sync/controller.test.ts`, `src/sync/runtime.test.ts`, `src/sync/push.test.ts`, `src/sync/revocation.test.ts`, `src/chain/writer.test.ts`.
+
+## 2026-11-06 – Az audit közepes hibái (WP-APP-003 – WP-APP-009)
+
+- **Kérdés:** Az audit (`docs/audit.20261104-jelentes.md`) hét MEDIUM tétele: a sűrű menetrend ébresztései (003), két piros teszt (004, 005), a mappaszintű függőségi kör (006), a supervisorok kezelésének hiánya (007), a láthatatlan háttérhibák (008), és a duplikált UI-elemek, nagy képernyőfájlok (009).
+- **Döntés:**
+  - **WP-APP-003 – ébresztési keret** (`src/domain/alarms.ts`, `src/alarms/round-alarms.ts`): a keret platformonként más: iOS-en 48 (a rendszer 64 függő értesítést enged, a többi az egyéb értesítéseké), Androidon 192 (`MAX_ALARMS_IOS`, `MAX_ALARMS_ANDROID`). Emlékeztető csak a következő 4 el nem kezdett körhöz jár (`REMINDER_ROUNDS`), a többi kör csak a saját ébresztését kapja. Így 15 perces köröknél iOS-en kb. 11, Androidon a teljes 36 órás horizont fedett. A specifikáció *Ébresztés* pontja ennek megfelelően módosult.
+    - **Mérlegelt:** háttérfeladat (`expo-background-task`), amely bezárt appnál is újraütemez. Elvetve, mert a rendszer nem garantálja, mikor futtatja (iOS-en akár órákig nem), az M7 próbaidőszak pedig megmutatja, kell-e.
+  - **WP-APP-004 – dátumfüggő teszt** (`src/sync/revocation.test.ts`): a teszt órája a rögzített szerveridőtől indul és valós ütemben halad (`Date.now`), így a takarítás 7 napos határa a teszt dátumához mér, nem a naptárhoz.
+  - **WP-APP-005 – sémaverzió:** az app a `v0.8.1`-et várja (`.waypost-schema-version`, `package-lock.json`). A 0.7.0 – 0.8.1 az app számára szigorítás, illetve leírás, amelyet az app küldött adata nem sért (a láncíró és a tesztek a 0.8.1 sémáival zöldek). Az új felhasználó e-mail-címét az app a közös `common/email` sémával ellenőrzi (lásd WP-APP-007).
+  - **WP-APP-006 – mappaszintű kör:** a kört két mappa és egy fájl áthelyezése bontja.
+    - `src/account/`: a belépés, a kijelentkezés és a hozzárendelés folyamatai (`enrollment.ts`, `supervisor.ts`, `enroll-error.ts`), amelyek a munkamenetet és a szinkront is használják.
+    - `src/setup/readiness.ts`: a „Telefon beállítása” ellenőrzőlistája.
+    - `src/device/secret.ts`: az eszköztitok (eddig `src/chain/secret.ts`); a `chain` csak olvassa.
+    - Az `auth` (munkamenet, PIN) és a `device` (a telefon saját adatai) így a szinkron és a folyamatok alá kerül. Ezt két új rétegszabály őrzi az `eslint.config.js`-ben (`src/device`, `src/auth`). A mappaszintű gráfban nincs erősen összefüggő komponens.
+  - **WP-APP-007 – supervisorok** (`src/supervisor/guards.ts`, `sites/[id]/guards.tsx`):
+    - A telephely őrei alatt a többi supervisora is látszik („Supervisorok”), PIN-cserével és felfüggesztéssel, ahogy az őröké.
+    - „Új supervisor”: név, e-mail-cím, jelszó (legalább 8 karakter), majd a generált PIN. A hívás az outboxon át megy (`createUser`, `role: 'supervisor'`).
+    - „Hozzárendelés”: a supervisor más telephelyeinek supervisorai is választhatók; a lista az őrökkel kezdődik.
+    - A jelszó a hívás elküldéséig az outbox sorában áll, a telefon adatbázisában. A sikeres vagy elutasított hívás sora törlődik, és az elutasításban (`outbox.rejected`) a törzs nem marad meg. Ennek oka: a supervisor offline is felvehető, és az outbox titkosítatlan; a telefon a supervisor saját vagy a telephelyi telefon, amely PIN mögött áll.
+  - **WP-APP-008 – hibanapló** (`src/diagnostics/error-log.ts`):
+    - Az utolsó 50 háttérhiba a helyi kulcs-érték tárban áll (`diagnostics.errors`): forrás, időpont, részlet, üzenet (legfeljebb 500 karakter).
+    - Források: az ütemező, az újraütemezés és a csatorna, az ébresztő képernyő, az NFC-figyelés, a leolvasás, a rögzítés, a PIN, valamint a szinkron takarítása és a visszavont telefon törlése.
+    - A naplózás sosem dob hibát. Az adatbázis megnyitása előtti hibákat memóriában tartja, és a megnyitáskor beírja.
+    - A gyökér-route `ErrorBoundary`-t exportál (`src/components/root-error-boundary.tsx`): a renderhibát naplózza, és az indulási hiba képernyőjét mutatja („Az alkalmazás hibába ütközött”).
+    - A napló a „Telefon beállítása” képernyő alján olvasható, és onnan törölhető.
+    - **Mérlegelt:** külső hibagyűjtő szolgáltatás (pl. Sentry). Elvetve az 1. lépcsőben: új adatfeldolgozó, és a próbaidőszakban a telefon a supervisor kezében van.
+  - **WP-APP-009 – közös nézetelemek:**
+    - Közös komponensek: `src/components/sheet.tsx` (`SheetModal`, `Sheet`, `SheetTitle`; a billentyűzet és a biztonságos terület egy helyen) és `src/components/section-title.tsx`.
+    - A nagy képernyők lapjai és kártyái külön fájlba kerültek: `src/components/guards/`, `src/components/schedule/`, `src/components/training/finish-sheet.tsx`, `src/components/route-edit/point-sheet.tsx`. A legnagyobb képernyő most 408 soros (`train/index.tsx`).
+    - A három `SummaryRow` nem duplikátum (más elrendezés és tartalom), ezek a helyükön maradtak.
+- **Indok:** Specifikáció *Ébresztés*, *Alapszabályok*, *Mobilapp* (Őrök és PIN-kódok); DESIGN_HANDOFF 5 (közös komponensek); a `waypost-schema` `api/user-create.request.json` (supervisorhoz e-mail-cím és jelszó kell).
+- **Ami marad:**
+  - Egy supervisor felvételének PIN-ütközése (409) ugyanazzal a szöveggel jelenik meg, mint egy őré („Egy új őr nem jött létre”), és az újrapróbálás őrt vesz fel. Az elutasítás nem őrzi a szerepet, mert a törzs nem marad meg.
+  - A foglalt e-mail-cím 409-e nem PIN-ütközés: a többi elutasított művelettel együtt jelenik meg (rövid üzenet, és sáv a telephelylistán, a szerver üzenetével).
+  - Bezárt appnál az ébresztések nem ütemeződnek újra (WP-APP-003, mérlegelt).
+- **Érintett:**
+  - Ébresztés: `src/domain/alarms.ts`, `src/alarms/round-alarms.ts`, a specifikáció *Ébresztés* pontja.
+  - Tesztek és séma: `src/sync/revocation.test.ts`, `.waypost-schema-version`, `package-lock.json`.
+  - Áthelyezések és lint: `src/account/`, `src/setup/`, `src/device/secret.ts`, `eslint.config.js`.
+  - Supervisorok: `src/supervisor/guards.ts`, `src/supervisor/guards-view.ts`, `src/components/guards/`, `src/app/(supervisor)/sites/[id]/guards.tsx`.
+  - Hibanapló: `src/diagnostics/`, `src/db/kv.ts`, `src/components/root-error-boundary.tsx`, `src/components/startup-error.tsx`, `src/app/_layout.tsx`, `src/app/(supervisor)/device-setup.tsx`.
+  - Közös nézetelemek: `src/components/sheet.tsx`, `src/components/section-title.tsx`, `src/components/schedule/`, `src/components/training/`, `src/components/route-edit/`.
+  - Szövegek: `src/i18n/hu.json`.

@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams, usePreventRemove } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -8,6 +8,8 @@ import { Card } from '@/components/card';
 import { Icon } from '@/components/icon';
 import { InfoBanner } from '@/components/info-banner';
 import { ScreenHeader } from '@/components/screen-header';
+import { Sheet, SheetModal } from '@/components/sheet';
+import { SectionTitle } from '@/components/section-title';
 import { Switch } from '@/components/switch';
 import { showToast } from '@/components/toast';
 import { alertOptions, REPORT_FREQUENCIES, setAlertAfter, setReport } from '@/domain/report-settings';
@@ -110,14 +112,7 @@ export default function ReportsScreen() {
         <Button label={t('common.save')} disabled={!changed} onPress={onSave} />
       </ScrollView>
 
-      <Modal
-        visible={picking}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        navigationBarTranslucent
-        onRequestClose={() => setPicking(false)}
-      >
+      <SheetModal visible={picking} onClose={() => setPicking(false)}>
         <AlertSheet
           value={draft.alert_after_min}
           onPick={(minutes) => {
@@ -126,65 +121,41 @@ export default function ReportsScreen() {
           }}
           onClose={() => setPicking(false)}
         />
-      </Modal>
+      </SheetModal>
     </View>
-  );
-}
-
-function SectionTitle({ text }: { text: string }) {
-  const { color, typography, space } = useTheme();
-  return (
-    <Text accessibilityRole="header" style={[typography.label, { color: color.text2, paddingHorizontal: space.xs, paddingTop: space.s }]}>
-      {text}
-    </Text>
   );
 }
 
 /** The delay of the alert: the choices, one set on the web among them; the scrim closes it. */
 function AlertSheet({ value, onPick, onClose }: { value: number; onPick: (minutes: number) => void; onClose: () => void }) {
-  const { color, typography, space, size, radius, iconSize } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { color, typography, space, size, iconSize } = useTheme();
   return (
-    <View style={styles.grow}>
-      <Pressable
-        style={[styles.grow, { backgroundColor: color.scrim }]}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel={t('common.cancel')}
-      />
-      <View style={[styles.sheet, { backgroundColor: color.bg, borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card }]}>
-        <ScrollView contentContainerStyle={{ padding: space.l, paddingBottom: insets.bottom + space.l, gap: space.m }}>
-          <Text accessibilityRole="header" style={[typography.title2, { color: color.text }]}>
-            {t('reports.alertSheet')}
-          </Text>
-          <Card divided>
-            {alertOptions(value).map((minutes) => {
-              const on = minutes === value;
-              return (
-                <Pressable
-                  key={minutes}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: on }}
-                  onPress={() => onPick(minutes)}
-                  style={[styles.row, { minHeight: size.touchMin, paddingHorizontal: space.l, gap: space.m }]}
-                >
-                  <Text style={[typography.body, tabular, styles.grow, { color: on ? color.accent : color.text }]}>
-                    {alertDelayText(minutes)}
-                  </Text>
-                  {on && <Icon name="check" size={iconSize.banner} color={color.accent} />}
-                </Pressable>
-              );
-            })}
-          </Card>
-          <Button variant="secondary" label={t('common.cancel')} onPress={onClose} />
-        </ScrollView>
-      </View>
-    </View>
+    <Sheet title={t('reports.alertSheet')} onClose={onClose}>
+      <Card divided>
+        {alertOptions(value).map((minutes) => {
+          const on = minutes === value;
+          return (
+            <Pressable
+              key={minutes}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: on }}
+              onPress={() => onPick(minutes)}
+              style={[styles.row, { minHeight: size.touchMin, paddingHorizontal: space.l, gap: space.m }]}
+            >
+              <Text style={[typography.body, tabular, styles.grow, { color: on ? color.accent : color.text }]}>
+                {alertDelayText(minutes)}
+              </Text>
+              {on && <Icon name="check" size={iconSize.banner} color={color.accent} />}
+            </Pressable>
+          );
+        })}
+      </Card>
+      <Button variant="secondary" label={t('common.cancel')} onPress={onClose} />
+    </Sheet>
   );
 }
 
 const styles = StyleSheet.create({
   grow: { flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center' },
-  sheet: { maxHeight: '92%' },
 });

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { LocationFix } from '@/chain/payloads';
+import { logError } from '@/diagnostics/error-log';
 import { DomainError } from '@/domain/state';
 import { playFeedback } from '@/feedback/feedback';
 import { currentLocation } from '@/location/location';
@@ -51,7 +52,10 @@ export function useRecordForm(onLocation: (location: LocationFix) => void, close
       } catch (error) {
         if (__DEV__) console.warn('Recording a form failed', error);
         playFeedback('error');
-        setProblem(error instanceof DomainError && error.code === closedCode ? 'closed' : 'failed');
+        const closed = error instanceof DomainError && error.code === closedCode;
+        // A round closed meanwhile is a rule, not a failure.
+        if (!closed) logError('record', error);
+        setProblem(closed ? 'closed' : 'failed');
       } finally {
         busy.current = false;
         setSaving(false);

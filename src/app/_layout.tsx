@@ -16,6 +16,7 @@ import { startRoundAlarms } from '@/alarms/round-alarms';
 import { loadSession } from '@/auth/session';
 import { StartupError } from '@/components/startup-error';
 import { getDatabase, openDatabase } from '@/db/open';
+import { startErrorLog } from '@/diagnostics/error-log';
 import { startFeedback } from '@/feedback/feedback';
 import { startScheduler } from '@/guard/scheduler';
 import { startTagEvents } from '@/nfc/tag-events';
@@ -24,6 +25,9 @@ import { startSync } from '@/sync/runtime';
 import { loadThemePreference, saveThemePreference } from '@/theme/preference';
 import { ThemeProvider, useTheme } from '@/theme/theme-provider';
 import type { ThemePreference } from '@/theme/tokens';
+
+// A screen that throws while rendering: logged and shown with a retry, instead of a blank app.
+export { RootErrorBoundary as ErrorBoundary } from '@/components/root-error-boundary';
 
 // The splash screen stays until the fonts are loaded and the session is known (DESIGN_HANDOFF 3).
 void SplashScreen.preventAutoHideAsync();
@@ -79,7 +83,15 @@ export default function RootLayout() {
   useEffect(() => {
     if (startup.state !== 'ready') return undefined;
     const db = getDatabase();
-    const stops = [startSync(db), startScheduler(db), startRoundAlarms(db), startAlarmScreen(db), startTagEvents(), startFeedback()];
+    const stops = [
+      startErrorLog(db),
+      startSync(db),
+      startScheduler(db),
+      startRoundAlarms(db),
+      startAlarmScreen(db),
+      startTagEvents(),
+      startFeedback(),
+    ];
     return () => stops.forEach((stop) => stop());
   }, [startup.state]);
 

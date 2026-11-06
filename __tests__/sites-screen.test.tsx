@@ -9,11 +9,11 @@ import SiteScreen from '@/app/(supervisor)/sites/[id]';
 import NewSiteScreen from '@/app/(supervisor)/sites/new';
 import Index from '@/app/index';
 import { useSession, type SessionState } from '@/auth/session';
-import { enrollThisPhone, UnsentActionsError } from '@/auth/supervisor';
+import { enrollThisPhone, UnsentActionsError } from '@/account/supervisor';
 import type { Database } from '@/db/database';
 import { getKv, setKv, type OutboxRejection } from '@/db/kv';
 import { getDatabase } from '@/db/open';
-import { getReadiness, type Readiness } from '@/device/readiness';
+import { getReadiness, type Readiness } from '@/setup/readiness';
 import { devices, outbox, routes, siteUser, sites, users } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import { AppStack } from '@/navigation/app-stack';
@@ -23,16 +23,16 @@ import { ThemeProvider } from '@/theme/theme-provider';
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 jest.mock('@/db/open', () => ({ getDatabase: jest.fn() }));
 jest.mock('@/sync/runtime', () => ({ requestSync: jest.fn() }));
-// The logout itself is tested in src/auth/supervisor.test.ts and __tests__/navigation.test.tsx.
-jest.mock('@/auth/supervisor', () => ({
-  ...jest.requireActual<object>('@/auth/supervisor'),
+// The logout itself is tested in src/account/supervisor.test.ts and __tests__/navigation.test.tsx.
+jest.mock('@/account/supervisor', () => ({
+  ...jest.requireActual<object>('@/account/supervisor'),
   signOutSupervisor: jest.fn(),
   unsentSupervisorActions: jest.fn(() => 0),
-  // The enrollment itself is tested in src/auth/supervisor.test.ts.
+  // The enrollment itself is tested in src/account/supervisor.test.ts.
   enrollThisPhone: jest.fn(),
 }));
-// The readiness and its fixes are tested in src/device/readiness.test.ts and __tests__/device-setup-screen.test.tsx.
-jest.mock('@/device/readiness', () => ({ ...jest.requireActual<object>('@/device/readiness'), getReadiness: jest.fn() }));
+// The readiness and its fixes are tested in src/setup/readiness.test.ts and __tests__/device-setup-screen.test.tsx.
+jest.mock('@/setup/readiness', () => ({ ...jest.requireActual<object>('@/setup/readiness'), getReadiness: jest.fn() }));
 jest.mock('@/alarms/permissions', () => ({}));
 jest.mock('@/nfc/reader', () => ({}));
 jest.mock('@/photo/camera', () => ({}));

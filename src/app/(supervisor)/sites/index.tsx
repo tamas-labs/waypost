@@ -11,7 +11,7 @@ import { InfoBanner } from '@/components/info-banner';
 import { ScreenHeader } from '@/components/screen-header';
 import { StatusBadge } from '@/components/status-badge';
 import { SyncStatusIndicator } from '@/components/sync-status-indicator';
-import { needsSetup, setupRows } from '@/device/readiness';
+import { needsSetup, setupRows } from '@/setup/readiness';
 import { getDatabase } from '@/db/open';
 import { useAccountMenu } from '@/hooks/use-account-menu';
 import { useLiveQuery } from '@/hooks/use-live-query';

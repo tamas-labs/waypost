@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createApiClient } from '@/api/client';
 import { apiBaseUrl } from '@/api/config';
 import { checkLoginForm, loginError, type LoginError, type LoginField } from '@/auth/login-error';
-import { signInSupervisor } from '@/auth/supervisor';
+import { signInSupervisor } from '@/account/supervisor';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Icon } from '@/components/icon';

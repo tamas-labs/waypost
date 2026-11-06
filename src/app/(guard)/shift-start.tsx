@@ -14,7 +14,7 @@ import { getDatabase } from '@/db/open';
 import { useReadiness } from '@/hooks/use-readiness';
 import type { ScheduleOfRoute } from '@/domain/schedule';
 import { loadShiftStartInfo, type ShiftStartInfo } from '@/guard/login-screens';
-import { readinessRows, type ReadinessItem, type ReadinessRow } from '@/device/readiness';
+import { readinessRows, type ReadinessItem, type ReadinessRow } from '@/setup/readiness';
 import { t, type TranslationKey } from '@/i18n';
 import { scheduleCadence } from '@/i18n/schedule';
 import { onConfigurationPulled } from '@/sync/events';

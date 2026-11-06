@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 
-import { fixReadiness, getReadiness, type Readiness, type ReadinessItem, type SetupItem } from '@/device/readiness';
+import { fixReadiness, getReadiness, type Readiness, type ReadinessItem, type SetupItem } from '@/setup/readiness';
 
 /**
  * The readiness of the phone (shift start, device setup), checked again when the app comes back from a system dialog

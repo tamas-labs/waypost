@@ -1,6 +1,6 @@
-// The guards of a site and their PINs in supervisor mode (S9, S-Orok): what the phone has of them, and the actions
-// through the outbox – a new guard, a new PIN, an existing guard of another site assigned to this one, a guard suspended
-// or let in again. The PIN is generated here and shown once (domain/pin-generate.ts); its verifier is stored locally
+// The guards and supervisors of a site and their PINs in supervisor mode (S9, S-Orok; specification (supervisor)/users):
+// what the phone has of them, and the actions through the outbox – a new guard or supervisor, a new PIN, an existing
+// guard or supervisor of another site assigned to this one, one suspended or let in again (audit WP-APP-007). The PIN is generated here and shown once (domain/pin-generate.ts); its verifier is stored locally
 // at once, so on the site phone the guard can log in with it before the server has it. Only the site phone gets the
 // PIN verifiers: there a PIN taken on the site is never offered; elsewhere the server's 409 tells (pinConflicts).
 import type { Timestamp } from '@waypost/schema';
@@ -13,6 +13,7 @@ import type { Database } from '@/db/database';
 import { getKv, type OutboxRejection } from '@/db/kv';
 import { shifts, sites, siteUser, users } from '@/db/schema';
 import { generatePin, type RandomFill } from '@/domain/pin-generate';
+import { schemaErrors } from '@/schema/validation';
 import type { NewId } from '@/domain/state';
 import { uuidv7 } from '@/id/uuidv7';
 import { queueSupervisorAction } from '@/sync/outbox';
@@ -20,6 +21,10 @@ import { nowTimestamp } from '@/time/timestamp';
 
 /** The schema's limit of a name. */
 export const GUARD_NAME_MAX = 255;
+/** The schema's limits of a supervisor's e-mail address and password (api/user-create.request). */
+export const EMAIL_MAX = 255;
+export const PASSWORD_MIN = 8;
+export const PASSWORD_MAX = 255;
 /** Draws of a PIN not taken on the site before giving up (with ten users, one in a hundred thousand is taken). */
 const PIN_DRAWS = 20;
 
@@ -37,6 +42,16 @@ export interface SiteGuard {
   last_shift_at: Timestamp | null;
 }
 
+/** Another supervisor of the site (the one using the phone is `me`). */
+export interface SiteSupervisor {
+  id: string;
+  name: string;
+  active: boolean;
+  pin: PinState;
+}
+
+export type UserRole = 'guard' | 'supervisor';
+
 /** A call about a PIN the server refused because another user of the site has that PIN (409, details.pin). */
 export interface PinConflict {
   call_id: string;
@@ -49,10 +64,15 @@ export interface SiteGuards {
   site: { id: string; name: string; timezone: string };
   /** Active ones first, by name. */
   guards: SiteGuard[];
+  /** The other supervisors of the site, active ones first, by name. */
+  supervisors: SiteSupervisor[];
   /** The supervisor using the phone, for their own PIN. */
   me: { id: string; name: string; pin: PinState } | null;
-  /** Active guards of the supervisor's other sites, to assign to this one (only a supervisor's own phone sees them). */
-  attachable: { id: string; name: string }[];
+  /**
+   * Active guards and supervisors of the supervisor's other sites, to assign to this one (only a supervisor's own phone
+   * sees them), guards first, by name.
+   */
+  attachable: { id: string; name: string; role: UserRole }[];
   pinConflicts: PinConflict[];
 }
 
@@ -120,6 +140,11 @@ export function loadSiteGuards(
     }))
     .sort((a, b) => Number(b.active) - Number(a.active) || byName(a, b));
 
+  const supervisors = onSite
+    .filter((user) => user.role === 'supervisor' && user.id !== account?.id)
+    .map((user) => ({ id: user.id, name: user.name, active: user.active, pin: pinState(db, user.pin_hash) }))
+    .sort((a, b) => Number(b.active) - Number(a.active) || byName(a, b));
+
   const meRow = account === null ? undefined : onSite.find((user) => user.id === account.id);
   const me =
     account === null
@@ -132,14 +157,14 @@ export function loadSiteGuards(
 
   const onSiteIds = new Set(onSite.map((user) => user.id));
   const attachable = db
-    .selectDistinct({ id: users.id, name: users.name })
+    .selectDistinct({ id: users.id, name: users.name, role: users.role })
     .from(users)
     .innerJoin(siteUser, eq(siteUser.user_id, users.id))
-    .where(and(eq(users.role, 'guard'), eq(users.active, true)))
+    .where(eq(users.active, true))
     .orderBy(asc(users.name))
     .all()
-    .filter((user) => !onSiteIds.has(user.id))
-    .sort(byName);
+    .filter((user) => !onSiteIds.has(user.id) && user.id !== account?.id)
+    .sort((a, b) => Number(a.role === 'supervisor') - Number(b.role === 'supervisor') || byName(a, b));
 
   // A guard whose assignment was refused is no longer on the site after the full pull, but still on the phone.
   const names = new Map(
@@ -164,7 +189,7 @@ export function loadSiteGuards(
     return [];
   });
 
-  return { site, guards, me, attachable, pinConflicts };
+  return { site, guards, supervisors, me, attachable, pinConflicts };
 }
 
 /** The sites of a user on the phone. */
@@ -197,6 +222,40 @@ export async function freshPin(
 export function guardName(text: string): string | null {
   const name = text.trim();
   return name.length === 0 ? null : name.slice(0, GUARD_NAME_MAX);
+}
+
+/** The trimmed e-mail address of a new supervisor, or null if it is not one the server takes (common/email.json). */
+export function supervisorEmail(text: string): string | null {
+  const email = text.trim();
+  return email.length <= EMAIL_MAX && schemaErrors('common/email', email).length === 0 ? email : null;
+}
+
+/** Whether a password is one the server takes for a supervisor. */
+export const validPassword = (password: string) => password.length >= PASSWORD_MIN && password.length <= PASSWORD_MAX;
+
+/**
+ * A new supervisor of the site, with their login (e-mail address and password, for their own phone) and the PIN shown
+ * (for the site phone); returns their ID. The password goes in the outbox call and nowhere else on the phone; the call
+ * is deleted once the server has it. A taken e-mail address is the server's 409, told among the refused calls.
+ */
+export async function createSupervisor(
+  db: Database,
+  { siteId, name, email, password, pin }: { siteId: string; name: string; email: string; password: string; pin: string },
+  now: Timestamp = nowTimestamp(),
+  newId: NewId = uuidv7,
+): Promise<string> {
+  const verifier = await newPinVerifier(pin);
+  const id = newId();
+  queueSupervisorAction(db, {
+    apply: (tx) => {
+      tx.insert(users)
+        .values({ id, name, role: 'supervisor', ...verifier, active: true, created_at: now, updated_at: now })
+        .run();
+      tx.insert(siteUser).values({ site_id: siteId, user_id: id }).run();
+    },
+    calls: [configCalls.createUser({ id, name, role: 'supervisor', email, password, pin, active: true, site_ids: [siteId] })],
+  });
+  return id;
 }
 
 /** A new guard of the site with the PIN shown; returns their ID. */
@@ -234,7 +293,7 @@ export async function changePin(db: Database, userId: string, pin: string, now: 
   });
 }
 
-/** A guard of another site assigned to this one: they get the PIN shown, on all their sites (the server's rule). */
+/** A guard or supervisor of another site assigned to this one: they get the PIN shown, on all their sites (the server's rule). */
 export async function attachGuard(
   db: Database,
   { siteId, userId, pin }: { siteId: string; userId: string; pin: string },
@@ -253,7 +312,7 @@ export async function attachGuard(
   });
 }
 
-/** A guard suspended (cannot log in) or let in again. */
+/** A guard or another supervisor suspended (cannot log in) or let in again. */
 export function setGuardActive(db: Database, userId: string, active: boolean, now: Timestamp = nowTimestamp()): void {
   queueSupervisorAction(db, {
     apply: (tx) => {
