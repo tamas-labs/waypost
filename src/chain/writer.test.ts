@@ -216,10 +216,34 @@ describe('chain writer', () => {
     expect(next).toMatchObject({ seq: 2, prev_hash: allEntries()[0]!.hash });
   });
 
-  it('rejects an entry that is not valid for the chain schema', async () => {
-    const draft = scan({ scan_id: uuidv7(), round_id: null, checkpoint_id: CHECKPOINT, method: 'nfc', location: null });
-    await expect(appendChainEntry(db, draft, options)).rejects.toThrow(/^Invalid scan entry: \/payload/);
-    expect(allEntries()).toEqual([]);
+  it.each([
+    ['a development build', true],
+    ['a release build', false],
+  ])('rejects an entry that is not valid for the chain schema in %s', async (_build, dev) => {
+    const wasDev = __DEV__;
+    (globalThis as unknown as { __DEV__: boolean }).__DEV__ = dev;
+    try {
+      const draft = scan({ scan_id: uuidv7(), round_id: null, checkpoint_id: CHECKPOINT, method: 'nfc', location: null });
+      await expect(appendChainEntry(db, draft, options)).rejects.toThrow(/^Invalid scan entry: \/payload/);
+      expect(allEntries()).toEqual([]);
+    } finally {
+      (globalThis as unknown as { __DEV__: boolean }).__DEV__ = wasDev;
+    }
+  });
+
+  it('writes the entry if the schema validator itself cannot be built', async () => {
+    const validation = jest.requireActual<typeof import('@/schema/validation')>('@/schema/validation');
+    const failing = jest.spyOn(validation, 'schemaErrors').mockImplementation(() => {
+      throw new Error('strict mode: unknown keyword');
+    });
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      await expect(startShift()).resolves.toMatchObject({ seq: 1 });
+      expect(error).toHaveBeenCalledWith('Validating a chain entry against its schema failed', expect.any(Error));
+    } finally {
+      failing.mockRestore();
+      error.mockRestore();
+    }
   });
 
   it('does not write without a device ID or a secret, and the next write still goes through', async () => {

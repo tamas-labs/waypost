@@ -12,7 +12,7 @@ function deferred(): Deferred {
 }
 
 /** A controller whose steps log their calls; a step may be made to wait or to throw. */
-function setup(options: { context?: () => Promise<string | null>; debounceMs?: number } = {}) {
+function setup(options: { context?: () => Promise<string | null>; debounceMs?: number; stopsSync?: (error: unknown) => boolean } = {}) {
   const log: string[] = [];
   const waits = new Map<SyncStep, Deferred>();
   const failures = new Map<SyncStep, Error>();
@@ -27,6 +27,7 @@ function setup(options: { context?: () => Promise<string | null>; debounceMs?: n
     context: options.context ?? (async () => 'ctx'),
     steps: { push: step('push'), media: step('media'), outbox: step('outbox'), pull: step('pull') },
     debounceMs: options.debounceMs,
+    stopsSync: options.stopsSync,
     onStart: (trigger) => log.push(`start:${trigger}`),
     onFinish: (outcome, trigger) => finished.push([outcome, trigger]),
   });
@@ -46,12 +47,54 @@ describe('sync controller', () => {
     expect(finished).toEqual([[{ status: 'ok' }, 'start']]);
   });
 
-  it('stops at the first failing step and reports it without rejecting', async () => {
+  it('by default stops at the first failing step and reports it without rejecting', async () => {
     const { controller, log, failures } = setup();
     const error = new Error('offline');
     failures.set('media', error);
-    await expect(controller.sync('manual')).resolves.toEqual({ status: 'failed', step: 'media', error });
+    await expect(controller.sync('manual')).resolves.toEqual({
+      status: 'failed',
+      step: 'media',
+      error,
+      failures: [{ step: 'media', error }],
+    });
     expect(log).toEqual(['start:manual', 'push:ctx', 'media:ctx']);
+  });
+
+  it('runs the steps after one whose error does not stop the sync, and reports the first failure', async () => {
+    const offline = new Error('offline');
+    const { controller, log, failures } = setup({ stopsSync: (error) => error === offline });
+    const refused = new Error('422');
+    const photo = new Error('500');
+    failures.set('push', refused);
+    failures.set('media', photo);
+    await expect(controller.sync('manual')).resolves.toEqual({
+      status: 'failed',
+      step: 'push',
+      error: refused,
+      failures: [
+        { step: 'push', error: refused },
+        { step: 'media', error: photo },
+      ],
+    });
+    expect(log).toEqual(['start:manual', ...ONE_SYNC]);
+  });
+
+  it('stops at an error that stops the sync, and reports that one even after an earlier failure', async () => {
+    const offline = new Error('offline');
+    const { controller, log, failures } = setup({ stopsSync: (error) => error === offline });
+    const refused = new Error('422');
+    failures.set('push', refused);
+    failures.set('outbox', offline);
+    await expect(controller.sync('manual')).resolves.toEqual({
+      status: 'failed',
+      step: 'outbox',
+      error: offline,
+      failures: [
+        { step: 'push', error: refused },
+        { step: 'outbox', error: offline },
+      ],
+    });
+    expect(log).toEqual(['start:manual', 'push:ctx', 'media:ctx', 'outbox:ctx']);
   });
 
   it('skips the sync without a context, and reports a failing context', async () => {
@@ -65,7 +108,12 @@ describe('sync controller', () => {
         throw error;
       },
     });
-    await expect(failing.controller.sync('start')).resolves.toEqual({ status: 'failed', step: null, error });
+    await expect(failing.controller.sync('start')).resolves.toEqual({
+      status: 'failed',
+      step: null,
+      error,
+      failures: [{ step: null, error }],
+    });
   });
 
   it('runs one sync at a time, and merges the requests made meanwhile into one more sync after it', async () => {

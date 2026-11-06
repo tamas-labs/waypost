@@ -3,6 +3,11 @@
 // bug or tampering, and sending it again would not help: it is not sent again, the entries after it still go up (the
 // server keeps them, as they wait for the hole), and one report goes to the server, outside the chain. A sync does not
 // fail because of it: the configuration must keep coming.
+//
+// A batch the server refuses as a whole (422 validation_failed: an entry is not valid against its schema) is not
+// stored there at all. The entries before the first invalid one go up in a batch of their own; the invalid one is
+// kept and sent again at every sync, as a fix on the server (e.g. a schema version it should not have had) lets it
+// through. The push step fails meanwhile, but the other steps of the sync still run (controller.ts).
 import type { ChainEntry, SyncPushRequest, SyncPushResponse } from '@waypost/schema';
 import { and, asc, eq, gt, inArray, isNull } from 'drizzle-orm';
 
@@ -26,7 +31,7 @@ export interface PushContext {
 /** Sends a batch: POST /sync/push, or on a revoked phone POST /sync/push-final. */
 export type SendBatch = (entries: SyncPushRequest['entries']) => Promise<SyncPushResponse>;
 
-function nextBatch(db: Database, deviceId: string): ChainEntry[] {
+function nextBatch(db: Database, deviceId: string, size: number = PUSH_BATCH_SIZE): ChainEntry[] {
   return db
     .select()
     .from(chainEntries)
@@ -38,7 +43,7 @@ function nextBatch(db: Database, deviceId: string): ChainEntry[] {
       ),
     )
     .orderBy(asc(chainEntries.seq))
-    .limit(PUSH_BATCH_SIZE)
+    .limit(size)
     .all()
     .map(({ synced_at: _synced_at, ...entry }) => entry as ChainEntry);
 }
@@ -100,14 +105,41 @@ function applyResponse(db: Database, deviceId: string, response: SyncPushRespons
   });
 }
 
-/** Sends the batches until nothing is left to send. A failed request (network, 5xx …) throws; the next sync goes on from there. */
+/**
+ * The index of the first entry of the batch that a validation_failed response names (its details are keyed by the
+ * field path, e.g. "entries.3.payload.round_id"); null if the error is not one, or it names no entry.
+ */
+export function firstInvalidEntry(error: unknown): number | null {
+  if (!isApiError(error, 'validation_failed') || error.details === null) return null;
+  const indexes = Object.keys(error.details).flatMap((path) => {
+    const match = /^entries\.(\d+)(?:\.|$)/.exec(path);
+    return match?.[1] === undefined ? [] : [Number(match[1])];
+  });
+  return indexes.length === 0 ? null : Math.min(...indexes);
+}
+
+/** Sends the batches until nothing is left to send. A failed request (network, 5xx, a refused batch …) throws; the next sync goes on from there. */
 export async function pushChainEntries({ db, deviceId, mediaMissing }: PushContext, send: SendBatch): Promise<void> {
+  /** The refusal of a batch whose valid start is being sent now; thrown once that is acknowledged. */
+  let refused: unknown = null;
+  let size = PUSH_BATCH_SIZE;
   for (;;) {
-    const batch = nextBatch(db, deviceId);
+    const batch = nextBatch(db, deviceId, size);
     const [first, ...rest] = batch;
     if (first === undefined) return;
-    const response = await send([first, ...rest]);
+    let response: SyncPushResponse;
+    try {
+      response = await send([first, ...rest]);
+    } catch (error) {
+      const invalid = refused === null ? firstInvalidEntry(error) : null;
+      if (invalid === null || invalid === 0 || invalid >= batch.length) throw error;
+      refused = error;
+      size = invalid;
+      continue;
+    }
     applyResponse(db, deviceId, response);
+    for (const id of response.media_missing) mediaMissing.add(id);
+    if (refused !== null) throw refused;
     for (const id of response.media_missing) mediaMissing.add(id);
     // Every answer moves the first entry forward. If it did not, the next sync tries again, not this loop.
     if (nextBatch(db, deviceId)[0]?.id === first.id) return;

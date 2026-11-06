@@ -236,6 +236,43 @@ describe('a revoked phone', () => {
     expect([first, second].every(Boolean)).toBe(true);
   });
 
+  it('does not close the upload after a push or a photo upload that failed: a later sync sends them first', async () => {
+    await writeEntries(1);
+    addPhoto();
+    let failing: 'push' | 'media' | null = 'push';
+    const serverError: FakeAnswer = [500, { error: { code: 'server_error', message: 'Hiba' } }];
+    const { requests } = revokedServer((request) => {
+      const final = request.path === '/sync/push-final' && !(request.body as SyncPushFinalRequest).done;
+      if (failing === 'push' && final) return serverError;
+      if (failing === 'media' && request.path.startsWith('/media/')) return serverError;
+      return undefined;
+    });
+    stop = startSync(db);
+    await settle();
+    // The push failed: the photo still went, but done: true did not.
+    expect(paths(requests)).toEqual(['/sync/push', '/sync/push-final', `/media/${PHOTO}`]);
+    expect(useSession.getState().mode).toBe('site_phone');
+    expect(getKv(db, 'device.revoked')).toBe(true);
+    expect(useSyncStatus.getState().lastError).toMatchObject({ kind: 'server', step: 'push' });
+
+    db.update(media).set({ uploaded_at: null }).run();
+    failing = 'media';
+    requests.length = 0;
+    await requestSync('manual');
+    await settle();
+    expect(paths(requests)).toEqual(['/sync/push-final', `/media/${PHOTO}`]);
+    expect(useSession.getState().mode).toBe('site_phone');
+    expect(useSyncStatus.getState().lastError).toMatchObject({ kind: 'server', step: 'media' });
+
+    failing = null;
+    requests.length = 0;
+    await requestSync('manual');
+    await settle();
+    expect(paths(requests)).toEqual([`/media/${PHOTO}`, '/sync/push-final']);
+    expect((requests.at(-1)!.body as SyncPushFinalRequest).done).toBe(true);
+    expect(useSession.getState().mode).toBe('unassigned');
+  });
+
   it('closes the upload even if the server rejected entries or refused a photo: the phone cannot fix those', async () => {
     const [entry] = await writeEntries(1);
     addPhoto();

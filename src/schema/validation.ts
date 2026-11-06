@@ -1,5 +1,5 @@
-// Validation against the JSON Schemas of @waypost/schema (Ajv, draft 2020-12). Used in development builds only:
-// the schemas are compiled on first use.
+// Validation against the JSON Schemas of @waypost/schema (Ajv, draft 2020-12): of the chain entries in every build,
+// of the API requests and responses in development builds only. The schemas are compiled on first use.
 import { schemaId, schemas, type SchemaPath } from '@waypost/schema';
 import Ajv2020, { type ErrorObject, type ValidateFunction } from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';

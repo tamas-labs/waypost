@@ -6,7 +6,7 @@ import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import { createApiClient, type ApiClient } from '@/api/client';
 import { apiBaseUrl } from '@/api/config';
 import { push, pushFinal } from '@/api/endpoints';
-import { isApiError } from '@/api/errors';
+import { isApiError, NetworkError } from '@/api/errors';
 import { getDeviceCredentials, getSupervisorToken } from '@/device/credentials';
 import { whileInForeground } from '@/device/foreground';
 import { useSession } from '@/auth/session';
@@ -43,6 +43,8 @@ export interface SyncContext {
   revoked: boolean;
   /** The photos the push responses of this sync asked for. */
   mediaMissing: Set<string>;
+  /** The steps of this sync that have finished without an error. */
+  completed: Set<SyncStep>;
 }
 
 /** The context of a sync; null while the phone is not enrolled or has no API address. */
@@ -55,36 +57,62 @@ export async function syncContext(db: Database): Promise<SyncContext | null> {
   if (token === null) return null;
   const deviceId = mode === 'site_phone' ? getKv(db, 'device.id') : null;
   if (mode === 'site_phone' && deviceId === null) return null;
-  return { db, api: createApiClient({ baseUrl }), token, mode, deviceId, revoked: isRevoked(db), mediaMissing: new Set() };
+  return {
+    db,
+    api: createApiClient({ baseUrl }),
+    token,
+    mode,
+    deviceId,
+    revoked: isRevoked(db),
+    mediaMissing: new Set(),
+    completed: new Set(),
+  };
 }
 
 /**
  * The steps in the controller's order. On a revoked phone they are its last upload: the batches go to push-final, the
- * photos as always, its outbox calls cannot go any more, and instead of a pull the upload closes.
+ * photos as always, its outbox calls cannot go any more, and instead of a pull the upload closes, but only after a
+ * push and a photo upload without an error in the same sync: what they could not send now, a later sync still sends.
  */
 export const syncSteps: Record<SyncStep, (context: SyncContext) => Promise<void>> = {
-  push: async ({ db, api, token, deviceId, revoked, mediaMissing }) => {
-    if (deviceId === null) return;
-    const send: SendBatch = (entries) =>
-      revoked ? pushFinal(api, token, { device_id: deviceId, entries, done: false }) : push(api, token, { device_id: deviceId, entries });
-    await pushChainEntries({ db, deviceId, mediaMissing }, send);
-    await sendPendingDiagnostic(db, api, token);
+  push: async ({ db, api, token, deviceId, revoked, mediaMissing, completed }) => {
+    if (deviceId !== null) {
+      const send: SendBatch = (entries) =>
+        revoked ? pushFinal(api, token, { device_id: deviceId, entries, done: false }) : push(api, token, { device_id: deviceId, entries });
+      await pushChainEntries({ db, deviceId, mediaMissing }, send);
+      await sendPendingDiagnostic(db, api, token);
+    }
+    completed.add('push');
   },
-  media: async ({ db, api, token, deviceId, mediaMissing }) => {
+  media: async ({ db, api, token, deviceId, mediaMissing, completed }) => {
     if (deviceId !== null) await uploadPhotos({ db, api, token, deviceId, mediaMissing });
+    completed.add('media');
   },
-  outbox: async ({ db, api, token, revoked }) => {
+  outbox: async ({ db, api, token, revoked, completed }) => {
     if (!revoked) await sendOutbox({ db, api, token });
+    completed.add('outbox');
   },
-  pull: async ({ db, api, token, deviceId, revoked }) => {
+  pull: async ({ db, api, token, deviceId, revoked, completed }) => {
     if (revoked && deviceId !== null) {
+      if (!completed.has('push') || !completed.has('media')) return;
       await closeUpload(api, token, deviceId);
       await forgetDevice(db);
-      return;
+    } else {
+      await pullConfiguration(db, api, token);
     }
-    await pullConfiguration(db, api, token);
+    completed.add('pull');
   },
 };
+
+/**
+ * The errors after which the other steps would fail the same way: no network (each would wait for its timeout), a
+ * token the server does not accept, a revoked phone (its last upload starts instead), the rate limit. Any other error
+ * (a 4xx or 5xx of one endpoint, an invalid response, a local error) is about its own step: the others still run.
+ */
+export function stopsSync(error: unknown): boolean {
+  if (error instanceof NetworkError) return true;
+  return isApiError(error) && (error.status === 401 || error.status === 429 || error.code === 'device_revoked');
+}
 
 let controller: SyncController | null = null;
 let database: Database | null = null;
@@ -118,7 +146,7 @@ function finished(db: Database, outcome: SyncOutcome): void {
     }
   } else if (outcome.status === 'failed') {
     const { step, error } = outcome;
-    if (__DEV__) console.warn(`Sync failed at ${step ?? 'context'}`, error);
+    if (__DEV__) for (const failure of outcome.failures) console.warn(`Sync failed at ${failure.step ?? 'context'}`, failure.error);
     const lastError = {
       kind: syncErrorKind(error),
       step,
@@ -156,6 +184,7 @@ export function startSync(db: Database): () => void {
   const sync = createSyncController({
     context: () => syncContext(db),
     steps: syncSteps,
+    stopsSync,
     onStart: () => useSyncStatus.setState({ running: true }),
     onFinish: (outcome) => {
       finished(db, outcome);

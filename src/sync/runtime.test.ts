@@ -4,7 +4,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 import { emitChainEntries } from '@/chain/events';
 import { createApiClient } from '@/api/client';
 import { configCalls } from '@/api/config-calls';
-import { ApiError } from '@/api/errors';
+import { ApiError, InvalidResponseError, NetworkError } from '@/api/errors';
 import { deleteDeviceCredentials, deleteSupervisorToken, setDeviceCredentials, setSupervisorToken } from '@/device/credentials';
 import { useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
@@ -14,7 +14,7 @@ import { createTestDatabase } from '@/db/testing';
 
 import * as cleanup from './cleanup';
 import { queueAction } from './outbox';
-import { FOREGROUND_SYNC_INTERVAL_MS, requestSync, startSync, syncContext, syncSteps, type SyncContext } from './runtime';
+import { FOREGROUND_SYNC_INTERVAL_MS, requestSync, startSync, stopsSync, syncContext, syncSteps, type SyncContext } from './runtime';
 import { useSyncStatus } from './status';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
@@ -101,6 +101,47 @@ describe('sync runtime', () => {
       at: '2026-10-27T20:00:00.000Z',
     });
     expect(useSyncStatus.getState().lastSuccessAt).toBeNull();
+  });
+
+  it('still pulls after a push the server refuses, and tells the push as the error', async () => {
+    const refused = new ApiError(422, 'validation_failed', 'A megadott adatok hibásak.', { 'entries.0.payload': ['Hibás.'] });
+    jest.spyOn(syncSteps, 'push').mockRejectedValue(refused);
+    jest.spyOn(syncSteps, 'media').mockRejectedValue(new ApiError(500, 'server_error', 'Hiba.'));
+    const outbox = jest.spyOn(syncSteps, 'outbox').mockResolvedValue();
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    stop = startSync(db);
+    await settle();
+    expect(outbox).toHaveBeenCalledTimes(1);
+    expect(pulls).toHaveLength(1);
+    expect(warn.mock.calls.map(([message]) => message)).toEqual(['Sync failed at push', 'Sync failed at media']);
+    expect(useSyncStatus.getState().lastError).toMatchObject({ kind: 'server', step: 'push', message: 'A megadott adatok hibásak.' });
+    expect(useSyncStatus.getState().lastSuccessAt).toBeNull();
+  });
+
+  it('stops the sync when the network fails: the other steps would wait for their timeouts too', async () => {
+    jest.spyOn(syncSteps, 'push').mockRejectedValue(new NetworkError(true));
+    const media = jest.spyOn(syncSteps, 'media').mockResolvedValue();
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    stop = startSync(db);
+    await settle();
+    expect(media).not.toHaveBeenCalled();
+    expect(pulls).toHaveLength(0);
+    expect(useSyncStatus.getState().lastError).toMatchObject({ kind: 'network', step: 'push' });
+  });
+
+  it.each([
+    ['no network', new NetworkError(false), true],
+    ['a token not accepted', new ApiError(401, 'unauthenticated', 'Lejárt.'), true],
+    ['a revoked phone', new ApiError(401, 'device_revoked', 'Visszavonva.'), true],
+    ['the rate limit', new ApiError(429, 'rate_limited', 'Túl sok.'), true],
+    ['a refused batch', new ApiError(422, 'validation_failed', 'Hibás.'), false],
+    ['a forbidden call', new ApiError(403, 'forbidden', 'Tilos.'), false],
+    ['a server error', new ApiError(500, 'server_error', 'Hiba.'), false],
+    ['an invalid response', new InvalidResponseError(200, 'Not JSON'), false],
+    ['a local error', new Error('disk full'), false],
+  ])('tells whether %s stops the sync', (_name, error, stops) => {
+    stop = () => {};
+    expect(stopsSync(error)).toBe(stops);
   });
 
   it('tells a failure that is not an Error too', async () => {
@@ -251,6 +292,7 @@ describe('sync runtime', () => {
       deviceId: 'd',
       revoked: true,
       mediaMissing: new Set(),
+      completed: new Set(),
     };
 
     await syncSteps.outbox(context);

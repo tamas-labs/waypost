@@ -1,6 +1,11 @@
 // The sync controller (specification, Szinkron protokoll / Mikor fut): one sync at a time, the steps always in the
 // order push → media → outbox → pull, and a delayed sync after chain entries so that quick scans go up together.
-// It knows nothing about the network or the database: the runtime (runtime.ts) gives it the context and the steps.
+// It knows nothing about the network or the database: the runtime (runtime.ts) gives it the context, the steps, and
+// which errors stop the sync.
+//
+// A step that fails does not stop the ones after it, unless its error says the others would fail too (no network, a
+// token the server does not accept …): what one step cannot send (a batch the server refuses, a photo it cannot store)
+// must not keep the configuration of the pull from coming, nor the supervisor's actions from going (audit WP-APP-002).
 
 export type SyncStep = 'push' | 'media' | 'outbox' | 'pull';
 
@@ -15,13 +20,23 @@ export type SyncOutcome =
   | { status: 'ok' }
   /** Nothing to sync with: the phone is not enrolled, or there is no API address. */
   | { status: 'skipped' }
-  /** The step that threw (null: reading the context); the steps after it did not run. */
-  | { status: 'failed'; step: SyncStep | null; error: unknown };
+  /**
+   * At least one step threw. step and error: the failure that stopped the sync (null: reading the context), or if
+   * none did, the first one. failures: every failure, in step order (that one included).
+   */
+  | { status: 'failed'; step: SyncStep | null; error: unknown; failures: readonly SyncFailure[] };
+
+export interface SyncFailure {
+  step: SyncStep | null;
+  error: unknown;
+}
 
 export interface SyncControllerOptions<C> {
   /** What the steps work with (token, API client …); null: skip this sync. Read at the start of every sync. */
   context: () => Promise<C | null>;
   steps: Record<SyncStep, (context: C) => Promise<void>>;
+  /** Whether a step's error stops the sync (the steps after it would fail the same way). Default: every error does. */
+  stopsSync?: (error: unknown) => boolean;
   /** Delay of syncSoon(). Default: 2 s. */
   debounceMs?: number;
   onStart?: (trigger: SyncTrigger) => void;
@@ -48,6 +63,7 @@ export const SYNC_DEBOUNCE_MS = 2000;
 export function createSyncController<C>({
   context,
   steps,
+  stopsSync = () => true,
   debounceMs = SYNC_DEBOUNCE_MS,
   onStart,
   onFinish,
@@ -58,18 +74,34 @@ export function createSyncController<C>({
 
   async function run(trigger: SyncTrigger): Promise<SyncOutcome> {
     onStart?.(trigger);
-    let outcome: SyncOutcome = { status: 'ok' };
-    let step: SyncStep | null = null;
+    const failures: SyncFailure[] = [];
+    let stopped: SyncFailure | null = null;
+    let skipped = false;
     try {
       const ctx = await context();
       if (ctx === null) {
-        outcome = { status: 'skipped' };
+        skipped = true;
       } else {
-        for (step of SYNC_STEPS) await steps[step](ctx);
+        for (const step of SYNC_STEPS) {
+          try {
+            await steps[step](ctx);
+          } catch (error) {
+            const failure = { step, error };
+            failures.push(failure);
+            if (stopsSync(error)) {
+              stopped = failure;
+              break;
+            }
+          }
+        }
       }
     } catch (error) {
-      outcome = { status: 'failed', step, error };
+      stopped = { step: null, error };
+      failures.push(stopped);
     }
+    const reported = stopped ?? failures[0];
+    const outcome: SyncOutcome =
+      reported !== undefined ? { status: 'failed', ...reported, failures } : skipped ? { status: 'skipped' } : { status: 'ok' };
     try {
       onFinish?.(outcome, trigger);
     } catch (error) {

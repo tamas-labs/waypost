@@ -44,6 +44,21 @@ async function readDeviceSecret(): Promise<string | null> {
   return (await getDeviceCredentials())?.secret ?? null;
 }
 
+/**
+ * The schema errors of an entry, in every build: the server refuses a push whose entry is not valid (422), and an
+ * entry once written is never changed, so an invalid one would stop the upload of the chain behind it for good
+ * (audit WP-APP-002). Refused here, only the action that would have written it fails. If the validator itself cannot
+ * be built, the entry is written: that is not the entry's fault, and stopping every write would be worse.
+ */
+function entrySchemaErrors(entry: ChainEntry): string[] {
+  try {
+    return schemaErrors('chain/entry', entry);
+  } catch (error) {
+    console.error('Validating a chain entry against its schema failed', error);
+    return [];
+  }
+}
+
 /** Appends the drafts in one transaction; the caller holds the chain lock. */
 async function writeDrafts(db: Database, drafts: readonly ChainEntryDraft[], options: ChainWriterOptions): Promise<ChainEntry[]> {
   if (drafts.length === 0 && (options.photos ?? []).length === 0) return [];
@@ -86,10 +101,8 @@ async function writeDrafts(db: Database, drafts: readonly ChainEntryDraft[], opt
         } as Omit<ChainEntry, 'hash'>,
         secret,
       ) as ChainEntry;
-      if (__DEV__) {
-        const errors = schemaErrors('chain/entry', entry);
-        if (errors.length > 0) throw new ChainWriteError(`Invalid ${entry.type} entry: ${errors.join('; ')}`);
-      }
+      const errors = entrySchemaErrors(entry);
+      if (errors.length > 0) throw new ChainWriteError(`Invalid ${entry.type} entry: ${errors.join('; ')}`);
       tx.insert(chainEntries).values(entry).run();
       applyProjection(tx, entry);
       recordPhotos(tx, entry, photos, recorded);

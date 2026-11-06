@@ -13,7 +13,8 @@ import { uuidv7 } from '@/id/uuidv7';
 import type { ClockReading } from '@/time/clock';
 
 import { fakeApi, type FakeAnswer } from './testing';
-import { PUSH_BATCH_SIZE, pushChainEntries, sendPendingDiagnostic } from './push';
+import { firstInvalidEntry, PUSH_BATCH_SIZE, pushChainEntries, sendPendingDiagnostic } from './push';
+import { ApiError } from '@/api/errors';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 
@@ -130,6 +131,83 @@ describe('push', () => {
     });
     await expect(done).rejects.toMatchObject({ code: 'server_error' });
     expect(synced().filter((row) => row.synced_at !== null)).toHaveLength(PUSH_BATCH_SIZE);
+  });
+
+  describe('a batch refused as a whole (validation_failed)', () => {
+    /** The server's 422 for an entry of the batch that is not valid against its schema. */
+    const invalidAt = (...indexes: number[]): FakeAnswer => [
+      422,
+      {
+        error: {
+          code: 'validation_failed',
+          message: 'A megadott adatok hibásak.',
+          details: Object.fromEntries(indexes.map((index) => [`entries.${index}.payload.round_id`, ['Kötelező mező.']])),
+        },
+      },
+    ];
+
+    it('sends the entries before the invalid one, then fails, and keeps the invalid one for the next sync', async () => {
+      await writeEntries(5);
+      // Invalid as long as it is in the batch: the third and the fifth entry.
+      const { done, requests } = run((body) => {
+        const seqs = sentSeqs(body);
+        const invalid = [3, 5].filter((seq) => seqs.includes(seq)).map((seq) => seqs.indexOf(seq));
+        return invalid.length > 0 ? invalidAt(...invalid) : acceptAll(body);
+      });
+      await expect(done).rejects.toMatchObject({ status: 422, code: 'validation_failed' });
+      expect(requests.map((request) => sentSeqs(request.body))).toEqual([
+        [1, 2, 3, 4, 5],
+        [1, 2],
+      ]);
+      expect(synced().map((row) => row.synced_at !== null)).toEqual([true, true, false, false, false]);
+      expect(getKv(db, 'sync.rejected_through_seq')).toBeNull();
+      expect(getKv(db, 'sync.pending_diagnostic')).toBeNull();
+
+      // The next sync: the invalid entry is first, nothing goes up, with one request.
+      const next = run(() => invalidAt(0, 2));
+      await expect(next.done).rejects.toMatchObject({ code: 'validation_failed' });
+      expect(next.requests.map((request) => sentSeqs(request.body))).toEqual([[3, 4, 5]]);
+
+      // Once the server takes it (a fix there), everything goes up.
+      await run(acceptAll).done;
+      expect(synced().every((row) => row.synced_at !== null)).toBe(true);
+    });
+
+    it('fails with the error of the shorter batch if that fails too', async () => {
+      await writeEntries(3);
+      const responses: FakeAnswer[] = [invalidAt(2), [503, { error: { code: 'server_error', message: 'Karbantartás' } }]];
+      const { done, requests } = run(() => responses.shift()!);
+      await expect(done).rejects.toMatchObject({ code: 'server_error' });
+      expect(requests.map((request) => sentSeqs(request.body))).toEqual([
+        [1, 2, 3],
+        [1, 2],
+      ]);
+      expect(synced().every((row) => row.synced_at === null)).toBe(true);
+    });
+
+    it('fails without sending anything else if the refusal names no entry', async () => {
+      await writeEntries(2);
+      const { done, requests } = run(() => [
+        422,
+        { error: { code: 'validation_failed', message: 'Hibás', details: { device_id: ['Nem ennek a telefonnak az azonosítója.'] } } },
+      ]);
+      await expect(done).rejects.toMatchObject({ code: 'validation_failed' });
+      expect(requests).toHaveLength(1);
+      expect(synced().every((row) => row.synced_at === null)).toBe(true);
+    });
+
+    it('reads the first entry from the details', () => {
+      const refusal = (
+        details: Record<string, [string, ...string[]]> | null,
+        code: 'validation_failed' | 'forbidden' = 'validation_failed',
+      ) => new ApiError(422, code, 'Hibás', details);
+      expect(firstInvalidEntry(refusal({ 'entries.12.payload.x': ['a'], 'entries.3': ['b'], 'entries.7.seq': ['c'] }))).toBe(3);
+      expect(firstInvalidEntry(refusal({ 'entries.0.hash': ['a'] }))).toBe(0);
+      expect(firstInvalidEntry(refusal({ entries: ['a'], 'entries.x.y': ['b'], '': ['c'] }))).toBeNull();
+      expect(firstInvalidEntry(refusal(null))).toBeNull();
+      expect(firstInvalidEntry(refusal({ 'entries.1.seq': ['a'] }, 'forbidden'))).toBeNull();
+      expect(firstInvalidEntry(new Error('entries.1'))).toBeNull();
+    });
   });
 
   it('goes on after a truncated accepted list: the entries left get their acknowledgement when sent again', async () => {
