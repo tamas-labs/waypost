@@ -97,6 +97,24 @@ apk-debug: android/app/build.gradle ## Debug APK file (development build, needs 
 	cd android && ./gradlew assembleDebug
 	@echo "APK: $(APK_DEBUG)"
 
+# Standalone APK: JS bundled, no Metro, no Expo account; copy it to the phone and install it. The API URL is baked in
+# (API_URL or EXPO_PUBLIC_WAYPOST_API_URL in .env.local), so prebuild runs every time (http:// needs cleartext traffic,
+# app.config.ts) and the JS bundle is always rebuilt (Gradle does not see an environment change). ABIS: the CPU
+# architectures (default: arm64-v8a, every phone of recent years; ABIS=arm64-v8a,x86_64 for the emulator too).
+ABIS           ?= arm64-v8a
+STANDALONE_APK  = dist/waypost-$(shell node -p "require('./app.json').expo.version")-$(shell git rev-parse --short HEAD)$(shell git diff --quiet HEAD || echo -dirty).apk
+.PHONY: standalone install-standalone
+standalone: ## Standalone release APK into dist/ (no Metro): make standalone API_URL=http://192.168.1.10:8088/api/waypost/v1
+	@test -n "$(API_URL)" || grep -qs '^EXPO_PUBLIC_WAYPOST_API_URL=.' .env.local || \
+	  { echo "The API URL is missing: make standalone API_URL=<url>, or EXPO_PUBLIC_WAYPOST_API_URL in .env.local"; exit 1; }
+	$(API_ENV) npx expo prebuild --platform android
+	cd android && $(API_ENV) ./gradlew createBundleReleaseJsAndAssets --rerun assembleRelease -PreactNativeArchitectures=$(ABIS)
+	@mkdir -p dist && cp $(APK_RELEASE) $(STANDALONE_APK)
+	@echo "APK: $(STANDALONE_APK)"
+
+install-standalone: ## Install the newest APK built by `make standalone` on the connected phone
+	$(ADB) install -r "$$(ls -t dist/waypost-*.apk | head -1)"
+
 ## Phone (adb)
 
 .PHONY: devices pair connect reverse install-apk install-apk-debug uninstall launch logcat

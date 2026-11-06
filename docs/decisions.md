@@ -908,6 +908,13 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
 - **Indok:** Specifikáció *Szinkron protokoll / Pull* (teljes állapot, outbox), *Alapszabályok* (az eszközön létrejött adat a szinkron előtt nem vész el); laravel-waypost `src/Sync/Pull.php` (`SETTLE_MS`).
 - **Érintett:** `src/sync/confirmed.ts`, `src/sync/pull.ts` (`applyPullPages`), `src/sync/outbox.ts` (`succeeded`), `src/auth/enrollment.ts` (`saveEnrollment`), `src/db/kv.ts` (`sync.confirmed`), `__tests__/e2e/site-setup.e2e.test.ts`, `Makefile` (`e2e`), `docs/device-test.md` (L1–L8).
 
+## 2026-11-04 – Önálló Android-telepítő (make standalone)
+
+- **Kérdés:** Kell egy telepítőfájl, amely a telefonon önmagában fut (Metro, Expo-fiók és EAS nélkül). A meglévő `make apk` release buildje JS-csomaggal készül, de (1) API-cím nélkül is lefut, holott a release buildben nincs „API-cím” képernyő (`/dev/server`), (2) a Gradle nem látja a környezeti változó változását, így új címmel a régi JS-csomag maradhat, (3) a release build tiltja a titkosítatlan forgalmat, és a helyi hálózati backend (`http://192.168.1.10:8088/...`) elérhetetlen.
+- **Döntés:** `make standalone API_URL=…` (vagy `EXPO_PUBLIC_WAYPOST_API_URL` a `.env.local`-ban; nélküle hibával áll meg): minden futáskor prebuild, a JS-csomag mindig újra (`createBundleReleaseJsAndAssets --rerun`), alapból csak `arm64-v8a` (`ABIS=…` felülírja), a fájl a `dist/waypost-<verzió>-<commit>[-dirty].apk`; `make install-standalone` adb-vel telepíti a legújabbat. Az `app.config.ts` Androidon `usesCleartextTraffic`-ot ad, ha a beégetett cím `http://`, különben nem. Az aláírás a sablon debug-kulcsa (oldalról telepítésre jó, boltba nem); a frissítés felülírja az appot, az adatai megmaradnak.
+- **Indok:** A próbaidőszak (M7) telefonjaira Metro nélkül kell telepíteni; a https-es éles cím a titkosítatlan forgalmat továbbra sem engedi.
+- **Érintett:** `Makefile` (`standalone`, `install-standalone`), `app.config.ts`.
+
 ## 2026-11-04 – `waypost-schema` 0.6.0 és a szerver sémaverziója (`X-Waypost-Schema`)
 
 - **Kérdés:** A `waypost-schema` auditja (SCH-002; döntés: `../waypost-schema/docs/decisions.md`, „CI és a szerződés verziójának rögzítése”) szerint az app a `.waypost-schema-version` szerint `v0.4.0`-t várt, a lemezen 0.5.0 volt, a lockfájl 0.4.0-t rögzített, és futásidőben semmi nem jelezte, ha a szerver más szerződésverzióval dolgozik. Mit vár az app, és mit tesz, ha a szerver eltér?
