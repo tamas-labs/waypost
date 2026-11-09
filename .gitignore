@@ -45,3 +45,5 @@ modules/*/android/build/
 
 # Jest coverage
 coverage/
+
+.claude

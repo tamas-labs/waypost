@@ -1,10 +1,11 @@
-import { appendChainEntries } from '@/chain/writer';
+import { appendChainEntries, appendDecidedEntries, appendDecidedEntriesAfter } from '@/chain/writer';
 import type { Database } from '@/db/database';
 import { createTestDatabase } from '@/db/testing';
 import { schedulerStep } from '@/domain/rounds';
 import { manualScan, resolveScan, type TagRead } from '@/domain/scan';
 import { guardLogin } from '@/domain/shift';
 import { C1, C2, C3, guardState, GUARD, idSequence, local, TIMEZONE } from '@/domain/testing';
+import { currentLocation } from '@/location/location';
 import type { TagReading } from '@/nfc/tag';
 import type { ClockReading } from '@/time/clock';
 
@@ -21,7 +22,12 @@ jest.mock('@/location/location', () => ({
 
 let db: Database;
 let now: string;
-const readClock = (): ClockReading => ({ device_time: now, uptime_ms: 1000, boot_id: 'android-boot:12' });
+// The phone was started on 2026-11-01: its uptime goes with the wall clock.
+const readClock = (): ClockReading => ({
+  device_time: now,
+  uptime_ms: Date.parse(now) - Date.UTC(2026, 10, 1),
+  boot_id: 'android-boot:12',
+});
 const newId = idSequence();
 const write = (drafts: Parameters<typeof appendChainEntries>[1], photos?: Parameters<typeof appendChainEntries>[2]) =>
   appendChainEntries(db, drafts, { readClock, ...photos });
@@ -129,6 +135,45 @@ describe('recording a read', () => {
     expect(state().rounds[0]!.status).toBe('in_progress');
     expect(outcome.drafts[0]).toMatchObject({ type: 'scan', payload: { lat_e7: 475000000, lng_e7: 190000000 } });
     expect(scanFeedback(outcome)).toBe('success');
+  });
+
+  it('is of the moment of the touch, while the scheduler waits for it (WP-APP-011)', async () => {
+    const id = await openRound();
+    let located = (_location: null) => {};
+    jest.mocked(currentLocation).mockReturnValueOnce(new Promise((resolve) => (located = resolve)));
+    now = local('20:19');
+    const recorded = recordTagRead(db, nfc(C1), readClock);
+    // The location takes its time: the deadline (20:20) passes, and the scheduler comes.
+    now = local('20:21');
+    const closed = appendDecidedEntries(db, () => ({ drafts: schedulerStep(state(), now, newId) }), { readClock });
+    located(null);
+
+    expect(await recorded).toMatchObject({ kind: 'recorded', round_id: id });
+    await closed;
+    expect(state().rounds[0]).toMatchObject({ status: 'incomplete', scans: [{ checkpoint_id: C1, scanned_at: local('20:19') }] });
+  });
+
+  it('is of the moment it is written if an entry waiting before it has a later clock', async () => {
+    const id = await openRound();
+    let located = (_location: null) => {};
+    jest.mocked(currentLocation).mockReturnValueOnce(new Promise((resolve) => (located = resolve)));
+    // The touch at 20:10 comes while another scan waits for the chain, written at 20:12: the chain's clock does not go back.
+    let ready = () => {};
+    const waiting = appendDecidedEntriesAfter(
+      db,
+      new Promise<void>((resolve) => (ready = resolve)),
+      () => resolveScan({ state: state(), now, location: null, newId }, nfc(C2)),
+      { readClock },
+    );
+    now = local('20:10');
+    const recorded = recordTagRead(db, nfc(C1), readClock);
+    now = local('20:12');
+    ready();
+    await waiting;
+    located(null);
+
+    expect(await recorded).toMatchObject({ kind: 'recorded', round_id: id });
+    expect(state().rounds[0]!.scans.map((scan) => scan.scanned_at)).toEqual([local('20:12'), local('20:12')]);
   });
 
   it('previews the outcome without writing anything', async () => {

@@ -47,8 +47,11 @@ export function windowMinutes(schedule: ScheduleRules): number[] {
     throw new Error('Incomplete interval schedule');
   const from = parseLocalTime(interval_from);
   const to = parseLocalTime(interval_to) + (parseLocalTime(interval_to) <= from ? 1440 : 0);
+  // The server refuses interval_to = interval_from (a window of 24 h); if one comes anyway, its end is the next day's
+  // start, which belongs to that day's window only (audit WP-APP-010).
+  const last = to - from === 1440 ? to - 1 : to;
   const minutes: number[] = [];
-  for (let m = from; m <= to; m += interval_every_min) minutes.push(m);
+  for (let m = from; m <= last; m += interval_every_min) minutes.push(m);
   return minutes;
 }
 

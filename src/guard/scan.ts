@@ -1,11 +1,13 @@
 // A tag read or an incident recorded: the location, then the domain's decision and its entries under the chain lock. The
-// scan does not wait for the GPS longer than currentLocation() allows (specification: Állapotgépek / Leolvasás 6).
-import { eq } from 'drizzle-orm';
+// scan does not wait for the GPS longer than currentLocation() allows (specification: Állapotgépek / Leolvasás 6), and a
+// tag read is decided for the moment of the touch.
+import { desc, eq } from 'drizzle-orm';
 
 import type { LocationFix, PhotoFile } from '@/chain/payloads';
-import { appendDecidedEntries } from '@/chain/writer';
+import { appendDecidedEntries, appendDecidedEntriesAfter } from '@/chain/writer';
 import type { Database } from '@/db/database';
-import { checkpoints } from '@/db/schema';
+import { getKv } from '@/db/kv';
+import { chainEntries, checkpoints } from '@/db/schema';
 import {
   manualScan,
   nearestCheckpoint,
@@ -22,7 +24,7 @@ import type { FeedbackKind } from '@/feedback/feedback';
 import { uuidv7 } from '@/id/uuidv7';
 import { currentLocation } from '@/location/location';
 import type { TagReading } from '@/nfc/tag';
-import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
+import { readClock as readDeviceClock, type ClockReading, type ReadClock } from '@/time/clock';
 import { parseTimestamp } from '@/time/timestamp';
 
 import { loadGuardStateNow } from './state';
@@ -47,9 +49,42 @@ export function previewTagRead(db: Database, read: TagRead, readClock: ReadClock
   return resolveScan(scanContext(db, null, readClock), read);
 }
 
+/** Whether the chain has an entry with a later clock than the reading: one waiting for the chain lock before it. */
+function writtenSince(db: Database, reading: ClockReading): boolean {
+  const deviceId = getKv(db, 'device.id');
+  if (deviceId === null) return false;
+  const last = db
+    .select({ uptime_ms: chainEntries.uptime_ms, boot_id: chainEntries.boot_id })
+    .from(chainEntries)
+    .where(eq(chainEntries.device_id, deviceId))
+    .orderBy(desc(chainEntries.seq))
+    .limit(1)
+    .get();
+  return last !== undefined && (last.boot_id !== reading.boot_id || last.uptime_ms > reading.uptime_ms);
+}
+
+/**
+ * Records a read for the moment of the touch: the entry's clock (so its time) and its round are those of the touch,
+ * though it is written once the location has come (at most 5 s). Meanwhile the chain takes no other entry, so a
+ * deadline passing does not move the scan out of its round, and a read touched after it is recorded after it. Only an
+ * entry that was already waiting for the chain when the tag was touched comes before it; then the scan is of the
+ * moment it is written, as the chain's clock never goes back (audit WP-APP-011).
+ */
 export async function recordTagRead(db: Database, read: TagRead, readClock: ReadClock = readDeviceClock): Promise<ScanOutcome> {
-  const location = await currentLocation();
-  const { decision } = await appendDecidedEntries(db, () => resolveScan(scanContext(db, location, readClock), read), { readClock });
+  const touched = readClock();
+  let at = touched;
+  const { decision } = await appendDecidedEntriesAfter(
+    db,
+    currentLocation(),
+    (location) => {
+      if (writtenSince(db, touched)) at = readClock();
+      return resolveScan(
+        scanContext(db, location, () => at),
+        read,
+      );
+    },
+    { readClock: () => at },
+  );
   return decision;
 }
 

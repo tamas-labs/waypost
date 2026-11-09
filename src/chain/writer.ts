@@ -152,6 +152,23 @@ export function appendDecidedEntries<D extends ChainDecision>(
   });
 }
 
+/**
+ * appendDecidedEntries, with the lock taken at once and decide run when awaiting has settled (a scan's location): the
+ * entries others write meanwhile wait, so a decision for the moment of the call still sees the state of that moment.
+ * awaiting must settle by itself, and soon (it holds every writer up); a rejection is thrown, and nothing is written.
+ */
+export function appendDecidedEntriesAfter<R, D extends ChainDecision>(
+  db: Database,
+  awaiting: Promise<R>,
+  decide: (value: R) => D,
+  options: ChainWriterOptions = {},
+): Promise<{ decision: D; entries: ChainEntry[] }> {
+  return withChainLock(async () => {
+    const decision = decide(await awaiting);
+    return { decision, entries: await writeDrafts(db, decision.drafts, options) };
+  });
+}
+
 /** Appends one entry; see appendChainEntries. */
 export async function appendChainEntry<T extends ChainEntryType>(
   db: Database,

@@ -276,6 +276,7 @@
     "offlineQueued": "Offline · {{count}} vár",
     "uploading": "Feltöltés… {{count}}",
     "photoFileMissing": "A pont fotója nincs meg a telefonon, ezért a pont fotó nélkül kerül fel.",
+    "rejectedWithDependents": "{{message}} (A rá épülő további {{count}} módosítás sem került fel.)",
     "error": "Szinkronhiba · újra",
     "syncNow": "Szinkronizálás most",
     "running": "Szinkronizálás…",
@@ -555,6 +556,10 @@
     "firstLoginNote": "Az első belépéshez internet kell, utána a telefonon elég a PIN-kód.",
     "login": "Belépés",
     "loggingIn": "Belépés…",
+    "renewTitle": "Lépj be újra",
+    "renewText": "A belépésed már nem érvényes, ezért a módosításaid nem jutnak el a szerverre. Lépj be újra: a még el nem küldött módosítások megmaradnak, és utána felkerülnek.",
+    "renewButton": "Belépés újra",
+    "renewOtherAccount": "Ezen a telefonon {{name}} fiókjának adatai és el nem küldött módosításai vannak. Az ő fiókjával lépj be, vagy előbb jelentkezz ki.",
     "loginOffline": "Nincs hálózati kapcsolat. A belépéshez internet kell.",
     "loginNoServer": "Ebben a buildben nincs megadva a szerver címe, ezért nem lehet belépni.",
     "loginErrors": {

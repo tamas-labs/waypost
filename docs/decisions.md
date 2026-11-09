@@ -980,3 +980,51 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - Hibanapló: `src/diagnostics/`, `src/db/kv.ts`, `src/components/root-error-boundary.tsx`, `src/components/startup-error.tsx`, `src/app/_layout.tsx`, `src/app/(supervisor)/device-setup.tsx`.
   - Közös nézetelemek: `src/components/sheet.tsx`, `src/components/section-title.tsx`, `src/components/schedule/`, `src/components/training/`, `src/components/route-edit/`.
   - Szövegek: `src/i18n/hu.json`.
+
+## 2026-11-06 – Az audit alacsony súlyú hibái (WP-APP-010 – WP-APP-017)
+
+- **Kérdés:** Az audit (`docs/audit.20261104-jelentes.md`) nyolc LOW tétele. Az azonos kezdő- és záróidejű menetrend elakasztja az ütemezőt (010). A leolvasás a helyadatra vár: késik az ideje, és a közben érintett második címke elvész (011). Nincs DST-teszt az ütemező szintjén (012). Elavult az outbox sorrendjéről szóló komment (013). A hozzárendelés megszakadása elveszítheti a titkot (014). Egy elutasított hívás függő hívásai is kimennek (015). A supervisortoken 401-e után csak a kijelentkezés marad (016). Végül a függőségek (017).
+- **Döntés:**
+  - **WP-APP-010 – azonos kezdő és záró idő** (`src/domain/schedule.ts`, `src/domain/rounds.ts`):
+    - Egy `interval_from = interval_to` ablak 24 órás, de a záró időpontja nélkül: az már a következő nap ablakának kezdete.
+    - Az ütemező egy időpontot egy lépésen belül is csak egyszer nyit meg (`known`), akkor is, ha a slotok ismétlik.
+    - A szerver és az app szerkesztője az ilyen menetrendet továbbra is elutasítja. A `waypost-schema` 0.7.0 óta a leírás is érvénytelennek mondja, ezért sémaváltozás nem kell.
+  - **WP-APP-011 – a leolvasás az érintés pillanatáé** (`src/guard/scan.ts`, `src/chain/writer.ts`, `src/hooks/use-scan-recorder.ts`):
+    - A láncban a leolvasásnak nincs saját időmezője: az idejét a bejegyzés órája adja (`entryTrustedTime`). Ezért a bejegyzés az érintéskor kiolvasott órával íródik (`device_time`, `uptime_ms`), és a döntés (melyik kör, lejárt-e) is erre a pillanatra szól.
+    - A helyadatra várás (a specifikáció szerint legfeljebb 5 mp) alatt a láncírás zárolva van (`appendDecidedEntriesAfter`). Így közben más bejegyzés nem kerül a láncba, és a határidő lejárta nem viszi körön kívülre a leolvasást: az ütemező utána zárja a kört.
+    - A lánc órája nem mehet vissza. Ha az érintéskor már várt egy bejegyzés a zárra, és később íródott, a leolvasás a saját beírásának idejét kapja, ahogy eddig.
+    - A rögzítés alatt érintett **másik** címke sorba áll, és utána rögzül. Ugyanaz a címke másodszor nem számít. Az eredményképernyő az utolsóé.
+    - A második leolvasás visszajelzése a rögzítésekor szól, mert az első megváltoztathatja (pl. a sorrendet).
+    - iOS-en a „Leolvasás” gomb a rögzítés alatt továbbra is tiltott, így ott nincs elveszett érintés.
+    - **Ára:** a többi láncírás (ütemező, PIN-belépés, esemény) egy leolvasás alatt legfeljebb 5 mp-et vár.
+  - **WP-APP-012 – DST-tesztek** (`src/domain/dst.test.ts`): Budapest két 2026-os átállási éjszakája (03-28/29 és 10-24/25). A teszt rögzíti a megnyitott köröket, a határidőket (az időkorlátosét és a következő körig tartóét), az automatikus zárást és az ébresztéseket. A tesztelt viselkedés: a tavaszi résbe eső idő a 03:00, az őszi ismétlődő idő az első előfordulás.
+  - **WP-APP-013:** a `src/db/schema.ts` kommentje szerint az outbox `rowid` (sorba állítási) sorrendben megy, nem az azonosító szerint.
+  - **WP-APP-014 – a hozzárendelés sorrendje** (`src/account/supervisor.ts`, `src/account/enrollment.ts`, `src/app/_layout.tsx`):
+    - A `POST /devices/enroll` válasza (titok, token, eszközsor, `device.id`) azonnal mentődik, a supervisortoken törlése és a futó szinkron megvárása előtt.
+    - A fiók adatai csak utána törlődnek, és az eszközsor ugyanabban a tranzakcióban újra beíródik, mert a még futó fiókszinkron lecserélhette az eszközlistát.
+    - Ha az app közben leáll, az indulás már telephelyi telefont talál. A megmaradt fiókadatokat az indulás törli (`finishInterruptedEnrollment`: telephelyi telefon `supervisor.account`-tal), az eszközsort és a `sync.confirmed`-et megtartja.
+    - Marad egy szűk ablak a secure store és az adatbázis írása között, hálózati hívás és várakozás nélkül.
+  - **WP-APP-015 – az elutasított létrehozás függő hívásai** (`src/sync/outbox.ts`, `src/sync/rejection.ts`):
+    - Ha a szerver egy létrehozást (POST az app által adott azonosítóval) 4xx-szel elutasít, vele együtt kiesnek a később sorba állított hívások, amelyek a létre nem jött rekordot említik (útvonalban, törzsben vagy `record_ids`-ben). Ez láncszerűen terjed, pl. telephely → pont → útvonalverzió.
+    - A supervisor egy elutasítást lát, a kiesett hívások számával (`dropped`): „(A rá épülő további N módosítás sem került fel.)”.
+    - Módosítás (PATCH, PUT, DELETE) elutasítása mást nem visz magával, mert a rekord létezik, és a többi módosítás attól még érvényes lehet.
+    - A fotófeltöltés sem számít létrehozásnak: a pont fotó nélkül is felmegy.
+  - **WP-APP-016 – újra-bejelentkezés** (`src/account/supervisor.ts` `renewSupervisorLogin`, `src/components/renew-login.tsx`):
+    - A supervisor saját telefonján, ha a szinkron 401-gyel áll (`unauthenticated`), a telephelylistán sáv és „Belépés újra” gomb jelenik meg. A lapon az e-mail-cím ki van töltve.
+    - A sikeres belépés csak a tokent cseréli. A fiók adatai és az outbox megmaradnak, és a szinkron azonnal elindul.
+    - Más fiókkal a belépést az app visszautasítja: az új tokent a szerveren kijelentkezteti, és megmondja, kié a telefon. A várakozó módosítások az előző fiókéi, a telefon átadásához előbb ki kell jelentkezni.
+  - **WP-APP-017 – függőségek:**
+    - `npx expo install --fix`: 20 csomag került az SDK 58 által várt verzióra, köztük a `react-native` 0.88.1 és a `react-native-safe-area-context` 5.11. Az `expo-doctor` mind a 20 ellenőrzése zöld.
+    - Az `expo-glass-effect` kikerült a közvetlen függőségek közül, de az `expo-router` függőségeként a buildben marad.
+    - Az `@expo/ui` és az `expo-symbols` marad: az `expo-router` opcionális függőségei, és az androidos fejléceszköztára betölti őket.
+    - Az `app.json`-ból kikerült az `extra.router.asyncRoutes.web`.
+    - Az ikon, a splash és a hangok helyőrzők maradnak. A cseréjük a gazdánál van, az M7 kiadása előtt.
+    - A natív csomagok frissültek, ezért új development build kell.
+- **Indok:** Specifikáció *Állapotgépek / Leolvasás 6* (a leolvasás nem vár a GPS-re), *Menetrend → körök* (DST), *Azonosítás / Telephelyi telefon hozzárendelése*, *Szinkron protokoll / Outbox* (FIFO, elutasítás), M5 (az offline végzett módosítások végrehajtódnak); `waypost-schema` `entities/schedule.json` (`interval_to = interval_from` érvénytelen).
+- **Érintett:**
+  - Menetrend és ütemező: `src/domain/schedule.ts`, `src/domain/rounds.ts`.
+  - Leolvasás: `src/guard/scan.ts`, `src/chain/writer.ts` (`appendDecidedEntriesAfter`), `src/hooks/use-scan-recorder.ts`.
+  - Hozzárendelés és újra-bejelentkezés: `src/account/enrollment.ts` (`recordEnrollment`), `src/account/supervisor.ts`, `src/app/_layout.tsx`, `src/components/renew-login.tsx`, `src/app/(supervisor)/sites/index.tsx`.
+  - Outbox: `src/sync/outbox.ts`, `src/sync/rejection.ts`, `src/hooks/use-rejected-calls-toast.ts`, `src/db/kv.ts` (`OutboxRejection.dropped`), `src/db/schema.ts` (komment).
+  - Szövegek, csomagok, konfiguráció: `src/i18n/hu.json`, `package.json`, `package-lock.json`, `app.json`.
+  - Tesztek: `src/domain/dst.test.ts`, `src/domain/rounds.test.ts`, `src/domain/schedule.test.ts`, `src/guard/round.test.ts`, `src/hooks/use-scan-recorder.test.ts`, `src/account/supervisor.test.ts`, `src/sync/outbox.test.ts`, `__tests__/round-screen.test.tsx`, `__tests__/sites-screen.test.tsx`.

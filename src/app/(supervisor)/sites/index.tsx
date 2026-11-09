@@ -8,6 +8,7 @@ import { AccountButton } from '@/components/account-button';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { InfoBanner } from '@/components/info-banner';
+import { RenewLogin } from '@/components/renew-login';
 import { ScreenHeader } from '@/components/screen-header';
 import { StatusBadge } from '@/components/status-badge';
 import { SyncStatusIndicator } from '@/components/sync-status-indicator';
@@ -19,6 +20,7 @@ import { useReadiness } from '@/hooks/use-readiness';
 import { t } from '@/i18n';
 import { loadSiteList, supervisorAccount, type SiteListItem } from '@/supervisor/sites';
 import { dismissOutboxRejections } from '@/sync/outbox';
+import { rejectionMessage } from '@/sync/rejection';
 import { useSyncStatus } from '@/sync/status';
 import { useTheme } from '@/theme/theme-provider';
 import { tabular } from '@/theme/tokens';
@@ -67,6 +69,8 @@ export default function SitesScreen() {
         </Text>
 
         {mode === 'site_phone' && <SetupWarning />}
+
+        {ownPhone && <RenewLogin email={account?.email ?? null} />}
 
         <RejectedCalls />
 
@@ -145,7 +149,7 @@ function RejectedCalls() {
       <InfoBanner
         variant="warn"
         title={t('supervisor.rejectedMany', { count: rejected.length })}
-        text={rejected.map((call) => call.message).join('\n')}
+        text={rejected.map(rejectionMessage).join('\n')}
       />
       <Button label={t('supervisor.rejectedDismiss')} variant="secondary" onPress={() => dismissOutboxRejections(getDatabase())} />
     </View>

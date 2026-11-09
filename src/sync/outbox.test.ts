@@ -29,6 +29,7 @@ import {
   sendOutbox,
 } from './outbox';
 import { applyPullPages } from './pull';
+import { rejectionMessage } from './rejection';
 import { useSyncStatus } from './status';
 import { fakeApi, type FakeAnswer, type RecordedRequest } from './testing';
 
@@ -323,6 +324,52 @@ describe('sendOutbox', () => {
     dismissOutboxRejections(db);
     expect(outboxRejections(db)).toEqual([]);
     expect(useSyncStatus.getState().rejectedCalls).toEqual([]);
+  });
+
+  it('drops the calls that need a refused create with it, tells it once, and sends the others (WP-APP-015)', async () => {
+    const version = '019a2b3c-4d5e-7f00-8a00-000000000009';
+    queueAction(db, { calls: [configCalls.createSite({ id: SITE, name: 'Raktár' })] }, SUPERVISOR);
+    // Needs the site; the version needs the checkpoint, so the site too.
+    queueAction(db, { calls: [createCheckpoint] }, SUPERVISOR);
+    queueAction(
+      db,
+      { calls: [configCalls.createRouteVersion(ROUTE, { id: version, checkpoints: [{ checkpoint_id: CHECKPOINT }] })] },
+      SUPERVISOR,
+    );
+    // Another site's route: nothing to do with it.
+    queueAction(
+      db,
+      {
+        calls: [configCalls.createRoute({ id: ROUTE, site_id: '019a2b3c-4d5e-7f00-8a00-00000000000a', name: 'Kör', order_mode: 'fixed' })],
+      },
+      SUPERVISOR,
+    );
+    const { api, requests } = server({
+      'POST /sites': [error(422, 'validation_failed', 'A telephely neve foglalt.', { name: ['Foglalt.'] })],
+      'POST /routes': [[201, ROUTE_RESPONSE]],
+    });
+
+    await sendOutbox({ db, api, token: 't' }, options());
+
+    expect(requests.map((request) => request.path)).toEqual(['/sites', '/routes']);
+    expect(rows()).toEqual([]);
+    expect(outboxRejections(db)).toEqual([expect.objectContaining({ path: '/sites', dropped: 2 })]);
+    expect(rejectionMessage(outboxRejections(db)[0]!)).toBe('A telephely neve foglalt. (A rá épülő további 2 módosítás sem került fel.)');
+  });
+
+  it('drops nothing else with a refused change: only a create has calls that need it', async () => {
+    queueAction(db, { calls: [configCalls.updateUser(SUPERVISOR, { name: 'Kovács Anna' })] }, SUPERVISOR);
+    queueAction(db, { calls: [configCalls.setUserPin(SUPERVISOR, { pin: '482105' })] }, SUPERVISOR);
+    const { api, requests } = server({
+      [`PATCH /users/${SUPERVISOR}`]: [error(422, 'validation_failed', 'Nem sikerült.', { name: ['Hibás.'] })],
+      [`PUT /users/${SUPERVISOR}/pin`]: [[200, example('user.response', 'site-phone')]],
+    });
+
+    await sendOutbox({ db, api, token: 't' }, options());
+
+    expect(requests).toHaveLength(2);
+    expect(outboxRejections(db)).toEqual([expect.not.objectContaining({ dropped: expect.anything() })]);
+    expect(rejectionMessage(outboxRejections(db)[0]!)).toBe('Nem sikerült.');
   });
 
   it('lets the supervisor dismiss one refusal and keeps the others', async () => {

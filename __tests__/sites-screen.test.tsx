@@ -9,7 +9,7 @@ import SiteScreen from '@/app/(supervisor)/sites/[id]';
 import NewSiteScreen from '@/app/(supervisor)/sites/new';
 import Index from '@/app/index';
 import { useSession, type SessionState } from '@/auth/session';
-import { enrollThisPhone, UnsentActionsError } from '@/account/supervisor';
+import { enrollThisPhone, OtherAccountError, renewSupervisorLogin, UnsentActionsError } from '@/account/supervisor';
 import type { Database } from '@/db/database';
 import { getKv, setKv, type OutboxRejection } from '@/db/kv';
 import { getDatabase } from '@/db/open';
@@ -30,6 +30,8 @@ jest.mock('@/account/supervisor', () => ({
   unsentSupervisorActions: jest.fn(() => 0),
   // The enrollment itself is tested in src/account/supervisor.test.ts.
   enrollThisPhone: jest.fn(),
+  // The login again itself is tested in src/account/supervisor.test.ts.
+  renewSupervisorLogin: jest.fn(),
 }));
 // The readiness and its fixes are tested in src/setup/readiness.test.ts and __tests__/device-setup-screen.test.tsx.
 jest.mock('@/setup/readiness', () => ({ ...jest.requireActual<object>('@/setup/readiness'), getReadiness: jest.fn() }));
@@ -240,6 +242,45 @@ it('lists the refused actions until the supervisor has seen them', async () => {
   await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Rendben' })));
   expect(screen.queryByText(/nem fogadott el a szerver/)).toBeNull();
   expect(getKv(db, 'outbox.rejected')).toBeNull();
+});
+
+describe('a login no longer taken (WP-APP-016)', () => {
+  beforeEach(() => {
+    setKv(db, 'dev.api_base_url', 'https://waypost.example/api/waypost/v1');
+    jest.mocked(renewSupervisorLogin).mockReset();
+    useSyncStatus.setState({ lastError: { kind: 'unauthenticated', message: 'x', at: AT } as never });
+  });
+
+  it('is told, and a login again with the e-mail address of the account keeps the unsent actions', async () => {
+    jest.mocked(renewSupervisorLogin).mockImplementation(async () => {
+      useSyncStatus.setState({ lastError: null });
+    });
+    await start();
+    expect(screen.getByText(/A belépésed már nem érvényes/)).toBeOnTheScreen();
+
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Belépés újra' })));
+    expect(screen.getByDisplayValue(ME.email)).toBeOnTheScreen();
+    await act(async () => fireEvent.changeText(screen.getByLabelText('Jelszó'), 'titkos-jelszo'));
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Belépés' })));
+
+    expect(renewSupervisorLogin).toHaveBeenCalledWith(db, expect.anything(), { email: ME.email, password: 'titkos-jelszo' });
+    expect(screen.queryByText(/A belépésed már nem érvényes/)).toBeNull();
+  });
+
+  it("tells that another account's login does not take over the phone", async () => {
+    jest.mocked(renewSupervisorLogin).mockRejectedValue(new OtherAccountError(ME.name));
+    await start();
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Belépés újra' })));
+    await act(async () => fireEvent.changeText(screen.getByLabelText('Jelszó'), 'titkos-jelszo'));
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Belépés' })));
+    expect(screen.getByText(/Kovács Anna fiókjának adatai/)).toBeOnTheScreen();
+  });
+
+  it('is not shown for another sync error', async () => {
+    useSyncStatus.setState({ lastError: { kind: 'network', message: 'x', at: AT } as never });
+    await start();
+    expect(screen.queryByRole('button', { name: 'Belépés újra' })).toBeNull();
+  });
 });
 
 describe('site details', () => {

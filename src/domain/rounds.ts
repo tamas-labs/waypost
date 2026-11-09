@@ -163,6 +163,8 @@ export function schedulerStep(state: GuardState, now: Timestamp, newId: NewId): 
       }),
     });
     current.set(slot.route_id, { round, deadline });
+    // One round per time slot, even if the slots repeat one (audit WP-APP-010).
+    known.add(roundKey(slot));
   }
 
   for (const { round, deadline } of current.values()) {

@@ -196,8 +196,45 @@ function dropPhoto(tx: Database, mediaId: string): void {
   tx.delete(media).where(eq(media.id, mediaId)).run();
 }
 
-/** The server has refused the call: it is dropped, the supervisor is told, and the next pull brings the full state. */
+/** The ID of the record a call creates: a POST carrying the ID the app generated (api/config-calls.ts); null otherwise. */
+function createdId(row: OutboxRow): string | null {
+  const id = (row.body as { id?: unknown } | null)?.id;
+  return row.method === 'POST' && typeof id === 'string' && row.record_ids.includes(id) ? id : null;
+}
+
+/**
+ * The calls queued after a refused create that need what it would have made: they name its record (in the path, the
+ * body or the records they change), or one made by such a call, e.g. the version and the schedule of a route whose
+ * create was refused. Sent, the server would refuse them too, with one more message each (audit WP-APP-015).
+ */
+function dependentCalls(db: Database, row: OutboxRow): OutboxRow[] {
+  const root = createdId(row);
+  if (root === null) return [];
+  const missing = [root];
+  const dependents: OutboxRow[] = [];
+  const later = db
+    .select()
+    .from(outbox)
+    .orderBy(sql`rowid`)
+    .all()
+    .filter((call) => call.id !== row.id);
+  for (const call of later) {
+    // UUIDv7s: one inside another text is that record.
+    const text = [call.path, JSON.stringify(call.body ?? null), ...call.record_ids].join(' ');
+    if (!missing.some((id) => text.includes(id))) continue;
+    dependents.push(call);
+    const created = createdId(call);
+    if (created !== null) missing.push(created);
+  }
+  return dependents;
+}
+
+/**
+ * The server has refused the call: it is dropped with the calls that depend on it (if it was a create), the supervisor
+ * is told once, and the next pull brings the full state.
+ */
 function rejected(db: Database, row: OutboxRow, error: ApiError, nowMs: number): void {
+  const dependents = dependentCalls(db, row);
   const rejection: OutboxRejection = {
     call_id: row.id,
     method: row.method,
@@ -207,12 +244,15 @@ function rejected(db: Database, row: OutboxRow, error: ApiError, nowMs: number):
     message: error.message,
     details: error.details,
     record_ids: row.record_ids,
+    ...(dependents.length > 0 && { dropped: dependents.length }),
     at: toTimestamp(nowMs),
   };
   const rejections = [...(getKv(db, 'outbox.rejected') ?? []), rejection].slice(-MAX_REJECTIONS);
   db.transaction((tx) => {
-    tx.delete(outbox).where(eq(outbox.id, row.id)).run();
-    if (row.media_id !== null) dropPhoto(tx, row.media_id);
+    for (const call of [row, ...dependents]) {
+      tx.delete(outbox).where(eq(outbox.id, call.id)).run();
+      if (call.media_id !== null) dropPhoto(tx, call.media_id);
+    }
     setKv(tx, 'outbox.rejected', rejections);
     // An incremental pull would not bring a record the server did not change.
     deleteKv(tx, 'sync.cursor');

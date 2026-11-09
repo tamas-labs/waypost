@@ -39,14 +39,39 @@ beforeEach(async () => {
 afterEach(() => jest.restoreAllMocks());
 
 it('gives the feedback at once, while the location is still coming', async () => {
-  jest.mocked(currentLocation).mockReturnValue(new Promise(() => undefined));
+  let located = (_location: null) => {};
+  jest.mocked(currentLocation).mockReturnValue(new Promise((resolve) => (located = resolve)));
   const result = await recorder();
+  let recorded: Promise<void> = Promise.resolve();
   await act(async () => {
-    void result.current.record(KNOWN);
+    recorded = result.current.record(KNOWN);
   });
   expect(playFeedback).toHaveBeenCalledTimes(1);
   expect(playFeedback).toHaveBeenCalledWith('warning');
   expect(router.push).not.toHaveBeenCalled();
+  // The chain waits for the location: it comes, so the next test can write.
+  await act(async () => {
+    located(null);
+    await recorded;
+  });
+  expect(router.push).toHaveBeenCalledTimes(1);
+});
+
+it('records another tag touched while one is recorded after it, the same tag only once, and shows the last', async () => {
+  const other: TagRead = { method: 'nfc', tag_uid: guardState().checkpoints[1]!.tag_uid!, ndef_raw: null };
+  const record = jest.spyOn(guardScan, 'recordTagRead');
+  const result = await recorder();
+  await act(async () => {
+    await Promise.all([result.current.record(KNOWN), result.current.record(KNOWN), result.current.record(other)]);
+  });
+  expect(record.mock.calls.map(([, read]) => read)).toEqual([KNOWN, other]);
+  expect(router.push).toHaveBeenCalledTimes(1);
+  const outcome = await record.mock.results[1]!.value;
+  expect(router.push).toHaveBeenCalledWith({
+    pathname: '/scan-result',
+    params: expect.objectContaining({ checkpoint_id: (outcome as { checkpoint_id: string }).checkpoint_id }),
+  });
+  expect(result.current.recording).toBe(false);
 });
 
 it('gives it once, and goes on to the result', async () => {

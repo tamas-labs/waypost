@@ -89,11 +89,6 @@
     },
     "platforms": ["ios", "android"],
     "extra": {
-      "router": {
-        "asyncRoutes": {
-          "web": true
-        }
-      },
       "eas": {
         "projectId": "5c46fdfc-4150-46ec-8305-9960b9f26843"
       }

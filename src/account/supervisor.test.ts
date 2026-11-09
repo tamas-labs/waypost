@@ -16,7 +16,16 @@ import { whenSyncIdle } from '@/sync/runtime';
 import { fakeApi, type FakeAnswer } from '@/sync/testing';
 import { useSyncStatus } from '@/sync/status';
 
-import { enrollThisPhone, signInSupervisor, signOutSupervisor, UnsentActionsError, unsentSupervisorActions } from './supervisor';
+import {
+  enrollThisPhone,
+  finishInterruptedEnrollment,
+  OtherAccountError,
+  renewSupervisorLogin,
+  signInSupervisor,
+  signOutSupervisor,
+  UnsentActionsError,
+  unsentSupervisorActions,
+} from './supervisor';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 jest.mock('@/sync/runtime', () => ({ whenSyncIdle: jest.fn(() => Promise.resolve()), refreshPendingCount: jest.fn() }));
@@ -124,6 +133,67 @@ describe('signInSupervisor', () => {
     const { api, requests } = fakeApi(() => LOGGED_IN);
     await expect(signInSupervisor(db, api, { email: 'a@example.com', password: 'titkos-jelszo' })).rejects.toThrow('not enrolled');
     expect(requests).toEqual([]);
+  });
+});
+
+describe('renewSupervisorLogin', () => {
+  const ACCOUNT = { id: LOGGED_IN.user.id, name: 'Nagy Anna', email: 'nagy.anna@example.com' };
+
+  beforeEach(async () => {
+    await setSupervisorToken('elavult-token');
+    useSession.setState({ mode: 'supervisor_phone' });
+    seedAccountData();
+    setKv(db, 'supervisor.account', ACCOUNT);
+  });
+
+  it('replaces the token, keeps the account and its waiting actions, and syncs (WP-APP-016)', async () => {
+    const syncNow = jest.fn(async () => ({ status: 'done' as const }));
+    useSyncStatus.setState({
+      syncNow: syncNow as never,
+      lastError: { kind: 'unauthenticated', message: 'x', at: SERVER_TIME.server_time } as never,
+    });
+    const { api, requests } = fakeApi(() => LOGGED_IN);
+
+    await renewSupervisorLogin(db, api, { email: ACCOUNT.email, password: 'titkos-jelszo' });
+
+    expect(requests.map((request) => request.path)).toEqual(['/auth/login']);
+    await expect(getSupervisorToken()).resolves.toBe(LOGGED_IN.token);
+    expect(db.select().from(outbox).all()).toHaveLength(1);
+    expect(db.select().from(sites).all()).toHaveLength(1);
+    expect(getKv(db, 'sync.cursor')).toBe('Y3Vyc29yLTE');
+    expect(getKv(db, 'supervisor.account')).toEqual({ id: LOGGED_IN.user.id, name: LOGGED_IN.user.name, email: LOGGED_IN.user.email });
+    expect(useSyncStatus.getState().lastError).toBeNull();
+    expect(syncNow).toHaveBeenCalledTimes(1);
+    expect(useSession.getState().mode).toBe('supervisor_phone');
+  });
+
+  it("refuses another account's login, logs it out again, and keeps everything", async () => {
+    setKv(db, 'supervisor.account', { ...ACCOUNT, id: '019a2b3c-4d5e-7f00-8a00-0000000000ff' });
+    const { api, requests } = fakeApi((request) => (request.path === '/auth/login' ? LOGGED_IN : SERVER_TIME));
+
+    const error = await renewSupervisorLogin(db, api, { email: 'masik@example.com', password: 'titkos-jelszo' }).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(OtherAccountError);
+    expect((error as OtherAccountError).accountName).toBe('Nagy Anna');
+    expect(requests.map((request) => request.path)).toEqual(['/auth/login', '/auth/logout']);
+    expect(requests[1]!.headers.Authorization).toBe(`Bearer ${LOGGED_IN.token}`);
+    await expect(getSupervisorToken()).resolves.toBe('elavult-token');
+    expect(db.select().from(outbox).all()).toHaveLength(1);
+  });
+
+  it('changes nothing when the server refuses the login', async () => {
+    const { api } = fakeApi(() => [401, { error: { code: 'unauthenticated', message: 'Hibás e-mail-cím vagy jelszó.' } }]);
+    await expect(renewSupervisorLogin(db, api, { email: ACCOUNT.email, password: 'rossz' })).rejects.toMatchObject({
+      code: 'unauthenticated',
+    });
+    await expect(getSupervisorToken()).resolves.toBe('elavult-token');
+  });
+
+  it("is only for a supervisor's own phone", async () => {
+    useSession.setState({ mode: 'site_phone', deviceId: 'd' });
+    await expect(renewSupervisorLogin(db, fakeApi(() => LOGGED_IN).api, { email: ACCOUNT.email, password: 'x' })).rejects.toThrow(
+      "Not a supervisor's own phone",
+    );
   });
 });
 
@@ -236,6 +306,27 @@ describe('enrollThisPhone', () => {
     expect(useSession.getState()).toMatchObject({ mode: 'site_phone', deviceId: ENROLLED.device.id, activeUser: null });
   });
 
+  it('stores the enrollment before it waits for the running sync, and records the device again after it (WP-APP-014)', async () => {
+    await onSupervisorPhone();
+    syncNowSends(true);
+    let idle = () => {};
+    jest.mocked(whenSyncIdle).mockReturnValueOnce(new Promise((resolve) => (idle = resolve)));
+
+    const enrolled = enrollThisPhone(db, enrollApi().api, ENROLL_SITE);
+    while (jest.mocked(whenSyncIdle).mock.calls.length === 0) await new Promise((resolve) => setImmediate(resolve));
+    // Were the app stopped here, the secret would be on the phone, with the device.
+    await expect(getDeviceCredentials()).resolves.toEqual({ token: ENROLLED.token, secret: ENROLLED.secret });
+    expect(getKv(db, 'device.id')).toBe(ENROLLED.device.id);
+    // The account's sync, still running, replaces the device list.
+    db.delete(devices).run();
+    idle();
+    await enrolled;
+
+    expect(db.select().from(devices).all()).toEqual([ENROLLED.device]);
+    expect(getKv(db, 'sync.confirmed')).not.toBeNull();
+    expectNoAccountData();
+  });
+
   it('does not sync first when nothing waits', async () => {
     await setSupervisorToken(LOGGED_IN.token);
     useSession.setState({ mode: 'supervisor_phone' });
@@ -287,5 +378,33 @@ describe('enrollThisPhone', () => {
     useSession.setState({ mode: 'supervisor_phone' });
     await expect(enrollThisPhone(db, api, ENROLL_SITE)).rejects.toThrow('No supervisor token');
     expect(requests).toEqual([]);
+  });
+});
+
+describe('finishInterruptedEnrollment', () => {
+  it("deletes a supervisor account's data left on a site phone, and keeps the device", async () => {
+    seedAccountData();
+    db.transaction((tx) => {
+      tx.insert(devices).values(ENROLLED.device).run();
+      setKv(tx, 'device.id', ENROLLED.device.id);
+    });
+    const confirmed = [{ ids: [ENROLLED.device.id], server_time: ENROLLED.server_time }];
+    setKv(db, 'sync.confirmed', confirmed);
+    useSession.setState({ mode: 'site_phone', deviceId: ENROLLED.device.id });
+
+    expect(finishInterruptedEnrollment(db)).toBe(true);
+
+    expectNoAccountData();
+    expect(db.select().from(devices).all()).toEqual([ENROLLED.device]);
+    expect(getKv(db, 'device.id')).toBe(ENROLLED.device.id);
+    expect(getKv(db, 'sync.confirmed')).toEqual(confirmed);
+    expect(finishInterruptedEnrollment(db)).toBe(false);
+  });
+
+  it("leaves a supervisor's own phone and a site phone without account data alone", () => {
+    seedAccountData();
+    useSession.setState({ mode: 'supervisor_phone' });
+    expect(finishInterruptedEnrollment(db)).toBe(false);
+    expect(getKv(db, 'supervisor.account')).not.toBeNull();
   });
 });

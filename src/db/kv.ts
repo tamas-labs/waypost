@@ -29,6 +29,8 @@ export interface OutboxRejection {
   details: NonNullable<ErrorResponse['error']['details']> | null;
   /** The local records the call changed (outbox.record_ids); absent in a refusal stored before it was kept. */
   record_ids?: string[];
+  /** The calls queued after it that needed the record it would have created, dropped with it (sync/outbox.ts). */
+  dropped?: number;
   /** Device wall clock. */
   at: string;
 }

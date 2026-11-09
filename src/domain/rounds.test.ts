@@ -202,6 +202,24 @@ describe('scheduler step', () => {
     ).toBe(Date.parse(local('03:20', '2026-11-04')));
   });
 
+  it('opens a time slot once even if the slots repeat it (WP-APP-010)', () => {
+    const repeated = withShift({ schedules: [SCHEDULES[0]!, SCHEDULES[0]!] });
+    expect(describeDrafts(step(repeated, local('20:05')))).toEqual(['opened A 20:00']);
+  });
+
+  it('takes a window with the same start and end as 24 hours without the next day’s start (WP-APP-010)', () => {
+    const allDay = SCHEDULES.map((schedule) =>
+      schedule.id === SCHEDULE_A ? { ...schedule, interval_to: '20:00', interval_every_min: 720 } : schedule,
+    );
+    const drafts = step(withShift({ schedules: allDay }), local('12:00', '2026-11-05'));
+    const opened = drafts.flatMap((draft) =>
+      draft.type === 'round_opened' && draft.payload.schedule_id === SCHEDULE_A ? [draft.payload.scheduled_at] : [],
+    );
+    // The window of Tuesday: 20:00 and 08:00; the shift closes 60 min after 08:20, before Wednesday's 20:00.
+    expect(opened).toEqual([local('20:00'), local('08:00', '2026-11-04')]);
+    expect(drafts.at(-1)).toMatchObject({ type: 'shift_closed', payload: { closed_by: 'auto' } });
+  });
+
   it('never closes a shift automatically without schedules', () => {
     const state = withShift({ schedules: [] });
     expect(autoCloseTime(state, [], Date.parse(local('19:55')))).toBeNull();

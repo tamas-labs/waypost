@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -157,14 +157,16 @@ it('marks a scan out of order', async () => {
   expect(screen.getByText('20:00 · NFC · Rossz sorrend')).toBeOnTheScreen();
 });
 
-it('drops a second tag while the first is being recorded', async () => {
+it('records a second tag touched while the first is recorded, the same tag once, and shows the last (WP-APP-011)', async () => {
   await renderScreen();
   await act(async () => {
     onTag(tagOf(C1));
+    onTag(tagOf(C1));
     onTag(tagOf(C2));
   });
-  expect(router.push).toHaveBeenCalledTimes(1);
-  expect(state().rounds[0]!.scans.map((scan) => scan.checkpoint_id)).toEqual([C1]);
+  await waitFor(() => expect(router.push).toHaveBeenCalledTimes(1));
+  expect(router.push).toHaveBeenCalledWith({ pathname: '/scan-result', params: expect.objectContaining({ checkpoint_id: C2 }) });
+  expect(state().rounds[0]!.scans.map((scan) => scan.checkpoint_id)).toEqual([C1, C2]);
 });
 
 it('says so about a tag without a valid UID, and records nothing', async () => {

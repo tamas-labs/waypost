@@ -43,6 +43,12 @@ describe('schedule expansion', () => {
     ).toThrow('Invalid local time: 24:00');
   });
 
+  it('leaves out the end of a window with the same start and end, the start of the next window (WP-APP-010)', () => {
+    const allDay = { weekdays: 127, mode: 'interval', start_times: null, interval_from: '20:00', interval_to: '20:00' } as const;
+    expect(windowMinutes({ ...allDay, interval_every_min: 360 })).toEqual([1200, 1560, 1920, 2280]);
+    expect(windowMinutes({ ...allDay, interval_every_min: 1440 })).toEqual([1200]);
+  });
+
   it('lists the slots of the active schedules within a period, with the window started the day before', () => {
     const slots = slotsBetween(SCHEDULES, TIMEZONE, Date.parse(local('22:00')), Date.parse(local('20:30', '2026-11-04')));
     expect(slots.map((slot) => [slot.schedule_id === SCHEDULE_A ? 'A' : 'B', slot.start_day, slot.scheduled_at])).toEqual([

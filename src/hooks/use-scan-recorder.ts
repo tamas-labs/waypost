@@ -28,39 +28,50 @@ export function scanResultParams(outcome: ScanOutcome, read: TagRead, roundId: s
 }
 
 export interface ScanRecorder {
-  /** Records a read and goes on to its result; a read while another is recorded is dropped (the same tag touched twice). */
+  /**
+   * Records a read and goes on to its result. A read while others are recorded is recorded after them (another tag
+   * touched soon after), unless it is the same tag again; the result screen is that of the last one.
+   */
   record: (read: TagRead) => Promise<void>;
   recording: boolean;
   failed: boolean;
 }
 
+/** The same tag or code: touched twice, it is one read. */
+const readKey = (read: TagRead) => (read.method === 'nfc' ? `nfc:${read.tag_uid}` : `qr:${read.qr_payload}`);
+
 /** The way from a tag read to the result screen (G7–G9), for the round's screen (push) and the QR reader over it (replace). */
 export function useScanRecorder(navigate: 'push' | 'replace', roundId: string): ScanRecorder {
   const [recording, setRecording] = useState(false);
   const [failed, setFailed] = useState(false);
-  const busy = useRef(false);
+  // The reads being recorded, by readKey, in the order of the touches.
+  const pending = useRef(new Set<string>());
 
   const record = useCallback(
     async (read: TagRead) => {
-      if (busy.current) return;
-      busy.current = true;
+      const key = readKey(read);
+      if (pending.current.has(key)) return;
+      const first = pending.current.size === 0;
+      pending.current.add(key);
       setRecording(true);
       setFailed(false);
       try {
-        const previewed = scanFeedback(previewTagRead(getDatabase(), read));
-        playFeedback(previewed);
+        // The first read is told at once; one behind others when it is decided, as those may change it (the order).
+        const previewed = first ? scanFeedback(previewTagRead(getDatabase(), read)) : null;
+        if (previewed !== null) playFeedback(previewed);
         const outcome = await recordTagRead(getDatabase(), read);
-        // A round may have closed while the location was coming.
+        // An entry written before it (a read, a round closed by the scheduler) may have changed what it comes to.
         if (scanFeedback(outcome) !== previewed) playFeedback(scanFeedback(outcome));
-        router[navigate]({ pathname: '/scan-result', params: scanResultParams(outcome, read, roundId) });
+        pending.current.delete(key);
+        if (pending.current.size === 0) router[navigate]({ pathname: '/scan-result', params: scanResultParams(outcome, read, roundId) });
       } catch (error) {
+        pending.current.delete(key);
         if (__DEV__) console.warn('Recording a scan failed', error);
         logError('scan', error, read.method);
         playFeedback('error');
         setFailed(true);
       } finally {
-        busy.current = false;
-        setRecording(false);
+        if (pending.current.size === 0) setRecording(false);
       }
     },
     [navigate, roundId],

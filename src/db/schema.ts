@@ -266,7 +266,7 @@ export const media = sqliteTable(
 
 // --- Local only ---
 
-/** REST calls of supervisor actions waiting to be sent, in id (UUIDv7) order (sync/outbox.ts). */
+/** REST calls of supervisor actions waiting to be sent, in rowid (queueing) order, not by id: the clock may step back (sync/outbox.ts). */
 export const outbox = sqliteTable('outbox', {
   id: id(),
   method: text({ enum: ['POST', 'PUT', 'PATCH', 'DELETE'] }).notNull(),

@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { finishInterruptedEnrollment } from '@/account/supervisor';
 import { startAlarmScreen } from '@/alarms/active-alarms';
 import { startRoundAlarms } from '@/alarms/round-alarms';
 import { loadSession } from '@/auth/session';
@@ -46,6 +47,7 @@ function useStartup(): [Startup, () => void] {
     openDatabase()
       .then(async (db) => {
         await loadSession(db);
+        finishInterruptedEnrollment(db);
         return loadThemePreference(db);
       })
       .then(

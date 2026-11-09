@@ -3,13 +3,14 @@
 // actions go through the outbox with their own token. Logging out deletes everything of the account from the phone, and
 // so does enrolling it as a site phone (Telephelyi telefon hozzárendelése).
 import type { DevicesEnrollResponse } from '@waypost/schema';
+import { eq } from 'drizzle-orm';
 
 import type { ApiClient } from '@/api/client';
 import { enrollDevice, login, logout } from '@/api/endpoints';
 import { loadSession, useSession } from '@/auth/session';
 import type { Database } from '@/db/database';
-import { deleteDeviceSyncState, deleteKv, setKv } from '@/db/kv';
-import { routeVersionCheckpoints, routeVersions } from '@/db/schema';
+import { deleteDeviceSyncState, deleteKv, getKv, setKv } from '@/db/kv';
+import { devices, routeVersionCheckpoints, routeVersions } from '@/db/schema';
 import { deleteSupervisorToken, getSupervisorToken, setSupervisorToken } from '@/device/credentials';
 import { clearOutbox } from '@/sync/outbox';
 import { countPending } from '@/sync/pending';
@@ -17,23 +18,30 @@ import { deleteConfiguration } from '@/sync/pull';
 import { refreshPendingCount, whenSyncIdle } from '@/sync/runtime';
 import { useSyncStatus } from '@/sync/status';
 
-import { enrollmentRequest, phoneName, saveEnrollment } from './enrollment';
+import { enrollmentRequest, phoneName, recordEnrollment, saveEnrollment } from './enrollment';
 
 /** Deletes what the phone keeps of a supervisor account: the configuration, the pull cursor, the outbox, who it is. */
-function deleteAccountData(db: Database): void {
-  db.transaction((tx) => {
-    deleteConfiguration(tx);
-    // No round uses them on a supervisor's phone.
-    tx.delete(routeVersionCheckpoints).run();
-    tx.delete(routeVersions).run();
-    clearOutbox(tx);
-    deleteDeviceSyncState(tx);
-    deleteKv(tx, 'sync.last_success_at');
-    deleteKv(tx, 'supervisor.account');
-    deleteKv(tx, 'training.draft');
-  });
+function clearAccountData(tx: Database): void {
+  deleteConfiguration(tx);
+  // No round uses them on a supervisor's phone.
+  tx.delete(routeVersionCheckpoints).run();
+  tx.delete(routeVersions).run();
+  clearOutbox(tx);
+  deleteDeviceSyncState(tx);
+  deleteKv(tx, 'sync.last_success_at');
+  deleteKv(tx, 'supervisor.account');
+  deleteKv(tx, 'training.draft');
+}
+
+/** The sync status of the account deleted (clearAccountData). */
+function resetAccountStatus(): void {
   useSyncStatus.setState({ rejectedCalls: [], lastSuccessAt: null, lastError: null });
   refreshPendingCount();
+}
+
+function deleteAccountData(db: Database): void {
+  db.transaction(clearAccountData);
+  resetAccountStatus();
 }
 
 /**
@@ -51,6 +59,41 @@ export async function signInSupervisor(db: Database, api: ApiClient, credentials
   // The phone is the supervisor's now: what the login screen told about a replaced site phone is over.
   useSyncStatus.setState({ replaced: false });
   await loadSession(db);
+}
+
+/** A login with another account than the one whose data and unsent actions the phone keeps. */
+export class OtherAccountError extends Error {
+  override readonly name = 'OtherAccountError';
+
+  /** accountName: the account the phone keeps. */
+  constructor(readonly accountName: string) {
+    super('The login is of another account than the one on the phone');
+  }
+}
+
+/**
+ * Logs the supervisor in again on their own phone after the server stopped taking its token (401, e.g. the token was
+ * deleted on the server): POST /auth/login, and the new token replaces the old one. The account's data and the actions
+ * waiting in the outbox stay, and a sync sends them at once (audit WP-APP-016). The login of another account is logged
+ * out again and refused (OtherAccountError): the waiting actions are of the account on the phone, which has to log out
+ * first to give the phone to someone else.
+ */
+export async function renewSupervisorLogin(db: Database, api: ApiClient, credentials: { email: string; password: string }): Promise<void> {
+  if (useSession.getState().mode !== 'supervisor_phone') throw new Error("Not a supervisor's own phone");
+  const account = getKv(db, 'supervisor.account');
+  const { token, user } = await login(api, { email: credentials.email, password: credentials.password, device_name: phoneName() });
+  if (account !== null && user.id !== account.id) {
+    try {
+      await logout(api, token);
+    } catch {
+      // The token is left among that account's tokens.
+    }
+    throw new OtherAccountError(account.name);
+  }
+  setKv(db, 'supervisor.account', { id: user.id, name: user.name, email: user.email });
+  await setSupervisorToken(token);
+  useSyncStatus.setState({ lastError: null });
+  void useSyncStatus.getState().syncNow();
 }
 
 /** The supervisor actions not sent yet: they are lost at logout, so the screen asks first. */
@@ -112,11 +155,19 @@ export async function enrollThisPhone(db: Database, api: ApiClient, siteId: stri
 
   const response = await enrollDevice(api, token, enrollmentRequest(siteId));
 
+  // The server gives the secret only once, and has revoked the site's previous phone: the enrollment is stored before
+  // anything else, so an interruption from here on leaves an enrolled phone (audit WP-APP-014). What is left of the
+  // account then is deleted at the next start (finishInterruptedEnrollment).
+  await saveEnrollment(db, response);
   // Without the token no new sync starts; a running one could still write the account's data.
   await deleteSupervisorToken();
   await whenSyncIdle();
-  deleteAccountData(db);
-  await saveEnrollment(db, response);
+  db.transaction((tx) => {
+    clearAccountData(tx);
+    // The device list is the account's too, and a sync of the account may have replaced it meanwhile.
+    recordEnrollment(tx, response);
+  });
+  resetAccountStatus();
   try {
     await logout(api, token);
   } catch {
@@ -124,4 +175,23 @@ export async function enrollThisPhone(db: Database, api: ApiClient, siteId: stri
   }
   await loadSession(db);
   return response;
+}
+
+/**
+ * At start: a site phone that still has a supervisor account's data was enrolled by enrollThisPhone, which stopped
+ * after storing the enrollment (the app closed or crashed). The account's data is deleted as the enrollment would
+ * have; the device and the pull's memory of it (sync.confirmed) stay. Returns whether there was anything to finish.
+ */
+export function finishInterruptedEnrollment(db: Database): boolean {
+  const deviceId = getKv(db, 'device.id');
+  if (useSession.getState().mode !== 'site_phone' || deviceId === null || getKv(db, 'supervisor.account') === null) return false;
+  db.transaction((tx) => {
+    const device = tx.select().from(devices).where(eq(devices.id, deviceId)).get();
+    const confirmed = getKv(tx, 'sync.confirmed');
+    clearAccountData(tx);
+    if (device !== undefined) tx.insert(devices).values(device).run();
+    if (confirmed !== null) setKv(tx, 'sync.confirmed', confirmed);
+  });
+  resetAccountStatus();
+  return true;
 }
