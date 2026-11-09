@@ -76,7 +76,7 @@ export async function pull(api: ApiClient, token: string, cursor: string | null)
   return data;
 }
 
-/** POST /sync/push: a batch of the device's chain entries. */
+/** POST /sync/push: a batch of the device's chain entries. The response is checked in every build (WP-APP-020). */
 export async function push(api: ApiClient, token: string, body: SyncPushRequest): Promise<SyncPushResponse> {
   const { data } = await api.request({
     method: 'POST',
@@ -85,11 +85,12 @@ export async function push(api: ApiClient, token: string, body: SyncPushRequest)
     body,
     bodySchema: 'api/sync-push.request',
     responseSchema: 'api/sync-push.response',
+    checkResponse: true,
   });
   return data;
 }
 
-/** POST /sync/push-final: a batch of a revoked device; done closes its upload. */
+/** POST /sync/push-final: a batch of a revoked device; done closes its upload. The response is checked as push's. */
 export async function pushFinal(api: ApiClient, token: string, body: SyncPushFinalRequest): Promise<SyncPushFinalResponse> {
   const { data } = await api.request({
     method: 'POST',
@@ -98,6 +99,7 @@ export async function pushFinal(api: ApiClient, token: string, body: SyncPushFin
     body,
     bodySchema: 'api/sync-push-final.request',
     responseSchema: 'api/sync-push-final.response',
+    checkResponse: true,
   });
   return data;
 }

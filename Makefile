@@ -33,7 +33,7 @@ start-clear: ## Metro with a cleared cache (e.g. after a new migration)
 
 ## Checks
 
-.PHONY: typecheck lint format format-check test test-watch coverage check e2e doctor db-generate
+.PHONY: typecheck lint format format-check test test-watch coverage check e2e doctor audit db-generate
 typecheck: ## tsc --noEmit
 	npm run typecheck
 
@@ -65,6 +65,9 @@ e2e: ## M5 acceptance against a running backend: make e2e E2E_URL=… (leaves a 
 
 doctor: ## expo-doctor: dependencies and configuration
 	npx expo-doctor
+
+audit: ## npm audit of the app's dependencies (not the dev tools), failing on high and critical (as CI)
+	npm audit --omit=dev --audit-level=high
 
 db-generate: ## New migration after a change of src/db/schema.ts
 	npm run db:generate

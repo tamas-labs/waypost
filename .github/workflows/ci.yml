@@ -34,6 +34,9 @@ jobs:
           cache: npm
           cache-dependency-path: waypost/package-lock.json
       - run: npm ci
+      # The app's dependencies only: the dev tools (Jest, ESLint, drizzle-kit) do not reach the phone. The moderate and low
+      # findings are all in build and test tooling that expo and expo-router pull in (audit WP-APP-018).
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run format:check

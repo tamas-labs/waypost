@@ -1028,3 +1028,44 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - Outbox: `src/sync/outbox.ts`, `src/sync/rejection.ts`, `src/hooks/use-rejected-calls-toast.ts`, `src/db/kv.ts` (`OutboxRejection.dropped`), `src/db/schema.ts` (komment).
   - Szövegek, csomagok, konfiguráció: `src/i18n/hu.json`, `package.json`, `package-lock.json`, `app.json`.
   - Tesztek: `src/domain/dst.test.ts`, `src/domain/rounds.test.ts`, `src/domain/schedule.test.ts`, `src/guard/round.test.ts`, `src/hooks/use-scan-recorder.test.ts`, `src/account/supervisor.test.ts`, `src/sync/outbox.test.ts`, `__tests__/round-screen.test.tsx`, `__tests__/sites-screen.test.tsx`.
+
+## 2026-11-09 – Az audit tájékoztató tételei (WP-APP-018 – WP-APP-021)
+
+- **Kérdés:** Az audit (`docs/audit.20261104-jelentes.md`) négy INFO tétele:
+  - az `npm audit` találatai (018);
+  - a PIN-ellenőrzők és a várakozó PIN-csere nyílt PIN-je a telefon adatbázisában, és a mentés (019);
+  - éles buildben a válaszok nincsenek sémán ellenőrizve (020);
+  - a nyers NDEF a feldolgozott rekordokból újraépített (021).
+- **Döntés:**
+  - **WP-APP-018 – `npm audit`** (`.github/workflows/ci.yml`, `Makefile` `audit`):
+    - A CI az `npm ci` után futtatja az `npm audit --omit=dev --audit-level=high` parancsot: az app függőségeiben talált high vagy critical hiba megállítja.
+    - A mai 22 találat (21 moderate, 1 low) mind build- és teszteszköz: a `glob` és a `minimatch` az `expo` CLI-jében, a `jest` az `expo-router` peer függőségén (`@testing-library/react-native`) át. Egyik sem kerül a telefonra.
+    - A javításuk csak SDK-visszalépéssel menne (`npm audit fix --force`), ezért az SDK-frissítésekkel jönnek.
+    - A teljes fa (a fejlesztői eszközökkel, 1 high) nem a CI kapuja: az a fejlesztői gépen számít, a telefonon nem.
+  - **WP-APP-019 – PIN-ellenőrzők és mentés** (`app.json`):
+    - A PIN-ellenőrzők a specifikáció szerint az adatbázisban vannak (offline belépés). A 6 jegyű PIN a fájl birtokában visszafejthető; ezt tudomásul vesszük. A várakozó PIN-csere nyílt PIN-je az M5-18 döntés szerint marad.
+    - Az adatbázis megszerzéséhez root, jailbreak vagy a mentés kell.
+    - **Android:** `android.allowBackup: false`, kifejezetten. Eddig csak a secure store mentési szabályai miatt maradt ki az adatbázis. Az eszközök közötti átvitelt (Android 12+) a secure store `dataExtractionRules`-a korlátozza: abban az adatbázis és a fotók nincsenek benne.
+    - **iOS:** az adatbázis és a fotók a dokumentumkönyvtárban vannak, ezért bekerülnek az iCloud-mentésbe.
+      - A kizárásuk (`isExcludedFromBackup`) natív kódot kíván. Az Expo-csomagok ezt nem adják, és iOS-buildet most nem tudunk kipróbálni, ezért egyelőre nem készül el.
+      - A mentés titkosított, a hozzáféréshez az Apple-fiók kell.
+      - Ugyanez a mentés a keychain `AFTER_FIRST_UNLOCK` elemeit (az eszköztitkot és a tokent) is átviheti egy másik iPhone-ra. Ha a régi telefon is fut, a két telefon ugyanazzal az eszközazonossággal ír. A szerver ezt elágazásként (`chain_fork`) jelzi, csendben nem marad.
+      - Ha az iOS-telefon a próbaidőszak része lesz, a kizárás és a keychain `…_THIS_DEVICE_ONLY` hozzáférése egy saját natív modullal és iOS-eszközteszttel jön.
+  - **WP-APP-020 – a push válasza minden buildben ellenőrzött** (`src/api/client.ts` `checkResponse`, `src/schema/validation.ts` `tolerantSchemaErrors`, `src/api/endpoints.ts`):
+    - A láncbejegyzés sémaellenőrzése a WP-APP-002 óta minden buildben fut.
+    - A `POST /sync/push` és a `POST /sync/push-final` válasza éles buildben is ellenőrzött, egy türelmes ellenőrzővel. Ez az ismeretlen mezőket eldobja (Ajv `removeAdditional`), a többit szigorúan nézi: kötelező mezők, típusok, felsorolások.
+    - Ok: a sémák szigorúak (`additionalProperties: false`), és a minor verzió szerver-először bővít. A szigorú ellenőrzés élesben egy szerverfrissítés után minden régebbi appot megállítana.
+    - Hibás válasz: `InvalidResponseError` a sémahibák listájával. A szinkron állapota a push lépés hibájaként „A szerver váratlan választ adott.” üzenetet mutat, nem egy későbbi, ok nélküli hibát. A bejegyzések megmaradnak, és a következő push újra elküldi őket (az újra elküldött elfogadott bejegyzést a szerver újra elfogadja).
+    - Fejlesztői buildben minden kérés és válasz továbbra is szigorúan ellenőrzött, így az ismeretlen mező ott hibát ad.
+    - A pull válasza élesben nincs ellenőrizve: nagy, és egy új felsorolásérték (minor) a telefon teljes letöltését megállítaná. A hibája a tranzakción belül marad (visszagördül), és a szinkron állapota a pull lépés hibájaként mutatja.
+  - **WP-APP-021 – normalizált NDEF** (`src/nfc/tag.ts`, komment):
+    - Az `ndef_raw` a címke NDEF-üzenete normalizált kódolásban, nem bitre azonos bájtsor (a 2026-10-28-i döntés pontosítása).
+    - A platformok (Android és iOS a react-native-nfc-manageren át) csak a feldolgozott rekordokat adják. Az app újra sorosítja őket: rövid rekord, ha elfér, darabolás nélkül.
+    - Az íróalkalmazások a rövid payloadot jellemzően rövid rekordba írják, darabolás nélkül, ezért a megszokott URL- és szövegrekordoknál ez várhatóan azonos az eredetivel (a saját címkéinken az eszközteszt mutatja meg). Eltérés akkor van, ha a címke rövid payloadot hosszú rekordban tárol, vagy darabolt rekordot használ; a rekordok tartalma ekkor is azonos.
+    - Az NTAG 424 DNA SUN-ellenőrzése (2. lépcső) az URL tartalmán múlik, nem a keretezésen, ezért ez elég. Natív nyers olvasás (az NDEF-fájl bájtjai) csak akkor kell, ha a 2. lépcső bájtszintű összevetést kér.
+- **Indok:** Specifikáció *Repo és technológiai stack* (`__DEV__` Ajv), *Azonosítás / PIN-kód* (offline ellenőrzés), *Láncolt napló / Jelölések* (`ndef_raw`); a `waypost-schema` döntései (`additionalProperties: false`, minor = szerver először).
+- **Érintett:**
+  - CI és parancsok: `.github/workflows/ci.yml`, `Makefile`.
+  - Konfiguráció: `app.json` (`android.allowBackup`).
+  - API: `src/api/client.ts`, `src/api/endpoints.ts`, `src/schema/validation.ts`; teszt: `src/api/client.test.ts`.
+  - NFC: `src/nfc/tag.ts`.

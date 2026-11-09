@@ -1,4 +1,4 @@
-// Platform-independent handling of a read NFC tag: UID normalisation and the raw NDEF message.
+// Platform-independent handling of a read NFC tag: UID normalisation and the NDEF message in a normalised encoding.
 import type { NdefRecord, TagEvent } from 'react-native-nfc-manager';
 
 import { normalizeTagUid } from '@/chain/payloads';
@@ -49,7 +49,9 @@ function lengthBytes(length: number): number[] {
 
 /**
  * Serialises the records into an NDEF message (NFC Forum NDEF 1.0): short records where the payload fits,
- * no chunking. The platforms hand over the parsed records; this rebuilds the bytes the tag holds.
+ * no chunking. The platforms hand over the parsed records only, so this is a normalised encoding of what the tag
+ * holds: the same bytes for the usual tags, other bytes, with the same records, for a tag that stores a short payload in
+ * a long record or chunks a record (decisions 2026-10-28 and 2026-11-09, audit WP-APP-021).
  */
 export function encodeNdefMessage(records: NdefRecord[]): Uint8Array {
   const bytes: number[] = [];

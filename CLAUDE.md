@@ -38,7 +38,7 @@ src/
   device/     # a telefon saját adatai és állapota, a domaintól függetlenül: tokenek a secure store-ban (credentials.ts), az eszköztitok (secret.ts; a lánc HMAC-ja olvassa), előtér-figyelés és intervallum (foreground.ts)
   setup/      # készenlét és a „Telefon beállítása” ellenőrzőlistája (readiness.ts)
   diagnostics/ # helyi hibanapló (error-log.ts: az utolsó 50 háttérhiba, `logError(source, error)`; error-log-view.ts: a „Telefon beállítása” képernyő sorai)
-  schema/     # JSON Schema-ellenőrzés (validation.ts, Ajv): a láncbejegyzésé minden buildben, az API-kéréseké és -válaszoké fejlesztői módban
+  schema/     # JSON Schema-ellenőrzés (validation.ts, Ajv): a láncbejegyzésé minden buildben, az API-kéréseké és -válaszoké fejlesztői módban; a push válaszáé éles buildben is, az ismeretlen mezők eldobásával (`tolerantSchemaErrors`, `checkResponse`)
   sync/       # pull, push (push.ts: kötegek, elutasítás, diagnosztika), a szerver által épp igazolt rekordok, amelyeket a teljes állapot még nem töröl (confirmed.ts), média (media.ts), visszavont telefon (revocation.ts), helyi takarítás (cleanup.ts), outbox (outbox.ts: supervisorműveletek, visszatartás, elutasítás a függő hívásokkal; a pont fotója is itt megy fel, multipart), az elutasítás szövege (rejection.ts); testing.ts: hamis API a tesztekhez
   chain/      # láncbejegyzés: kanonikus JSON, HMAC
   nfc/        # olvasás (reader.ts), Androidon az app-szintű figyelés (tag-events.ts), useTagReader a kör és a betanítás képernyőjére

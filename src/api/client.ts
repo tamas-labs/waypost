@@ -1,10 +1,11 @@
 // HTTP client of the Waypost API: Bearer token, Idempotency-Key on every write, the error format as typed errors,
 // and in development builds a check of every request and response against @waypost/schema, and of the schema
-// version the server tells (X-Waypost-Schema) against the app's.
+// version the server tells (X-Waypost-Schema) against the app's. The responses marked checkResponse are checked in
+// every build, tolerating the fields a newer server adds (audit WP-APP-020).
 import { SCHEMA_VERSION, type ErrorCode, type ErrorResponse, type SchemaPath, type SchemaTypes } from '@waypost/schema';
 
 import { uuidv7 } from '@/id/uuidv7';
-import { schemaErrors } from '@/schema/validation';
+import { schemaErrors, tolerantSchemaErrors } from '@/schema/validation';
 
 import { ApiError, codeForStatus, InvalidResponseError, NetworkError } from './errors';
 
@@ -22,6 +23,11 @@ export interface ApiRequest<P extends SchemaPath> {
   bodySchema?: SchemaPath;
   /** Schema of the 2xx response; it also gives the result type. */
   responseSchema: P;
+  /**
+   * Check the response in every build, not only in development ones: the fields the schema does not know are dropped
+   * (a newer server may add some), the rest must be valid. For the responses whose error is hard to tell otherwise.
+   */
+  checkResponse?: boolean;
   /** Bearer token; none for the login. */
   token?: string | null;
   /** Writes only. A new UUIDv7 if not given; the outbox passes its stored key so that a retry is recognised. */
@@ -184,8 +190,8 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     }
 
     if (!parsed) throw new InvalidResponseError(response.status, `${req.method} ${req.path}: the response is not JSON`);
-    if (validate) {
-      const errors = schemaErrors(req.responseSchema, body);
+    if (validate || req.checkResponse === true) {
+      const errors = validate ? schemaErrors(req.responseSchema, body) : tolerantSchemaErrors(req.responseSchema, body);
       if (errors.length > 0) {
         throw new InvalidResponseError(
           response.status,

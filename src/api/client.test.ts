@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { createApiClient, SCHEMA_VERSION_HEADER, schemaVersionDiffers } from './client';
-import { enrollDevice, login, pull, uploadMedia } from './endpoints';
+import { enrollDevice, login, pull, push, pushFinal, uploadMedia } from './endpoints';
 import { ApiError, InvalidResponseError, isApiError, NetworkError } from './errors';
 
 const EXAMPLES = join(dirname(require.resolve('@waypost/schema/package.json')), 'examples', 'api');
@@ -174,6 +174,29 @@ describe('API client', () => {
       await pull(createApiClient({ baseUrl: BASE_URL, fetch: respond(200, body) }), 't', null).catch((e: unknown) => e),
     ).toBeInstanceOf(InvalidResponseError);
     expect(await pull(createApiClient({ baseUrl: BASE_URL, fetch: respond(200, body), validate: false }), 't', null)).toEqual(body);
+  });
+
+  it('checks the response of a push in every build, without the fields the schema does not know', async () => {
+    const valid = example('sync-push.response/valid/all-accepted');
+    const lenient = (body: unknown) => createApiClient({ baseUrl: BASE_URL, fetch: respond(200, body), validate: false });
+    const sent = example<Parameters<typeof push>[2]>('sync-push.request/valid/spec-example');
+
+    expect(await push(lenient({ ...valid, added_later: true }), 't', sent)).toEqual(valid);
+    const { accepted: _accepted, ...withoutAccepted } = valid;
+    const error = await push(lenient(withoutAccepted), 't', sent).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(InvalidResponseError);
+    expect((error as InvalidResponseError).errors).toContain("/ must have required property 'accepted'");
+    await expect(pushFinal(lenient({ ...valid, last_seq: '3' }), 't', { ...sent, done: false })).rejects.toBeInstanceOf(
+      InvalidResponseError,
+    );
+  });
+
+  it('keeps failing on an unknown field of a push response in development mode', async () => {
+    const api = createApiClient({
+      baseUrl: BASE_URL,
+      fetch: respond(200, { ...example<Record<string, unknown>>('sync-push.response/valid/all-accepted'), added_later: true }),
+    });
+    await expect(push(api, 't', example('sync-push.request/valid/spec-example'))).rejects.toBeInstanceOf(InvalidResponseError);
   });
 
   it('rejects a response that is not JSON', async () => {
