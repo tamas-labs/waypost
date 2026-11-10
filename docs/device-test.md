@@ -183,11 +183,6 @@ Ugyanez a folyamat a telefon nélkül, a futó backend ellen automatikusan is le
 | L7 | Az első telefonon a telephely részletein „Telefon hozzárendelése” → „Hozzárendelés”; majd belépés az őr PIN-jével, kilépés, belépés a saját PIN-nel. | A hozzárendelés után azonnal a „PIN-belépés”, és **már az első pull után** be lehet lépni (nincs „nincs hozzárendelve” hiba); az őr és a supervisor is a hálózat nélkül megadott PIN-jével lép be. |
 | L8 | A telephelyi telefonon, PIN-nel belépett supervisorként, repülőgép-üzemmódban: egy őrnek új PIN-kód (J22), egy jelentés bekapcsolása (J28); utána a hálózat vissza. | Az őr a szinkron előtt is már csak az új PIN-nel lép be; a hálózat után a szerveren az új PIN és a feliratkozás a supervisor nevében (`X-Acting-User`) megvan. |
 
-## Eredmények
-
-Sablon (egy futáshoz másold le, és a fejlécbe írd a dátumot és a mérföldkövet):
-
-```markdown
 ### M3 – Kör térképen (M3-34, a kör képernyője, „Térkép” nézet; új dev build, Androidon `GOOGLE_MAPS_ANDROID_API_KEY`-jel)
 
 | # | Ellenőrzés | Várt eredmény |
@@ -210,6 +205,19 @@ Sablon (egy futáshoz másold le, és a fejlécbe írd a dátumot és a mérföl
 | E5 | Kötött sorrendnél rossz pont. | „Rossz sorrend”, egy hosszabb rezgés, a két pont sorszámmal; a listán a pont jelölve. |
 | E6 | Más útvonal pontja, nyitott kör nélküli címke. | „Rögzítve, jelöléssel”, körön kívüli szöveg, egy hosszabb rezgés. |
 | E7 | Ébresztés a siker képernyője alatt; kis képernyő, nagy betűméret, hosszú utasítás. | Az ébresztés felül marad, a visszaszámlálás megáll, és utána folytatódik. A tartalom görgethető, a gombok a helyükön. |
+
+### M3 – Leolvasás helyadatra várva (WP-APP-011, a kör képernyőjén; épületben, repülőgép-üzemmódban)
+
+A leolvasás a helyadatra legfeljebb 5 mp-et vár, és közben a lánc zárolva van. A próbához ez a várakozás kell: épületben, ahol nincs GPS-fix, repülőgép-üzemmódban (így hálózati helyadat sincs) és bekapcsolt helymeghatározással, úgy, hogy az elmúlt percben semmi nem kért helyadatot. Érvényes a próba, ha a „Leolvasás” gombon a „Rögzítés…” felirat néhány másodpercig látszik; ha azonnal eltűnik, jegyezd fel, és menj beljebb az épületbe. Az érintések idejét képernyőfelvétellel vagy stopperrel, másodpercre jegyezd fel (az S6-hoz).
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| S1 | Android: egy pont címkéje, és a „Rögzítés…” alatt ugyanaz a címke még egyszer. | Egy siker-visszajelzés, egy eredményképernyő; a körben a pont egyszer van leolvasva, nincs „Már leolvasva”. |
+| S2 | Android: egy pont címkéje, és a „Rögzítés…” alatt egy **másik** pont címkéje. | Az első visszajelzése azonnal, a másodiké a rögzítésekor szól. Az eredményképernyő a másodiké, és csak egyszer nyílik. A körben mindkét pont leolvasva, az érintések sorrendjében. |
+| S3 | Android, kötött sorrendű útvonal: a soron következő pont, és a „Rögzítés…” alatt az utána következő. | Mindkettő siker, egyik sem „Rossz sorrend” (a második az első rögzítése után dől el). |
+| S4 | Időkorlátos kör (vagy a következő kör előtti utolsó percek): a határidő előtt 2–3 mp-cel egy hátralévő pont címkéje. | A leolvasás a körbe számít: nem „Rögzítve, jelöléssel”, nem körön kívüli. A kör a rögzítés után zárul (az ütemező), az állapota a leolvasással együtt helyes. |
+| S5 | iPhone: „Leolvasás”, egy címke, majd a „Rögzítés…” alatt a gomb. | A gomb a rögzítés alatt tiltott, utána újra nyomható; nem vész el érintés. |
+| S6 | Az S2 és S4 után szinkron; a szerveren a `scan` bejegyzések `device_time`-ja (`waypost_chain_entries`). | Minden leolvasás `device_time`-ja az érintés ideje (±1 mp), nem a rögzítés vége (~5 mp-cel később); a két S2-es leolvasás között az érintések közti idő. Minden bejegyzés `ok`. |
 
 ### M3 – Kézi rögzítés (M3-36, a kör képernyőjén „Címke nem olvasható”; a fotók és a helyadat miatt a szabadban is)
 
@@ -259,6 +267,16 @@ Előtte: friss `waypost-schema` (M3-39), a telefon hozzárendelve, a címkék be
 | F8 | Újraindítás műszak közben. Külön figyeld: ha a műszak szerveridővel indult, újraindítás után hálózat nélkül és rossz órával a műszak ideje és a „most” eltérhet (`decisions.md`, 2026-11-01). | A műszak folytatódik, a kimaradt kör eredeti időponttal megnyílik, az ébresztések újraütemeződnek. |
 | F9 | Zárás PIN-nel az óra végén, majd a repülőgép üzemmód kikapcsolása. | Az összegzés egyezik a történtekkel. Hálózat után a lánc és a fotók feltöltődnek, utána lefut a pull. |
 
+### M3 – Ébresztési fedés bezárt appal (WP-APP-003, FR-025; `laravel-waypost`: „Demó telephely”, 5 perces menetrend)
+
+Bezárt appnál az ébresztések nem ütemeződnek újra: a telefon csak a legutóbb beütemezett listát szólaltatja meg. iOS-en ez 48 értesítés (44 kör + a következő 4 kör emlékeztetője), 5 perces köröknél kb. 3 óra 40 perc; Androidon 192. Előtte ne legyen függő értesítés az M1 próbasorozatából (iOS-en a 64-es rendszerkorlát közös).
+
+| # | Ellenőrzés | Várt eredmény |
+| --- | --- | --- |
+| W1 | iPhone: műszakkezdés, utána az app kisöpörve a legutóbbi appok közül. Az appot ne nyisd meg, és az értesítésekre se koppints (az megnyitja és újraütemez). Jegyezd fel az első és az utolsó ébresztés idejét és a darabszámot. | Minden 5. percben szól, az első 4 körnél 5 perccel később emlékeztető is. Az utolsó ébresztés kb. 44 körrel a műszakkezdés után (≈ 3 ó 40 p); utána csend. Ha jóval kevesebb, a megjegyzésbe a szám és az iOS-verzió. |
+| W2 | iPhone: a W1 csendje után nyisd meg az appot (PIN nélkül is). | A következő kör idején újra szól; a fedés innen újra ≈ 3 ó 40 p. A kimaradt körök az ütemező szerint zárultak. |
+| W3 | Android: ugyanez bezárt appal legalább a W1 idejéig. Közben `adb shell dumpsys alarm` (az app csomagneve: `com.tamaslabs.waypost`). | Végig pontosan szól. A függő riasztások száma legfeljebb 192, és a fedés 5 perces köröknél kb. 15 óra 40 perc. |
+
 ### M4 – Elfogadás: feltöltés hosszú offline után, telefoncsere (M4-13; `laravel-waypost`: `composer serve`, „Demó telephely”)
 
 Előtte: a telefon hozzárendelve, az első pull lefutott. A **szerveren** ellenőrizd (`waypost_chain_entries`, `waypost_media`, `waypost_devices`, `waypost_device_diagnostics`). Figyelem: a `composer serve` törli és újraépíti a `waypost` adatbázist; ha az adataid kellenek, `vendor/bin/testbench migrate` és `vendor/bin/testbench serve`.
@@ -279,6 +297,11 @@ Emulátoron az R1–R6 és a T1–T4 futtatható, kézi rögzítéssel és a vir
 | T3 | T1 közben szakadjon meg a hálózat, vagy indítsd újra az appot. | A következő szinkron folytatja, és csak utána lép ki. Ezalatt új rögzítés nem megy, a szinkronjelző mutatja az okot. |
 | T4 | Ugyanennek a telefonnak az újbóli hozzárendelése: az app újratelepítése, supervisor belépés, „Telefon hozzárendelése”. | Új lánc 1-től; a régi műszak és körök nem látszanak; a várakozó tételek száma 0-ról indul. |
 
+## Eredmények
+
+Sablon (egy futáshoz másold le, és a fejlécbe írd a dátumot és a mérföldkövet):
+
+```markdown
 ### ÉÉÉÉ-HH-NN – M1
 
 | # | Android | iPhone | Megjegyzés |
