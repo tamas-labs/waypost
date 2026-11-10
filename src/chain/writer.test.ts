@@ -458,6 +458,11 @@ describe('chain projections', () => {
       new ChainWriteError(`Photos not cited by any entry: ${given.id}`),
     );
     await expect(appendChainEntries(db, [], { ...options, photos: [given] })).rejects.toThrow(ChainWriteError);
+    // The same photo twice in one entry, even with its own hash: the server would refuse the entry.
+    await expect(
+      appendChainEntries(db, [cites([given, { id: given.id, sha256: 'f'.repeat(64) }])], { ...options, photos: [given] }),
+    ).rejects.toThrow(new RegExp(`^Invalid incident entry: /payload/media/1/id cites photo ${given.id} again$`));
+    await expect(appendChainEntries(db, [cites([given, given])], { ...options, photos: [given] })).rejects.toThrow(ChainWriteError);
     expect(db.select().from(media).all()).toEqual([]);
     expect(db.select().from(incidents).all()).toEqual([]);
     expect(allEntries()).toHaveLength(2);

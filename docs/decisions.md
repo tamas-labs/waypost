@@ -1053,7 +1053,7 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
       - Ha az iOS-telefon a próbaidőszak része lesz, a kizárás és a keychain `…_THIS_DEVICE_ONLY` hozzáférése egy saját natív modullal és iOS-eszközteszttel jön.
   - **WP-APP-020 – a push válasza minden buildben ellenőrzött** (`src/api/client.ts` `checkResponse`, `src/schema/validation.ts` `tolerantSchemaErrors`, `src/api/endpoints.ts`):
     - A láncbejegyzés sémaellenőrzése a WP-APP-002 óta minden buildben fut.
-    - A `POST /sync/push` és a `POST /sync/push-final` válasza éles buildben is ellenőrzött, egy türelmes ellenőrzővel. Ez az ismeretlen mezőket eldobja (Ajv `removeAdditional`), a többit szigorúan nézi: kötelező mezők, típusok, felsorolások.
+    - A `POST /sync/push` és a `POST /sync/push-final` válasza éles buildben is ellenőrzött, egy türelmes ellenőrzővel. Ez az ismeretlen mezőket eldobja (Ajv `removeAdditional`), az ismeretlen szöveges felsorolásértéket elfogadja (2026-11-10, FR-002), a többit szigorúan nézi: kötelező mezők, típusok.
     - Ok: a sémák szigorúak (`additionalProperties: false`), és a minor verzió szerver-először bővít. A szigorú ellenőrzés élesben egy szerverfrissítés után minden régebbi appot megállítana.
     - Hibás válasz: `InvalidResponseError` a sémahibák listájával. A szinkron állapota a push lépés hibájaként „A szerver váratlan választ adott.” üzenetet mutat, nem egy későbbi, ok nélküli hibát. A bejegyzések megmaradnak, és a következő push újra elküldi őket (az újra elküldött elfogadott bejegyzést a szerver újra elfogadja).
     - Fejlesztői buildben minden kérés és válasz továbbra is szigorúan ellenőrzött, így az ismeretlen mező ott hibát ad.
@@ -1082,3 +1082,22 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
   - **Nyitott:** sötét témában az alsó rendszer-navigációs sáv világos marad. A React Native a sáv megjelenését csak indításkor állítja (`WindowUtil.enableEdgeToEdge`), a téma váltását nem követi; a javításhoz `expo-navigation-bar` kell (új natív függőség, külön döntés).
 - **Indok:** `device-test.md` (B4, B5, J17–J26, L1–L4), M7 próbaidőszak: a telephelyi és a supervisor telefonok jellemzően 360–412 dp szélesek.
 - **Érintett:** `src/components/screen-header.tsx`, `src/components/sheet.tsx`, `src/components/guards/person-row.tsx`, `src/app/(supervisor)/sites/index.tsx`, `src/app/(auth)/login.tsx`, `src/app/(supervisor)/sites/new.tsx`, `src/app/(supervisor)/routes/[id]/train/point.tsx`, `src/app/(guard)/incident/new.tsx`, `src/app/(guard)/manual/index.tsx`, `src/hooks/use-confirm-leave.ts`, `src/app/(supervisor)/routes/[id]/edit.tsx`, `src/app/(supervisor)/routes/[id]/schedule.tsx`, `src/app/(supervisor)/sites/[id]/reports.tsx`.
+
+## 2026-11-10 – A javításellenőrzés közepes hibái (FR-002 – FR-004)
+
+- **Kérdés:** Mit kell javítani az appban a 2026-11-09-i javításellenőrzés (`remediation-review/FIX-REVIEW-ISSUES.md`) MEDIUM tételeiből?
+- **Döntés:**
+  - **FR-002 – ismeretlen elutasítási kód a push válaszában** (`src/schema/validation.ts`):
+    - A türelmes ellenőrző (`tolerantSchemaErrors`) az `enum` hibáját nem veszi hibának, ha az érték szöveg. A kapott értéket az Ajv `verbose` módja adja.
+    - Ok: a szerződés szerint egy új elutasítási kód a válaszban minor, szerver-először bővítés, és a régi app tartalék ágon kezeli (`waypost-schema` döntése: „Kompatibilitás a verziók között”). A WP-APP-020 óta egy ilyen kód élesben `InvalidResponseError`-t adott. A bejegyzés nyugtája így nem tárolódott, és a láncfeltöltés az app frissítéséig állt.
+    - A tartalék ág a meglévő: az ismeretlen kódú bejegyzést a push úgy kezeli, mint a többi elutasítottat. Nem küldi újra (`sync.rejected_through_seq`), a lánc első elutasítását diagnosztikaként jelenti a kóddal együtt, a többi bejegyzés feltöltése megy tovább. Az ezt kiadó szerver a saját kódját a diagnosztikában ismeri.
+    - A rossz típusú érték (pl. szám a `code` helyén) és a megsértett feltétel (pl. `chain_gap` `expected_seq` nélkül) továbbra is hiba. Fejlesztői buildben minden válasz szigorúan ellenőrzött, ott az ismeretlen kód is hiba.
+  - **FR-003 – egy fotó kétszer egy bejegyzésben** (`src/chain/media.ts` `repeatedPhotoErrors`, `src/chain/writer.ts`):
+    - A lánc írója a sémaellenőrzés után azt is nézi, hogy a bejegyzés `media` tömbjében minden fotóazonosító legfeljebb egyszer szerepel-e (`waypost-schema` SCH-016). Ha nem, a bejegyzés nem íródik meg (`ChainWriteError`), mint a sémahibás.
+    - Ok: a backend 2026-11-10 óta az ilyen bejegyzést `422`-vel utasítja el. A már megírt bejegyzés nem változhat, ezért a feltöltés mögötte megállna. Eddig a `recordPhotos` a második előfordulást csendben átugrotta, eltérő lenyomattal is. A mai képernyők ilyet nem írnak, ez védőkorlát.
+  - **FR-004 – a `normalized` és az `invalid` lánc-vektorok** (`src/chain/vectors.test.ts`):
+    - A vektorok nyers bejegyzésszövegeit a teszt úgy ellenőrzi, ahogy egy ellenőrző tenné: `JSON.parse`, a lánc sémája és az író fotószabálya, a kanonikus JSON, a HMAC.
+    - A `normalized` esetek a vektor kanonikus JSON-ját és lenyomatát adják. Az `invalid` esetek a vektor `expected` értékét adják (`invalid` vagy `bad_hmac`).
+    - Az app csak a saját bejegyzéseit írja alá, de ugyanezek a lépései, és a vektorok a határeseteiket védik: lebegőpontos alakú egész, 2⁵³, `1e400`, magányos surrogate, hiányzó `null`, ismétlődő fotó.
+- **Indok:** `waypost-schema` CHANGELOG és döntései (a kompatibilitási szabály, SCH-003, SCH-016); a backend ugyanezeket a vektorokat a push végponton futtatja (`laravel-waypost` `docs/decisions.md`, FR-004).
+- **Érintett:** `src/schema/validation.ts`, `src/chain/media.ts`, `src/chain/writer.ts`; tesztek: `src/api/client.test.ts`, `src/sync/push.test.ts`, `src/sync/testing.ts` (`fakeApi` `validate` kapcsolója), `src/chain/writer.test.ts`, `src/chain/vectors.test.ts`.

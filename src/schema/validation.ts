@@ -1,7 +1,9 @@
 // Validation against the JSON Schemas of @waypost/schema (Ajv, draft 2020-12): of the chain entries in every build,
 // of the API requests and responses in development builds only. The schemas are compiled on first use.
-// A tolerant check besides the strict one: it drops the fields the schemas do not know instead of failing on them, so a
-// field a newer server adds (a minor version, server first) does not break an older app; the rest is checked as strict.
+// A tolerant check besides the strict one, for what a newer server may add in a minor version (server first): it drops
+// the fields the schemas do not know, and takes a string value an enum does not list, instead of failing on them; the
+// caller handles such a value on its fallback branch (waypost-schema decisions, "Kompatibilitás a verziók között"). The
+// rest is checked as strict.
 import { schemaId, schemas, type SchemaPath } from '@waypost/schema';
 import Ajv2020, { type ErrorObject, type ValidateFunction } from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
@@ -9,11 +11,11 @@ import addFormats from 'ajv-formats';
 interface Checker {
   ajv: Ajv2020 | null;
   validators: Map<SchemaPath, ValidateFunction>;
-  removeAdditional: boolean;
+  tolerant: boolean;
 }
 
-const strict: Checker = { ajv: null, validators: new Map(), removeAdditional: false };
-const tolerant: Checker = { ajv: null, validators: new Map(), removeAdditional: true };
+const strict: Checker = { ajv: null, validators: new Map(), tolerant: false };
+const tolerant: Checker = { ajv: null, validators: new Map(), tolerant: true };
 
 function validator(checker: Checker, path: SchemaPath): ValidateFunction {
   let validate = checker.validators.get(path);
@@ -25,7 +27,9 @@ function validator(checker: Checker, path: SchemaPath): ValidateFunction {
         strictTypes: true,
         strictTuples: true,
         strictRequired: false,
-        removeAdditional: checker.removeAdditional,
+        removeAdditional: checker.tolerant,
+        // The value of each error, to tell an unknown enum value from one of a wrong type.
+        verbose: checker.tolerant,
       });
       addFormats(checker.ajv);
       for (const schema of Object.values(schemas)) checker.ajv.addSchema(schema);
@@ -41,19 +45,27 @@ function describe(error: ErrorObject): string {
   return `${error.instancePath || '/'} ${error.message ?? 'is invalid'}`;
 }
 
-function errorsOf(validate: ValidateFunction, value: unknown): string[] {
-  return validate(value) ? [] : (validate.errors ?? []).map(describe);
+/** A string an enum does not list: a value a newer version may have added. */
+function isUnknownEnumValue(error: ErrorObject): boolean {
+  return error.keyword === 'enum' && typeof error.data === 'string';
+}
+
+function errorsOf(checker: Checker, path: SchemaPath, value: unknown): string[] {
+  const validate = validator(checker, path);
+  if (validate(value)) return [];
+  const errors = validate.errors ?? [];
+  return (checker.tolerant ? errors.filter((error) => !isUnknownEnumValue(error)) : errors).map(describe);
 }
 
 /** The schema errors of a value; empty if it is valid. */
 export function schemaErrors(path: SchemaPath, value: unknown): string[] {
-  return errorsOf(validator(strict, path), value);
+  return errorsOf(strict, path, value);
 }
 
 /**
  * The schema errors of a value apart from the properties the schemas do not know, which it removes from the value
- * (where the schema has additionalProperties: false); empty if the rest is valid.
+ * (where the schema has additionalProperties: false), and the strings an enum does not list; empty if the rest is valid.
  */
 export function tolerantSchemaErrors(path: SchemaPath, value: unknown): string[] {
-  return errorsOf(validator(tolerant, path), value);
+  return errorsOf(tolerant, path, value);
 }

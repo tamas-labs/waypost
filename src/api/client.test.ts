@@ -191,6 +191,24 @@ describe('API client', () => {
     );
   });
 
+  it('takes an unknown rejection code in a push response in every build, but not a value of the wrong type', async () => {
+    const lenient = (body: unknown) => createApiClient({ baseUrl: BASE_URL, fetch: respond(200, body), validate: false });
+    const sent = example<Parameters<typeof push>[2]>('sync-push.request/valid/spec-example');
+    const rejection = (code: unknown) => ({
+      ...example('sync-push.response/valid/all-accepted'),
+      rejected: [{ id: '019a2b3c-4d5e-7f00-8a00-000000000110', code, expected_seq: null }],
+    });
+
+    // A code a newer server may add (minor version): the sync handles it as any other rejection.
+    expect(await push(lenient(rejection('future_code')), 't', sent)).toEqual(rejection('future_code'));
+    expect(await pushFinal(lenient(rejection('future_code')), 't', { ...sent, done: false })).toEqual(rejection('future_code'));
+    const error = await push(lenient(rejection(7)), 't', sent).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(InvalidResponseError);
+    expect((error as InvalidResponseError).errors).toContain('/rejected/0/code must be string');
+    // A known code still has to keep the rest of the contract.
+    await expect(push(lenient(rejection('chain_gap')), 't', sent)).rejects.toBeInstanceOf(InvalidResponseError);
+  });
+
   it('keeps failing on an unknown field of a push response in development mode', async () => {
     const api = createApiClient({
       baseUrl: BASE_URL,

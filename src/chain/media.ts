@@ -9,6 +9,21 @@ import type { PhotoFile } from './payloads';
 import { ProjectionError } from './projection';
 
 /**
+ * The errors of the photo IDs the entry cites more than once (payload.media): a photo has one SHA-256, and a hashed entry
+ * that gives it two could never be corrected; the server refuses it (waypost-schema SCH-016, a rule the schema cannot
+ * express). Empty for an entry without photos.
+ */
+export function repeatedPhotoErrors(entry: ChainEntry): string[] {
+  if (entry.type !== 'scan' && entry.type !== 'incident') return [];
+  const seen = new Set<string>();
+  return entry.payload.media.flatMap((ref, index) => {
+    if (seen.has(ref.id)) return [`/payload/media/${index}/id cites photo ${ref.id} again`];
+    seen.add(ref.id);
+    return [];
+  });
+}
+
+/**
  * Inserts the media rows of the photos the entry cites and that are not yet recorded in this write. The owner is the
  * first entry citing the photo (a manual entry's scan; its incident cites the same photos). A cited photo that is not
  * among the photos, or whose SHA-256 differs, is an error.

@@ -16,7 +16,8 @@ export interface RecordedRequest {
 /** An answer: a JSON body with 200, a [status, body] pair (with headers), or an Error to throw as a network failure would. */
 export type FakeAnswer = object | [number, unknown] | [number, unknown, Record<string, string>] | Error;
 
-export function fakeApi(answer: (request: RecordedRequest) => FakeAnswer) {
+/** validate: false is a release build, which checks only the responses marked checkResponse, and those tolerantly. */
+export function fakeApi(answer: (request: RecordedRequest) => FakeAnswer, { validate = true }: { validate?: boolean } = {}) {
   const requests: RecordedRequest[] = [];
   const fetchMock = jest.fn(async (url: string | URL | Request, init?: RequestInit) => {
     const request: RecordedRequest = {
@@ -38,7 +39,7 @@ export function fakeApi(answer: (request: RecordedRequest) => FakeAnswer) {
     const [status, body, headers] = Array.isArray(next) ? next : [200, next];
     return new Response(JSON.stringify(body), { status, headers });
   });
-  return { api: createApiClient({ baseUrl: BASE_URL, fetch: fetchMock, validate: true }), requests, fetchMock };
+  return { api: createApiClient({ baseUrl: BASE_URL, fetch: fetchMock, validate }), requests, fetchMock };
 }
 
 /** Node's FormData turns the file of the expo-file-system mock (not a Blob) to a string, so the part is taken from the spy of append. */

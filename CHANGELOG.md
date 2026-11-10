@@ -35,6 +35,12 @@ A formátum a [Keep a Changelog](https://keepachangelog.com/hu/1.1.0/) ajánlás
 - Fejlesztői módban az API-kliens figyelmeztet, ha a szerver `X-Waypost-Schema` fejléce más `@waypost/schema` major- vagy minorverziót mond, mint amivel az app épült.
 - Függőség: `react-native-quick-crypto` (a `react-native-nitro-modules` és a `react-native-quick-base64` csomaggal; natív: új development build kell).
 
+### Javítva
+
+- A push válaszában egy ismeretlen elutasítási kód (egy újabb szerver minor bővítése) éles buildben nem állítja meg a láncfeltöltést: a bejegyzés a többi elutasítotthoz hasonlóan kerül kezelésre (FR-002).
+- A lánc írója nem ír meg olyan bejegyzést, amelyben ugyanaz a fotó kétszer szerepel; a szerver ezt elutasítaná (FR-003, `waypost-schema` SCH-016).
+- A tesztek a lánc `normalized` és `invalid` tesztvektorait is futtatják (FR-004).
+
 ### Módosítva
 
 - A `waypost-schema` várt verziója `v0.6.0` (`.waypost-schema-version`).

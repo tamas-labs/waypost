@@ -51,8 +51,8 @@ const acceptAll = (body: unknown): SyncPushResponse => {
   return answer({ accepted: entries.map((entry) => entry.id), last_seq: entries.at(-1)!.seq });
 };
 
-function run(respond: (body: unknown) => FakeAnswer) {
-  const { api, requests } = fakeApi((request) => respond(request.body));
+function run(respond: (body: unknown) => FakeAnswer, { validate = true }: { validate?: boolean } = {}) {
+  const { api, requests } = fakeApi((request) => respond(request.body), { validate });
   const mediaMissing = new Set<string>();
   const done = pushChainEntries({ db, deviceId: DEVICE, mediaMissing }, (entries) =>
     push(api, 'device-token', { device_id: DEVICE, entries }),
@@ -292,6 +292,26 @@ describe('push', () => {
     // Only the first rejection of the chain is reported: the rest is its consequence.
     expect(getKv(db, 'sync.pending_diagnostic')).toMatchObject({ code, seq: 1 });
     expect(getKv(db, 'sync.rejected_through_seq')).toBe(2);
+  });
+
+  it('handles a rejection code a newer server added as any other rejection, in a release build', async () => {
+    const entries = await writeEntries(2);
+    const future = { id: entries[1]!.id, code: 'future_code', expected_seq: null } as unknown as SyncPushResponse['rejected'][number];
+    const { done } = run(() => answer({ accepted: [entries[0]!.id], last_seq: 1, rejected: [future] }), { validate: false });
+    await done;
+
+    expect(synced()).toEqual([
+      { seq: 1, synced_at: SERVER_TIME },
+      { seq: 2, synced_at: null },
+    ]);
+    expect(getKv(db, 'sync.rejected_through_seq')).toBe(2);
+    expect(getKv(db, 'sync.pending_diagnostic')).toMatchObject({ code: 'future_code', seq: 2, expected_seq: null });
+
+    const [next] = await writeEntries(1);
+    const later = run(acceptAll, { validate: false });
+    await later.done;
+    expect(later.requests.map((request) => sentSeqs(request.body))).toEqual([[3]]);
+    expect(synced().at(-1)).toEqual({ seq: next!.seq, synced_at: SERVER_TIME });
   });
 
   it('counts an entry that waited on the server and turned out bad, even if it is not in the batch', async () => {
