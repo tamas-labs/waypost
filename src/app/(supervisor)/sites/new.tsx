@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -39,7 +39,7 @@ export default function NewSiteScreen() {
 
   return (
     // As the Expo guide says: padding on iOS; on Android the view alone keeps the field above the keyboard.
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.grow, { backgroundColor: color.bg }]}>
+    <KeyboardAvoidingView behavior="padding" style={[styles.grow, { backgroundColor: color.bg }]}>
       <ScreenHeader title={t('supervisor.newSite')} onBack={() => router.back()} />
       <ScrollView style={styles.grow} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space.l, gap: space.l }}>
         {offline && <InfoBanner variant="offline" icon="cloudOff" text={t('supervisor.siteOfflineNote')} />}

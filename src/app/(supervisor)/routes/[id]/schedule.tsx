@@ -1,6 +1,6 @@
-import { router, useLocalSearchParams, usePreventRemove } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -27,6 +27,7 @@ import {
   type ScheduleEdit,
   type ScheduleMode,
 } from '@/domain/schedule-edit';
+import { useConfirmLeave } from '@/hooks/use-confirm-leave';
 import { useScheduleEdit } from '@/hooks/use-schedule-edit';
 import { t } from '@/i18n';
 import { everyText, roundsSummary, scheduleEditErrorText } from '@/supervisor/schedule-edit-view';
@@ -56,12 +57,7 @@ export default function ScheduleScreen() {
   const [sheet, setSheet] = useState<OpenSheet | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  usePreventRemove(touched && changed, ({ repeat }) =>
-    Alert.alert(t('routeEdit.leaveTitle'), t('routeEdit.leaveConfirm'), [
-      { text: t('routeEdit.leaveKeep'), style: 'cancel' },
-      { text: t('routeEdit.leaveDiscard'), style: 'destructive', onPress: repeat },
-    ]),
-  );
+  useConfirmLeave(touched && changed);
 
   if (edit === null) {
     return (

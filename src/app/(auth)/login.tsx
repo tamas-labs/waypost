@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, type TextInputInstance } from 'react-native';
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View, type TextInputInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { createApiClient } from '@/api/client';
@@ -73,7 +73,7 @@ export default function LoginScreen() {
 
   return (
     // As the Expo guide says: padding on iOS; on Android the view alone keeps the field above the keyboard.
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.grow, { backgroundColor: color.bg }]}>
+    <KeyboardAvoidingView behavior="padding" style={[styles.grow, { backgroundColor: color.bg }]}>
       <ScrollView
         style={styles.grow}
         keyboardShouldPersistTaps="handled"

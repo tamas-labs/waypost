@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -103,7 +103,7 @@ export default function TrainingPointScreen() {
 
   return (
     // As the Expo guide says: padding on iOS; on Android the view alone keeps the field above the keyboard.
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.grow, { backgroundColor: color.bg }]}>
+    <KeyboardAvoidingView behavior="padding" style={[styles.grow, { backgroundColor: color.bg }]}>
       {header}
       {editedPoint !== null ? (
         <PointForm draft={draft} change={change} edit={editedPoint} />

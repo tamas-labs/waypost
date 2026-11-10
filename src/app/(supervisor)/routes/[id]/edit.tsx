@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams, usePreventRemove } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
@@ -15,6 +15,7 @@ import { showToast } from '@/components/toast';
 import { getDatabase } from '@/db/open';
 import { removeEditPoint, reorderEditPoints, setEditOrderMode, type EditPoint, type RouteEdit } from '@/domain/route-edit';
 import { type OrderMode } from '@/domain/training';
+import { useConfirmLeave } from '@/hooks/use-confirm-leave';
 import { useRouteEdit } from '@/hooks/use-route-edit';
 import { trainingNow, useSupervisorId } from '@/hooks/use-training';
 import { t } from '@/i18n';
@@ -44,19 +45,7 @@ export default function RouteEditScreen() {
   const [error, setError] = useState<string | null>(null);
   const nextVersion = useMemo(() => (routeEdit.base === null ? null : nextVersionNumber(getDatabase(), id)), [routeEdit.base, id]);
 
-  usePreventRemove(changed, ({ repeat }) =>
-    Alert.alert(t('routeEdit.leaveTitle'), t('routeEdit.leaveConfirm'), [
-      { text: t('routeEdit.leaveKeep'), style: 'cancel' },
-      {
-        text: t('routeEdit.leaveDiscard'),
-        style: 'destructive',
-        onPress: () => {
-          routeEdit.restart();
-          repeat();
-        },
-      },
-    ]),
-  );
+  useConfirmLeave(changed);
 
   if (edit === null || nextVersion === null || supervisorId === null) {
     return (

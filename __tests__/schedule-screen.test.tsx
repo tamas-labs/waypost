@@ -246,7 +246,7 @@ it('leaving with changes asks first', async () => {
   await openFromSite();
   await act(async () => fireEvent.press(screen.getByRole('togglebutton', { name: 'Vasárnap' })));
   await press('Vissza');
-  expect(Alert.alert).toHaveBeenCalledWith('Elveted a módosításokat?', expect.any(String), expect.any(Array));
+  expect(Alert.alert).toHaveBeenCalledWith('Elveted a módosításokat?', expect.any(String), expect.any(Array), expect.anything());
   expect(screen).toHavePathname(schedulePath);
   const buttons = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2] as AlertButton[];
   await act(async () => buttons.find((b) => b.text === 'Elvetés')!.onPress!());

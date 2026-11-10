@@ -115,7 +115,7 @@ function SiteCard({ site }: { site: SiteListItem }) {
         </View>
         {(site.phone !== null || site.pending) && (
           <View style={[styles.row, styles.between, { gap: space.m }]}>
-            <Text style={[typography.small, styles.shrink, { color: color.text2 }]}>
+            <Text style={[typography.small, styles.grow, { color: color.text2 }]}>
               {site.phone === null ? '' : t('supervisor.phoneName', { name: site.phone.name })}
             </Text>
             {site.pending && <Text style={[typography.small, { color: color.offFg }]}>{t('supervisor.sitePending')}</Text>}
@@ -158,7 +158,6 @@ function RejectedCalls() {
 
 const styles = StyleSheet.create({
   grow: { flex: 1 },
-  shrink: { flexShrink: 1 },
   content: { flexGrow: 1 },
   row: { flexDirection: 'row', alignItems: 'center' },
   top: { alignItems: 'flex-start' },

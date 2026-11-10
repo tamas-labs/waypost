@@ -29,7 +29,8 @@ export interface ScreenHeaderProps {
 /**
  * The header of a screen (DESIGN_HANDOFF 6): below the safe area, back button, title (20/800) and subtitle (13/600), sync
  * indicator at the right. In supervisor mode the "Supervisor" badge comes at the left, after the back button, so the mode
- * is always clear (DESIGN_HANDOFF Supervisor mód).
+ * is always clear (DESIGN_HANDOFF Supervisor mód). Back button, badge and sync indicator together fill a 360 dp wide phone
+ * (Galaxy S24), and the title got no width at all: then the titles go to a second row, below them.
  */
 export function ScreenHeader({
   overline,
@@ -43,20 +44,37 @@ export function ScreenHeader({
   const { color, typography, space, size } = useTheme();
   const insets = useSafeAreaInsets();
   const supervisor = useSession((session) => routeAccess(session).supervisor);
+  const padding = { paddingHorizontal: space.l, paddingBottom: space.s };
+  const titles = (overline !== undefined || title !== undefined || subtitle !== undefined) && (
+    <View style={styles.titles}>
+      {overline !== undefined && <Text style={[typography.small, { color: color.text2 }]}>{overline}</Text>}
+      {title !== undefined && (
+        <Text style={[typography.title2, { color: color.text }]} accessibilityRole="header">
+          {title}
+        </Text>
+      )}
+      {subtitle !== undefined && <Text style={[typography.small, { color: color.text2 }]}>{subtitle}</Text>}
+    </View>
+  );
+  const back = onBack !== undefined && <IconButton icon={backIcon} accessibilityLabel={backLabel} onPress={onBack} />;
+  if (onBack !== undefined && supervisor) {
+    return (
+      <View style={[padding, { paddingTop: insets.top + space.s, gap: space.s }]}>
+        <View style={[styles.header, { gap: space.m }]}>
+          {back}
+          <SupervisorBadge />
+          <View style={[styles.grow, styles.end]}>{right}</View>
+        </View>
+        {titles}
+      </View>
+    );
+  }
   return (
-    <View style={[styles.header, { paddingTop: insets.top + space.s, paddingHorizontal: space.l, paddingBottom: space.s, gap: space.m }]}>
-      {onBack !== undefined && <IconButton icon={backIcon} accessibilityLabel={backLabel} onPress={onBack} />}
+    <View style={[styles.header, padding, { paddingTop: insets.top + space.s, gap: space.m }]}>
+      {back}
       {supervisor && <SupervisorBadge />}
       {/* As high as the back button, with or without it. */}
-      <View style={[styles.titles, { minHeight: size.touchMin }]}>
-        {overline !== undefined && <Text style={[typography.small, { color: color.text2 }]}>{overline}</Text>}
-        {title !== undefined && (
-          <Text style={[typography.title2, { color: color.text }]} accessibilityRole="header">
-            {title}
-          </Text>
-        )}
-        {subtitle !== undefined && <Text style={[typography.small, { color: color.text2 }]}>{subtitle}</Text>}
-      </View>
+      <View style={[styles.grow, { minHeight: size.touchMin, justifyContent: 'center' }]}>{titles}</View>
       {right}
     </View>
   );
@@ -64,5 +82,7 @@ export function ScreenHeader({
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center' },
-  titles: { flex: 1, justifyContent: 'center' },
+  grow: { flex: 1 },
+  end: { alignItems: 'flex-end' },
+  titles: { flexShrink: 1 },
 });

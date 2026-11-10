@@ -146,7 +146,7 @@ it('asks before leaving with unsaved changes; turned back, nothing to save', asy
   await flip('Napi összesítő', true);
   expect(screen.getByRole('button', { name: 'Mentés' })).toBeEnabled();
   await press('Vissza');
-  expect(Alert.alert).toHaveBeenCalledWith('Elveted a módosításokat?', expect.any(String), expect.any(Array));
+  expect(Alert.alert).toHaveBeenCalledWith('Elveted a módosításokat?', expect.any(String), expect.any(Array), expect.anything());
   const buttons = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2] as AlertButton[];
   await act(async () => buttons.find((button) => button.style === 'cancel')?.onPress?.());
   expect(screen).toHavePathname(`/sites/${SITE}/reports`);

@@ -1,6 +1,6 @@
-import { router, useLocalSearchParams, usePreventRemove } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -13,6 +13,7 @@ import { SectionTitle } from '@/components/section-title';
 import { Switch } from '@/components/switch';
 import { showToast } from '@/components/toast';
 import { alertOptions, REPORT_FREQUENCIES, setAlertAfter, setReport } from '@/domain/report-settings';
+import { useConfirmLeave } from '@/hooks/use-confirm-leave';
 import { useReportSettings } from '@/hooks/use-report-settings';
 import { t } from '@/i18n';
 import { alertDelayText, reportText, retentionText } from '@/supervisor/report-settings-view';
@@ -30,12 +31,7 @@ export default function ReportsScreen() {
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  usePreventRemove(changed, ({ repeat }) =>
-    Alert.alert(t('routeEdit.leaveTitle'), t('routeEdit.leaveConfirm'), [
-      { text: t('routeEdit.leaveKeep'), style: 'cancel' },
-      { text: t('routeEdit.leaveDiscard'), style: 'destructive', onPress: repeat },
-    ]),
-  );
+  useConfirmLeave(changed);
 
   if (base === null || draft === null) {
     return (

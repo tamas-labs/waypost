@@ -1,7 +1,7 @@
 import type { IncidentPayload } from '@waypost/schema';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { LocationFix } from '@/chain/payloads';
@@ -122,7 +122,7 @@ export default function NewIncidentScreen() {
 
   return (
     // As the Expo guide says: padding on iOS; on Android the view alone keeps the field above the keyboard.
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.grow, { backgroundColor: color.bg }]}>
+    <KeyboardAvoidingView behavior="padding" style={[styles.grow, { backgroundColor: color.bg }]}>
       <ScreenHeader title={t('incident.title')} onBack={() => router.back()} />
       <ScrollView
         style={styles.grow}

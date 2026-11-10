@@ -309,8 +309,17 @@ it('asks before leaving with changes, and deletes the photos taken then', async 
   await act(async () => fireEvent.press(screen.getAllByRole('button', { name: 'Fotó készítése' }).at(-1)!));
   await press('Mentés');
   await press('Vissza');
-  expect(Alert.alert).toHaveBeenLastCalledWith('Elveted a módosításokat?', 'A nem mentett módosítások elvesznek.', expect.any(Array));
+  expect(Alert.alert).toHaveBeenLastCalledWith(
+    'Elveted a módosításokat?',
+    'A nem mentett módosítások elvesznek.',
+    expect.any(Array),
+    expect.anything(),
+  );
   expect(screen).toHavePathname(editPath);
+  // A second back while the question is open does not ask again (stacked questions crashed the app on Android).
+  const asked = jest.mocked(Alert.alert).mock.calls.length;
+  await press('Vissza');
+  expect(Alert.alert).toHaveBeenCalledTimes(asked);
 
   await answerAlert('Elvetés');
 

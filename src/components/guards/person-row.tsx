@@ -99,7 +99,16 @@ export function OwnPinRow({ line, busy, onChange, children }: { line: string; bu
           <Text style={[typography.body, { color: color.text }]}>{t('guards.ownPin')}</Text>
           <Text style={[typography.small, { color: color.text2 }]}>{line}</Text>
         </View>
-        {children === null && <Button variant="secondary" label={t('guards.change')} disabled={busy} onPress={onChange} />}
+        {/* Narrow side padding: with the default the label took a third of a 360 dp row, and the name broke into four lines. */}
+        {children === null && (
+          <Button
+            variant="secondary"
+            label={t('guards.change')}
+            disabled={busy}
+            onPress={onChange}
+            style={{ paddingHorizontal: space.m }}
+          />
+        )}
       </View>
       {children !== null && <View style={{ paddingHorizontal: space.m, paddingBottom: space.m }}>{children}</View>}
     </Card>

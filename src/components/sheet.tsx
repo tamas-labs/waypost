@@ -1,8 +1,8 @@
 // The bottom sheet of the supervisor screens (DESIGN_HANDOFF 5): over a scrim that closes it, up to 92% of the screen,
-// its content scrolling; with a form in it, it moves above the keyboard on iOS. SheetModal is the transparent modal
+// its content scrolling; with a form in it, it moves above the keyboard. SheetModal is the transparent modal
 // it opens in.
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { t } from '@/i18n';
@@ -36,7 +36,7 @@ export function Sheet({
   /** Shown first; without it the content brings its own (a sheet of several steps). */
   title?: string;
   onClose: () => void;
-  /** A sheet with text fields: it moves above the keyboard on iOS. */
+  /** A sheet with text fields: it moves above the keyboard. */
   form?: boolean;
   gap?: 'm' | 'l';
   children: ReactNode;
@@ -63,7 +63,7 @@ export function Sheet({
     </>
   );
   return form ? (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.grow}>
+    <KeyboardAvoidingView behavior="padding" style={styles.grow}>
       {content}
     </KeyboardAvoidingView>
   ) : (

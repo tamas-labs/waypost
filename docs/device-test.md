@@ -18,7 +18,7 @@ Hogyan használd:
 | | M3 | iPhone: | | | |
 | | M4 | Android: | | | |
 | | M4 | iPhone: | | | |
-| | M5 | Android: | | | |
+| 2026-11-10 | M5 | Android: Samsung Galaxy S24 (SM-S921B, 360 dp) | Android 17 (SDK 37) | standalone release APK, git `118ae18` + a 2026-11-10-i javítások (`make standalone`, `https://waypost.zsiguli.hu/api/waypost/v1`) | Claude (adb-vel vezérelve), Tamas Balint |
 | | M5 | iPhone: | | | |
 
 ## Ellenőrzések
@@ -310,3 +310,28 @@ Emulátoron az R1–R6 és a T1–T4 futtatható, kézi rögzítéssel és a vir
 | Á1 | | | |
 | Á8 | | – | |
 ```
+
+### 2026-11-10 – M5 (Android, Galaxy S24, adb-vel vezérelve)
+
+Supervisor belépéssel a saját telefonon (`supervisor@waypost.test`), a `waypost.zsiguli.hu` szerver ellen. NFC, QR, kamera, telephelyi telefon és a szerver adatbázisa nélkül: ezek a tételek nem futottak. A talált hibák javításai: `decisions.md`, 2026-11-10 – Az első androidos eszközteszt javításai.
+
+| # | Android | iPhone | Megjegyzés |
+| --- | --- | --- | --- |
+| I6 | ✅ | | Csak az offline fele: a gomb letiltva, „A hozzárendeléshez internet kell.” A hozzárendelés nem futott (a telefon telephelyi telefon lett volna). |
+| B4 | ✅ | | Azonnal vált, újraindítás után megmarad. **Hiba (nyitott):** sötét témában az alsó navigációs sáv világos marad (`expo-navigation-bar` kell). |
+| B5 | ✅ | | |
+| J9 | ✅ | | Húzás a fogantyúval; TalkBack nélkül. |
+| J12 | ❌ → javítva | | A megerősítés jó. **Összeomlás:** pont áthúzása után a vissza gomb, közben kétszer a rendszer-vissza (egymásra rakódó kérdések), „Elvetés” → az app bezárult (`addViewAt … already has a parent`). Javítás: egyszerre egy kérdés (`use-confirm-leave.ts`); az új buildben kétszer megismételve (gyors rendszer-vissza-sorozattal is) nincs összeomlás, egy kérdés nyílik, „Elvetés” után v2 marad. |
+| J13 | ✅ | | Sötét és világos témában nagy, fekete-fehér kód fehér kerettel, alatta a tartalék szövege. A lapon beírt név („Főkapu X”) visszatéréskor a szerkesztésben van. **A leolvasás egy másik telefonnal nem futott.** |
+| J14 | ✅ | | „Mentés PDF-fájlként”: A4, felül a szaggatott keretes címke (név, telephely, kód, „Waypost ellenőrzőpont – olvasd le a QR-kódot”); a „Mégse” nem ad hibát. A papírra nyomtatás és onnan a leolvasás nem futott. |
+| J15 | ✅ | | A megosztás lapján „Főkapu – QR-címke.pdf”; elküldve nem lett (e-mail, fájlkezelő nem futott). |
+| J17 | ✅ | | **Hiba (javítva):** a fejlécben a cím 360 dp-n betűnként tört (kétsoros fejléc). |
+| J18 | ✅ | | A szerver oldala nem ellenőrizve. Néha „egyéni” látszott „egyéni érték” helyett (szövegmérés, nyitott). |
+| J21 | ✅ | | **Hiba (javítva):** a billentyűzet eltakarta a nevet és a „Tovább” gombot; a „Saját PIN-kód” sor négy sorba tört. |
+| J23 | ✅ | | Csak a supervisor felülete; az őr belépése telephelyi telefon híján nem. |
+| J26 | ✅ | | |
+| J27 | ✅ | | Csak a megőrzési sáv váltása; a második supervisor része nem futott. |
+| L1 | ✅ | | Új telephely offline. **Hiba (javítva):** a billentyűzet eltakarta a „Mentés” gombot. |
+| L3 | ✅ | | Útvonal nélkül (nincs betanítás NFC/QR nélkül): az őr PIN-nel és a jelentések; a menetrend és a saját PIN-kód nem. |
+| L4 | ✅ | | Pár másodperc alatt feltöltődött, elutasítás nélkül; semmi sem tűnt el. |
+| – | ❌ → javítva | | A telephelykártyán „Telefon:” állt „Telefon: mock” helyett (az utolsó szó lemaradt). A sor teljes szélességet kap; a gyökérok nyitott. |
