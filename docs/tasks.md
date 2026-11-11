@@ -638,6 +638,7 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
   - Feltétel iOS-re (FR-010, WP-APP-019): iPhone csak akkor kerüljön a próbaidőszakba, ha előtte elkészül egy saját natív modul (az adatbázis és a `media/` mappa `isExcludedFromBackup`-pal, a keychain elemei `…_THIS_DEVICE_ONLY`-val), és egy iOS-eszközteszt ellenőrzi, hogy az iCloud-mentésből visszaállított telefonon nincs eszközazonosság és nincs adatbázis.
 - [ ] **M7-03 Telephely beállítása a telefonról**: címkék felhelyezése, betanítás, menetrend, őrök, telefon-hozzárendelés, ellenőrzőlista zölden.
 - [ ] **M7-04 Hét éjszaka próbaüzem**: napi ellenőrzés (jelentések megérkeztek, `verify_status`, jelölések, elmaradt körök); a hibák vezetése egy hibalistában.
+  - iPhone-on (FR-025, WP-APP-003): a legsűrűbb menetrendű telephelyen egy éjszaka bezárt appal: meddig szólnak az ébresztések (iOS-en legfeljebb 48 függő értesítés: 15 perces köröknél kb. 11 óra, 5 percesnél kb. 3,7 óra). Ha a műszak ennél hosszabb, a telephelyre Android-telefon kerüljön, vagy a menetrend ritkuljon.
 - [ ] **M7-05 Lezárás**: 7 éjszaka adatvesztés nélkül; minden jelentés megérkezett; a hibalista és a `decisions.md` frissítve; a `device-test.md` utolsó futása Androidon és iPhone-on.
 
 ---

@@ -185,7 +185,6 @@ export async function pushChainEntries({ db, deviceId, mediaMissing }: PushConte
     applyResponse(db, deviceId, response);
     for (const id of response.media_missing) mediaMissing.add(id);
     if (refused !== null) throw refused;
-    for (const id of response.media_missing) mediaMissing.add(id);
     // Every answer moves the first entry forward. If it did not, the next sync tries again, not this loop.
     if (nextBatch(db, deviceId)[0]?.id === first.id) return;
   }

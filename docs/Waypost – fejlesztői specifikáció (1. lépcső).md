@@ -166,7 +166,7 @@ Háromféle belépés van: a supervisor fiókja e-mail-címmel és jelszóval (o
 ### Supervisor fiók
 
 - Az első supervisort egy artisan parancs hozza létre: `php artisan waypost:create-supervisor`. Regisztrációs felület nincs.
-- `POST /auth/login` (email, password, device\_name) → Sanctum token `supervisor` képességgel (ability). A token nem jár le, kijelentkezéskor törlődik.
+- `POST /auth/login` (email, password, device\_name) → Sanctum token `supervisor` képességgel (ability). A tokennek nincs rögzített lejárata, kijelentkezéskor törlődik; 90 nap használat nélkül a szerver elutasítja (`401 unauthenticated`, a backend `waypost.token_idle_days` beállítása), és az app újra kéri a jelszót, a telefon adatait megtartva. A telephelyi telefon tokenje nem jár le.
 - A supervisor további supervisorokat és őröket hozhat létre, és hozzárendelheti őket a saját telephelyeihez. Csak azokat a telephelyeket látja és módosíthatja, amelyekhez a `site_user` táblában hozzá van rendelve. Ezt Laravel Policy-k érvényesítik.
 - A supervisor saját telefonján az app supervisor fiókkal, eszközhozzárendelés nélkül fut. Itt nincs őr mód és nincs láncolt napló, de a betanítás és minden beállítás működik.
 
@@ -429,7 +429,7 @@ Minden képernyő tetején ott van a szinkronállapot jelzője: online, offline,
 
 ### Ébresztés
 
-- Az app mindig a következő 36 óra köreit ütemezi helyi értesítésként: iOS-en legfeljebb 48 darabot (a 64-es korlát alatt), Androidon legfeljebb 192-t. Minden körhöz tartozik egy értesítés az ütemezett időpontban. A következő 4 még el nem indult körhöz emellett 5 perccel később egy emlékeztető is tartozik. Az emlékeztetőt az app törli, amint a kör elindul. A későbbi körök emlékeztetője egy későbbi újraütemezéssel kerül be, így sűrű menetrendnél a keret a körök értesítéseire megy (15 perces köröknél iOS-en kb. 11 óra, Androidon a teljes 36 óra).
+- Az app mindig a következő 36 óra köreit ütemezi helyi értesítésként: iOS-en legfeljebb 48 darabot (a 64-es korlát alatt), Androidon legfeljebb 192-t. Minden körhöz tartozik egy értesítés az ütemezett időpontban. A következő 4 még el nem indult körhöz emellett 5 perccel később egy emlékeztető is tartozik. Az emlékeztetőt az app törli, amint a kör elindul. A későbbi körök emlékeztetője egy későbbi újraütemezéssel kerül be, így sűrű menetrendnél a keret a körök értesítéseire megy (15 perces köröknél iOS-en kb. 11 óra, Androidon a teljes 36 óra); 5 perces köröknél iOS-en kb. 3,7 óra). Ez elfogadott korlát: a 64 függő értesítés az iOS rendszerkorlátja, és bezárt appnál nincs újraütemezés. Amíg az app előtérben van vagy megnyílik, a lista megújul. A próbaidőszak iPhone-jain a sűrű menetrend fedettségét mérni kell (`tasks.md` M7-04).
 - Az újraütemezés induláskor, pull után, műszakkezdéskor és minden értesítés megérkezésekor fut, és mindig az egész listát cseréli.
 - Android: külön értesítési csatorna (`rounds`, MAX fontosság, saját riasztáshang, rezgés), pontos riasztás engedély és kivétel az akkumulátor-optimalizálás alól. Ha valamelyik hiányzik, a PIN-képernyőn figyelmeztető sáv jelenik meg.
 - iOS: `timeSensitive` megszakítási szint (Time Sensitive Notifications jogosultság), saját hang.

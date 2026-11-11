@@ -41,3 +41,5 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run test:coverage
+      # The SDK's versions of the native packages and the app config (audit WP-APP-017); it asks the Expo service.
+      - run: npx expo-doctor

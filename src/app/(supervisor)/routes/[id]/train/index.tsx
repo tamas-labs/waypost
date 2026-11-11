@@ -154,7 +154,12 @@ export default function TrainingScreen() {
       <PointList draft={draft} onRemove={(point) => change(removePoint(draft, point.checkpoint_id))} />
       <TrainingActions scanning={scanning} canFinish={draft.points.length > 0} onFinish={() => setFinishing(true)} />
       <SheetModal visible={finishing} onClose={() => setFinishing(false)}>
-        <FinishSheet draft={draft} change={change} onClose={() => setFinishing(false)} />
+        <FinishSheet
+          draft={draft}
+          change={change}
+          onSave={(named) => saveTraining(getDatabase(), named)}
+          onClose={() => setFinishing(false)}
+        />
       </SheetModal>
     </View>
   );

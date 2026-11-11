@@ -14,7 +14,7 @@ import { onChainEntries } from '@/chain/events';
 import type { Database } from '@/db/database';
 import { getKv, setKv } from '@/db/kv';
 import { logError } from '@/diagnostics/error-log';
-import { readClock } from '@/time/clock';
+import { readClock as readDeviceClock, type ReadClock } from '@/time/clock';
 import { nowTimestamp } from '@/time/timestamp';
 import { trustedTime } from '@/time/trusted-time';
 
@@ -140,14 +140,14 @@ export function requestSync(trigger: SyncTrigger): Promise<SyncOutcome> {
   return controller?.sync(trigger) ?? Promise.resolve({ status: 'skipped' });
 }
 
-function finished(db: Database, outcome: SyncOutcome): void {
+function finished(db: Database, outcome: SyncOutcome, readClock: ReadClock): void {
   const pendingCount = countPending(db).total;
   if (outcome.status === 'ok') {
     const lastSuccessAt = trustedTime(db, readClock()).time;
     setKv(db, 'sync.last_success_at', lastSuccessAt);
     useSyncStatus.setState({ running: false, pendingCount, lastSuccessAt, lastError: null });
     try {
-      cleanUpIfDue(db);
+      cleanUpIfDue(db, readClock);
     } catch (error) {
       console.error('The local cleanup failed', error);
       logError('sync', error, 'cleanup');
@@ -188,8 +188,13 @@ function isOnline(state: NetInfoState): boolean {
   return state.isConnected === true && state.isInternetReachable !== false;
 }
 
+export interface StartSyncOptions {
+  /** The clock of the time of the last success and of the local cleanup; a test gives its own (audit WP-APP-004). */
+  readClock?: ReadClock;
+}
+
 /** Starts the sync and its triggers; returns the function that stops them. A second call restarts them. */
-export function startSync(db: Database): () => void {
+export function startSync(db: Database, { readClock = readDeviceClock }: StartSyncOptions = {}): () => void {
   stopSync?.();
   database = db;
   const sync = createSyncController({
@@ -198,7 +203,7 @@ export function startSync(db: Database): () => void {
     stopsSync,
     onStart: () => useSyncStatus.setState({ running: true }),
     onFinish: (outcome) => {
-      finished(db, outcome);
+      finished(db, outcome, readClock);
       followRevocation(db, outcome, sync);
     },
   });

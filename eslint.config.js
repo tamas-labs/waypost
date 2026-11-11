@@ -78,6 +78,12 @@ module.exports = defineConfig([
     allowTypeImports: true,
     message: 'The session and the PIN are below the sync: the flows that use both are in src/account.',
   }),
+  // FR-022: a shared component shows what a screen or a hook (src/hooks) hands it, and calls back; it runs no flow itself.
+  ...layerRule('src/components', {
+    regex: '^@/(account|api|db|app)(/|$)',
+    allowTypeImports: true,
+    message: 'A component gets its data and actions as props or from a hook (src/hooks): no database, API or account flow.',
+  }),
   ...layerRule('src/db', {
     regex: '^@/domain(/|$)',
     allowTypeImports: true,

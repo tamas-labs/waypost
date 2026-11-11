@@ -1,26 +1,21 @@
 import { useRef, useState } from 'react';
 import { View, type TextInputInstance } from 'react-native';
 
-import { OtherAccountError, renewSupervisorLogin } from '@/account/supervisor';
-import { createApiClient } from '@/api/client';
-import { apiBaseUrl } from '@/api/config';
-import { checkLoginForm, loginError, type LoginError, type LoginField } from '@/auth/login-error';
 import { Button } from '@/components/button';
 import { InfoBanner } from '@/components/info-banner';
 import { Sheet, SheetModal } from '@/components/sheet';
 import { TextField } from '@/components/text-field';
-import { getDatabase } from '@/db/open';
+import { useLoginExpired, useRenewLogin } from '@/hooks/use-renew-login';
 import { t } from '@/i18n';
-import { useSyncStatus } from '@/sync/status';
 import { useTheme } from '@/theme/theme-provider';
 
 /**
  * On a supervisor's own phone whose token the server no longer takes (401): what it means, and a login again that
- * keeps the account's data and unsent actions (renewSupervisorLogin, audit WP-APP-016).
+ * keeps the account's data and unsent actions (useRenewLogin, audit WP-APP-016).
  */
 export function RenewLogin({ email }: { email: string | null }) {
   const { space } = useTheme();
-  const expired = useSyncStatus((state) => state.lastError?.kind === 'unauthenticated');
+  const expired = useLoginExpired();
   const [open, setOpen] = useState(false);
   if (!expired && !open) return null;
   return (
@@ -35,50 +30,19 @@ export function RenewLogin({ email }: { email: string | null }) {
 }
 
 function RenewLoginSheet({ email: knownEmail, onClose }: { email: string | null; onClose: () => void }) {
-  const offline = useSyncStatus((state) => state.online === false);
-  const [email, setEmail] = useState(knownEmail ?? '');
-  const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<LoginError | null>(null);
+  const form = useRenewLogin(knownEmail, onClose);
+  const { email, password, busy, offline, error, canLogIn } = form;
   const passwordInput = useRef<TextInputInstance>(null);
-  const baseUrl = apiBaseUrl(getDatabase());
-  const canLogIn = !busy && !offline && baseUrl !== null;
-
-  const change = (field: LoginField, setValue: (value: string) => void) => (value: string) => {
-    setValue(value);
-    setError((current) =>
-      current === null || current.fields[field] === undefined ? current : { ...current, fields: { ...current.fields, [field]: undefined } },
-    );
-  };
-
-  const submit = async () => {
-    if (!canLogIn) return;
-    const address = email.trim();
-    const invalid = checkLoginForm(address, password);
-    setError(invalid);
-    if (invalid !== null) return;
-    setBusy(true);
-    try {
-      await renewSupervisorLogin(getDatabase(), createApiClient({ baseUrl }), { email: address, password });
-      onClose();
-    } catch (e) {
-      setError(
-        e instanceof OtherAccountError
-          ? { message: t('supervisor.renewOtherAccount', { name: e.accountName }), fields: {} }
-          : loginError(e),
-      );
-      setBusy(false);
-    }
-  };
+  const submit = form.submit;
 
   return (
     <Sheet title={t('supervisor.renewTitle')} onClose={onClose} form gap="l">
       {offline && <InfoBanner variant="offline" icon="cloudOff" text={t('supervisor.loginOffline')} />}
-      {baseUrl === null && <InfoBanner variant="error" text={t('supervisor.loginNoServer')} />}
+      {form.noServer && <InfoBanner variant="error" text={t('supervisor.loginNoServer')} />}
       <TextField
         label={t('supervisor.email')}
         value={email}
-        onChangeText={change('email', setEmail)}
+        onChangeText={form.setEmail}
         error={error?.fields.email}
         editable={!busy}
         autoCapitalize="none"
@@ -95,7 +59,7 @@ function RenewLoginSheet({ email: knownEmail, onClose }: { email: string | null;
         label={t('supervisor.password')}
         secret
         value={password}
-        onChangeText={change('password', setPassword)}
+        onChangeText={form.setPassword}
         error={error?.fields.password}
         editable={!busy}
         autoCapitalize="none"

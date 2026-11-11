@@ -8,12 +8,10 @@ import { InfoBanner } from '@/components/info-banner';
 import { Sheet } from '@/components/sheet';
 import { TextField } from '@/components/text-field';
 import { showToast } from '@/components/toast';
-import { getDatabase } from '@/db/open';
 import { defaultTimeLimit } from '@/domain/deadline';
 import { ROUTE_NAME_MAX, TrainingError, setRouteName, walkDuration, type TrainingDraft } from '@/domain/training';
 import { t } from '@/i18n';
 import { formatWalk } from '@/supervisor/site-detail';
-import { saveTraining } from '@/supervisor/training';
 import { routeTitle, trainingErrorText } from '@/supervisor/training-view';
 import { useSyncStatus } from '@/sync/status';
 import { useTheme } from '@/theme/theme-provider';
@@ -21,15 +19,18 @@ import { tabular } from '@/theme/tokens';
 
 /**
  * The end of the walk: the total time, the time limit it suggests for a schedule (M3-14), the name of a new route, and
- * the save as the route's new version. What stops the save is told here; the draft stays as it was.
+ * the save as the route's new version (onSave, which throws what stops it). What stops the save is told here; the draft
+ * stays as it was.
  */
 export function FinishSheet({
   draft,
   change,
+  onSave,
   onClose,
 }: {
   draft: TrainingDraft;
   change: (next: TrainingDraft) => void;
+  onSave: (draft: TrainingDraft) => void;
   onClose: () => void;
 }) {
   const offline = useSyncStatus((state) => state.online === false);
@@ -43,7 +44,7 @@ export function FinishSheet({
     const named = isNew ? setRouteName(draft, name) : draft;
     if (named !== draft) change(named);
     try {
-      saveTraining(getDatabase(), named);
+      onSave(named);
     } catch (e) {
       if (e instanceof TrainingError && e.code === 'route_name_required') setNameMissing(true);
       else setError(trainingErrorText(e, named));

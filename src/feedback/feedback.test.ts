@@ -2,7 +2,11 @@ import { createAudioPlayer } from 'expo-audio';
 import { notificationAsync, NotificationFeedbackType } from 'expo-haptics';
 import { Platform, Vibration } from 'react-native';
 
+import { logError } from '@/diagnostics/error-log';
+
 import { playFeedback, startFeedback } from './feedback';
+
+jest.mock('@/diagnostics/error-log', () => ({ logError: jest.fn() }));
 
 jest.mock('expo-haptics', () => ({
   NotificationFeedbackType: { Success: 'success', Warning: 'warning', Error: 'error' },
@@ -59,9 +63,27 @@ describe('scan feedback', () => {
     players()[0]!.seekTo.mockRejectedValueOnce(new Error('Player released'));
     expect(() => playFeedback('success')).not.toThrow();
     await settle();
-    expect(warn).toHaveBeenCalledWith('Vibration failed (success)', expect.any(Error));
-    expect(warn).toHaveBeenCalledWith('Sound failed (success)', expect.any(Error));
+    expect(warn).toHaveBeenCalledWith('Feedback failed (vibration success)', expect.any(Error));
+    expect(warn).toHaveBeenCalledWith('Feedback failed (sound success)', expect.any(Error));
     warn.mockRestore();
+  });
+
+  it('logs a failure once per run and kind, as a broken sound fails at every scan', async () => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const failure = new Error('No vibrator');
+    vibrate.mockImplementation(() => {
+      throw failure;
+    });
+    playFeedback('error');
+    playFeedback('error');
+    playFeedback('warning');
+    await settle();
+    vibrate.mockImplementation(() => {});
+    expect(jest.mocked(logError).mock.calls).toEqual([
+      ['feedback', failure, 'vibration error'],
+      ['feedback', failure, 'vibration warning'],
+    ]);
   });
 
   it('releases the players at the stop', () => {

@@ -48,7 +48,7 @@ export interface ConfirmedRecords {
 }
 
 /** Where a logged error happened (diagnostics/error-log.ts); the screen names it. */
-export type ErrorSource = 'scheduler' | 'alarms' | 'alarm_screen' | 'nfc' | 'scan' | 'record' | 'pin' | 'sync' | 'render';
+export type ErrorSource = 'scheduler' | 'alarms' | 'alarm_screen' | 'nfc' | 'scan' | 'feedback' | 'record' | 'pin' | 'sync' | 'render';
 
 /** An error of the background or a screen, kept on the phone for a later look (diagnostics/error-log.ts). */
 export interface LoggedError {

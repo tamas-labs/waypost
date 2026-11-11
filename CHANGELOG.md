@@ -41,6 +41,8 @@ A formátum a [Keep a Changelog](https://keepachangelog.com/hu/1.1.0/) ajánlás
 - Ha a szerver a push kötegének első bejegyzését `422`-vel elutasítja, a szinkronjelző megmondja, hogy a feltöltés elakadt, és az app bejegyzésenként egyszer diagnosztikát küld (`validation_failed`, legalább 0.9.0-s szervernek), így a jelentés is jelzi (FR-013).
 - A jelentésbeállításokon a havi jelentés lemondásakor az app megmondja, hogy a 62 napos megőrzés még 62 napig érvényes (FR-007, WP-BE-039).
 - Teszt: az app útvonaltáblája (`src/api/endpoints.ts`, `config-calls.ts`) a `@waypost/schema` `endpoints.json`-jával összevetve: metódus, útvonal, kérés- és válaszséma, query, `Idempotency-Key` (FR-005).
+- Teszt: a válaszsémák minden érvényes példája egy hozzáadott mezővel és ismeretlen enum-értékkel is átmegy a türelmes ellenőrzőn, ahogy egy újabb szerver minor bővítése érkezne (FR-017).
+- A CI az `npx expo-doctor`-t is futtatja (FR-016, WP-APP-017).
 
 ### Biztonság
 
@@ -61,11 +63,14 @@ A formátum a [Keep a Changelog](https://keepachangelog.com/hu/1.1.0/) ajánlás
 - A push válaszában egy ismeretlen elutasítási kód (egy újabb szerver minor bővítése) éles buildben nem állítja meg a láncfeltöltést: a bejegyzés a többi elutasítotthoz hasonlóan kerül kezelésre (FR-002).
 - A lánc írója nem ír meg olyan bejegyzést, amelyben ugyanaz a fotó kétszer szerepel; a szerver ezt elutasítaná (FR-003, `waypost-schema` SCH-016).
 - A tesztek a lánc `normalized` és `invalid` tesztvektorait is futtatják (FR-004).
+- Az ébresztés hangjának és rezgésének, valamint a leolvasás visszajelzésének hibája a helyi hibanaplóba kerül (a visszajelzésé futásonként és fajtánként egyszer); eddig csak fejlesztői buildben látszott (FR-020).
 
 ### Módosítva
 
-- A `waypost-schema` várt verziója `v0.9.0` (`.waypost-schema-version`).
+- A `waypost-schema` várt verziója `v0.9.1` (`.waypost-schema-version`).
 - A mappák közötti függőségi kör megszűnt (`src/account`, `src/setup`, `src/device/secret.ts`), két új lint-rétegszabállyal (WP-APP-006).
+- A `src/components` réteg nem éri el az adatbázist, az API-t és a fiók folyamatait (lint-szabály): az újra-bejelentkezés a `useRenewLogin` hookba került, a betanítás mentését a képernyő adja a `FinishSheet`-nek (FR-022).
+- A szinkron órája beadható (`startSync(db, { readClock })`); a visszavont telefon tesztjei ezzel futnak a `Date.now` felülírása helyett (FR-023).
 - Közös nézetelemek (`Sheet`, `SectionTitle`), a nagy képernyők részei a `src/components` alá kerültek (WP-APP-009).
 - 20 csomag az SDK 58 által várt verzióra frissült, köztük a `react-native` 0.88.1: **új development build kell** (WP-APP-017).
 - Az M1 prototípus-képernyői csak fejlesztői buildben érhetők el, a „Fejlesztői eszközök” menüből.

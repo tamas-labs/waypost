@@ -245,7 +245,7 @@
   },
   "errorLog": {
     "title": "Hibanapló",
-    "hint": "A telefon itt őrzi a legutóbbi {{count}} hibát (ütemező, ébresztés, leolvasás). Hibabejelentéskor ezt érdemes megmutatni.",
+    "hint": "A telefon itt őrzi a legutóbbi {{count}} hibát (ütemező, ébresztés és hangja, leolvasás). Hibabejelentéskor ezt érdemes megmutatni.",
     "empty": "Nincs rögzített hiba.",
     "clear": "Napló törlése",
     "entry": "{{time}} · {{source}}",
@@ -255,6 +255,7 @@
       "alarm_screen": "Ébresztés képernyője",
       "nfc": "NFC-figyelés",
       "scan": "Leolvasás rögzítése",
+      "feedback": "Leolvasás hangja, rezgése",
       "record": "Esemény rögzítése",
       "pin": "PIN ellenőrzése",
       "sync": "Szinkron",

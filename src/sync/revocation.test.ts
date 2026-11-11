@@ -44,6 +44,11 @@ const readClock = (): ClockReading => {
   return { device_time: new Date(clockMs).toISOString(), uptime_ms: clockMs - Date.UTC(2026, 9, 27), boot_id: 'android-17' };
 };
 const writer = { readClock, readSecret: async () => SECRET };
+/**
+ * The sync's clock at the server time of the answers: the cleanup after a good sync reads it, and with the real date
+ * the acknowledged entries would be past their 7 days (audit WP-APP-004, FR-023).
+ */
+const syncClock = (): ClockReading => ({ device_time: SERVER_TIME, uptime_ms: 5_000_000, boot_id: 'android-boot:12' });
 
 function writeEntries(n: number) {
   const drafts = Array.from({ length: n }, () => shiftStarted({ shift_id: uuidv7(), guard_id: GUARD, site_id: SITE }));
@@ -114,11 +119,6 @@ const settle = async () => {
 let stop: () => void;
 
 beforeEach(async () => {
-  // The device clock runs from the server time of the answers: the cleanup after a good sync reads it (with no time
-  // reference here), and with the real date the acknowledged entries would be past their 7 days (audit WP-APP-004).
-  const realNow = Date.now.bind(Date);
-  const offset = realNow() - Date.parse(SERVER_TIME);
-  jest.spyOn(Date, 'now').mockImplementation(() => realNow() - offset);
   ({ db } = await createTestDatabase());
   mockedFiles.clear();
   setKv(db, 'device.id', DEVICE);
@@ -169,7 +169,7 @@ describe('a revoked phone', () => {
     logIn({ id: GUARD, role: 'guard' });
     const { requests } = revokedServer();
 
-    stop = startSync(db);
+    stop = startSync(db, { readClock: syncClock });
     await settle();
 
     expect(paths(requests)).toEqual(['/sync/push', '/sync/push-final', '/sync/push-final', `/media/${PHOTO}`, '/sync/push-final']);
@@ -194,7 +194,7 @@ describe('a revoked phone', () => {
 
   it('notices the revocation at the pull too, when nothing waits', async () => {
     const { requests } = revokedServer();
-    stop = startSync(db);
+    stop = startSync(db, { readClock: syncClock });
     await settle();
     expect(paths(requests)).toEqual(['/sync/pull', '/sync/push-final']);
     expect(useSession.getState().mode).toBe('unassigned');
@@ -204,7 +204,7 @@ describe('a revoked phone', () => {
     await writeEntries(1);
     let offline = true;
     revokedServer((request) => (request.path === '/sync/push' ? REVOKED : offline ? new TypeError('Network request failed') : undefined));
-    stop = startSync(db);
+    stop = startSync(db, { readClock: syncClock });
     await settle();
     expect(getKv(db, 'device.revoked')).toBe(true);
 
@@ -223,7 +223,7 @@ describe('a revoked phone', () => {
       if (failing && request.path.startsWith('/media/')) return new TypeError('Network request failed');
       return undefined;
     });
-    stop = startSync(db);
+    stop = startSync(db, { readClock: syncClock });
     await settle();
     expect(paths(requests)).toEqual(['/sync/push', '/sync/push-final', `/media/${PHOTO}`]);
     expect(useSession.getState().mode).toBe('site_phone');
@@ -233,7 +233,7 @@ describe('a revoked phone', () => {
     stop();
     failing = false;
     requests.length = 0;
-    stop = startSync(db);
+    stop = startSync(db, { readClock: syncClock });
     await settle();
     expect(paths(requests)).toEqual([`/media/${PHOTO}`, '/sync/push-final']);
     expect((requests.at(-1)!.body as SyncPushFinalRequest).done).toBe(true);
@@ -252,7 +252,7 @@ describe('a revoked phone', () => {
       if (failing === 'media' && request.path.startsWith('/media/')) return serverError;
       return undefined;
     });
-    stop = startSync(db);
+    stop = startSync(db, { readClock: syncClock });
     await settle();
     // The push failed: the photo still went, but done: true did not.
     expect(paths(requests)).toEqual(['/sync/push', '/sync/push-final', `/media/${PHOTO}`]);
@@ -295,7 +295,7 @@ describe('a revoked phone', () => {
       if (request.path.startsWith('/media/')) return [404, { error: { code: 'not_found', message: 'Nincs' } }];
       return undefined;
     });
-    stop = startSync(db);
+    stop = startSync(db, { readClock: syncClock });
     await settle();
     expect(paths(requests)).toEqual(['/sync/push', '/sync/push-final', '/devices/diagnostics', `/media/${PHOTO}`, '/sync/push-final']);
     expect(useSession.getState().mode).toBe('unassigned');
@@ -308,7 +308,7 @@ describe('a revoked phone', () => {
     await writeEntries(1);
     setKv(db, 'device.revoked', true);
     const { requests } = revokedServer((request) => (request.path === '/sync/push-final' ? REVOKED : undefined));
-    stop = startSync(db);
+    stop = startSync(db, { readClock: syncClock });
     await settle();
     expect(paths(requests)).toEqual(['/sync/push-final']);
     expect(useSession.getState().mode).toBe('unassigned');
@@ -317,7 +317,7 @@ describe('a revoked phone', () => {
 
   it('takes the same path after a stop right before the credentials were deleted', async () => {
     const { requests } = revokedServer();
-    stop = startSync(db);
+    stop = startSync(db, { readClock: syncClock });
     await settle();
     expect(paths(requests).at(-1)).toBe('/sync/push-final');
     await expect(requestSync('manual')).resolves.toEqual({ status: 'skipped' });
@@ -327,7 +327,7 @@ describe('a revoked phone', () => {
     setKv(db, 'dev.api_base_url', 'https://waypost.example/api/waypost/v1');
     useSession.setState({ mode: 'supervisor_phone' });
     revokedServer();
-    stop = startSync(db);
+    stop = startSync(db, { readClock: syncClock });
     await settle();
     expect(getKv(db, 'device.revoked')).toBeNull();
   });

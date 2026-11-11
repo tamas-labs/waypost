@@ -6,6 +6,8 @@ import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import { NotificationFeedbackType, notificationAsync } from 'expo-haptics';
 import { Platform, Vibration } from 'react-native';
 
+import { logError } from '@/diagnostics/error-log';
+
 export type FeedbackKind = 'success' | 'error' | 'warning';
 
 /** Android vibration patterns: wait, vibrate, wait, vibrate … (ms). */
@@ -28,6 +30,17 @@ const SOUNDS: Record<FeedbackKind, number> = {
   warning: require('../../assets/sounds/scan_warning.wav'),
 };
 
+/** The failures logged in this run: a broken sound fails at every scan, and would push the rest out of the log. */
+const logged = new Set<string>();
+
+/** A failure of the feedback: in the error log once per run and kind (FR-020); a scan goes on without it. */
+function failed(detail: string, error: unknown): void {
+  if (__DEV__) console.warn(`Feedback failed (${detail})`, error);
+  if (logged.has(detail)) return;
+  logged.add(detail);
+  logError('feedback', error, detail);
+}
+
 /** One player per sound while the app runs (startFeedback), so the first scan's sound is not late. */
 const players = new Map<FeedbackKind, AudioPlayer>();
 
@@ -44,18 +57,16 @@ function playSound(kind: FeedbackKind): void {
   player
     .seekTo(0)
     .then(() => player.play())
-    .catch((error: unknown) => {
-      if (__DEV__) console.warn(`Sound failed (${kind})`, error);
-    });
+    .catch((error: unknown) => failed(`sound ${kind}`, error));
 }
 
 /** Only the vibration of the kind (e.g. the last 5 minutes of a round). Never throws. */
 export function playHaptic(kind: FeedbackKind): void {
   try {
     if (Platform.OS === 'android') Vibration.vibrate(ANDROID_VIBRATION[kind]);
-    else void notificationAsync(IOS_HAPTICS[kind]).catch(() => {});
+    else void notificationAsync(IOS_HAPTICS[kind]).catch((error: unknown) => failed(`vibration ${kind}`, error));
   } catch (error) {
-    if (__DEV__) console.warn(`Vibration failed (${kind})`, error);
+    failed(`vibration ${kind}`, error);
   }
 }
 
@@ -65,7 +76,7 @@ export function playFeedback(kind: FeedbackKind): void {
   try {
     playSound(kind);
   } catch (error) {
-    if (__DEV__) console.warn(`Sound failed (${kind})`, error);
+    failed(`sound ${kind}`, error);
   }
 }
 
@@ -75,7 +86,7 @@ export function startFeedback(): () => void {
     try {
       playerOf(kind);
     } catch (error) {
-      if (__DEV__) console.warn(`Loading the sound failed (${kind})`, error);
+      failed(`loading ${kind}`, error);
     }
   }
   return () => {

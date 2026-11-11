@@ -1130,3 +1130,26 @@ A közös szerződést (sémák, lánc, menetrend-kibontás) érintő döntések
 - **Indok:** `waypost-schema` 0.9.0 és a kompatibilitási szabály (kérésoldali bővítés csak a bővítést ismerő szervernek); specifikáció *Szinkron protokoll / Push és média*, *Adatmegőrzés*; `laravel-waypost` `docs/decisions.md` (FR-006, FR-013, WP-BE-039).
 - **Érintett:** a fenti fájlok; `src/db/schema.ts`, `src/db/migrations/0004_busy_jazinda.sql`, `src/db/kv.ts`, `src/i18n/hu.json`, `src/app/(supervisor)/sites/[id]/reports.tsx`, `__mocks__/expo-secure-store.ts`, `.waypost-schema-version`, `package-lock.json`, `CHANGELOG.md`, a specifikáció; tesztek: `src/api/endpoints-contract.test.ts`, `src/api/client.test.ts`, `src/sync/push.test.ts`, `src/sync/runtime.test.ts`, `src/sync/status.test.ts`, `src/sync/outbox.test.ts`, `src/supervisor/guards.test.ts`, `src/supervisor/report-settings-view.test.ts`, `__tests__/guards-screen.test.tsx`, `__tests__/reports-screen.test.tsx`.
 
+## 2026-11-11 – A javításellenőrzés tájékoztató tételei (FR-015 – FR-025)
+
+- **Kérdés:** Mi lesz a 2026-11-09-i javításellenőrzés (`remediation-review/FIX-REVIEW-ISSUES.md`) INFO tételeivel?
+- **Döntés:**
+  - **FR-015 – a login időzítése:** backend. A `LoginTest` a valódi bcrypt-tel méri, hogy az ismeretlen cím ugyanannyi ideig tart, mint a hibás jelszó. A régebbi beállítással készült hash belépéskor újra elkészül (`laravel-waypost` `docs/decisions.md`, M2-14).
+  - **FR-016 – `expo-doctor`:** a CI is futtatja (`.github/workflows/ci.yml`). 2026-11-11-én helyben: 20/20 ellenőrzés zöld.
+  - **FR-017 – kompatibilitási próba:** `src/schema/compatibility.test.ts`. A `@waypost/schema` válaszsémáinak minden érvényes példája két változatban megy át a türelmes ellenőrzőn (`tolerantSchemaErrors`): minden objektumban egy új mezővel, és egyenként minden enum-értéke helyén egy ismeretlen értékkel. Az enum-értéket a szigorú ellenőrző választja ki: azok a szövegek, amelyek cseréjére csak `enum`-hiba jön. A példák a `../waypost-schema/examples` alatt vannak (a symlinkelt csomag; az npm-csomagban nincsenek benne).
+  - **FR-018:** a `push.ts` kétszeres `media_missing` sora törölve.
+  - **FR-019 – az egyenlő határú intervallum:** a backend is elhagyja a 24 órás ablak záró időpontját, ahogy az app a WP-APP-010 óta (`laravel-waypost` `docs/decisions.md`, 2026-11-11).
+  - **FR-020 – a hang és a rezgés hibája a hibanaplóban:**
+    - Az ébresztés képernyőjén (`src/alarms/ringing.ts`) minden hiba naplózódik: rezgés, hangmód, hang, leállítás (`alarm_screen`).
+    - A leolvasás visszajelzésének (`src/feedback/feedback.ts`, új forrás: `feedback`) hibája futásonként és fajtánként egyszer: egy hibás hang minden leolvasásnál hibázna, és kiszorítaná a napló többi bejegyzését.
+    - Az iOS-haptika elnyelt hibája is naplózódik.
+  - **FR-021:** a `waypost-schema` PHP-próbái PHP 8.4-en futnak (0.9.1).
+  - **FR-022 – a `components` réteg:**
+    - Új lint-szabály: a `src/components` futásidőben nem importálhat az `account`, `api`, `db` és `app` mappából. Az állapot olvasása (`sync/status`) és a nézetmodellek szövegei (`supervisor/*-view`, a `supervisor/guards` ellenőrzői) maradhatnak.
+    - Az újra-bejelentkezés folyamata a `src/hooks/use-renew-login.ts`-be került; a `RenewLogin` csak megjeleníti.
+    - A `FinishSheet` a mentést propként kapja (`onSave`), a betanítás képernyője adja (`saveTraining`).
+  - **FR-023 – a szinkron órája:** a `startSync(db, { readClock })` órája adja az utolsó siker idejét és a helyi takarítás idejét. A `revocation.test.ts` ezzel fut, nem a `Date.now` felülírásával: egy jövőbeli órával a teszt elbukik, tehát az óra tényleg számít. A domain továbbra is explicit `now`-t kap. A `libfaketime`-os teljes futás nem készült.
+  - **FR-024 – a token inaktivitási lejárata:** backend, alapból 90 nap, csak a supervisor tokenjére (`waypost-schema` 0.9.1 leírás, `laravel-waypost` `docs/decisions.md`). Az app a 401-et már kezeli (`RenewLogin`, WP-APP-016); a specifikáció *Azonosítás / Supervisor fiók* `POST /auth/login` sora kiegészült.
+  - **FR-025 – az iOS-ébresztések fedése:** marad a 48-as keret (a 64-es rendszerkorlát alatt, a teszt-ébresztésnek és a többi értesítésnek is jut hely). A specifikáció kimondja a korlátot. A `tasks.md` M7-04 mérést ír elő iPhone-on. Ha a műszak hosszabb a fedésnél, Android-telefon kell, vagy ritkább menetrend.
+- **Indok:** a tételek többsége próbát vagy dokumentációt kért; a kódváltozások nem változtatják a szerződést (a `waypost-schema` 0.9.1 csak leírás és CI).
+- **Érintett:** `src/sync/push.ts`, `src/alarms/ringing.ts`, `src/feedback/feedback.ts`, `src/db/kv.ts`, `src/i18n/hu.json`, `src/hooks/use-renew-login.ts`, `src/components/renew-login.tsx`, `src/components/training/finish-sheet.tsx`, `src/app/(supervisor)/routes/[id]/train/index.tsx`, `src/sync/runtime.ts`, `eslint.config.js`, `.github/workflows/ci.yml`, `.waypost-schema-version`, `package-lock.json`, a specifikáció, `tasks.md`, `CHANGELOG.md`, `CLAUDE.md`; tesztek: `src/schema/compatibility.test.ts`, `src/alarms/ringing.test.ts`, `src/feedback/feedback.test.ts`, `src/sync/revocation.test.ts`.
