@@ -41,5 +41,6 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run test:coverage
-      # The SDK's versions of the native packages and the app config (audit WP-APP-017); it asks the Expo service.
-      - run: npx expo-doctor
+      # The SDK's versions of the native packages and the app config (audit WP-APP-017); it asks the Expo service. Pinned:
+      # a broken release (1.21.7 lacked its @expo/env dependency) must not fail the CI; move it up by hand.
+      - run: npx --yes expo-doctor@1.21.6

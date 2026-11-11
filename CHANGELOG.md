@@ -42,7 +42,7 @@ A formátum a [Keep a Changelog](https://keepachangelog.com/hu/1.1.0/) ajánlás
 - A jelentésbeállításokon a havi jelentés lemondásakor az app megmondja, hogy a 62 napos megőrzés még 62 napig érvényes (FR-007, WP-BE-039).
 - Teszt: az app útvonaltáblája (`src/api/endpoints.ts`, `config-calls.ts`) a `@waypost/schema` `endpoints.json`-jával összevetve: metódus, útvonal, kérés- és válaszséma, query, `Idempotency-Key` (FR-005).
 - Teszt: a válaszsémák minden érvényes példája egy hozzáadott mezővel és ismeretlen enum-értékkel is átmegy a türelmes ellenőrzőn, ahogy egy újabb szerver minor bővítése érkezne (FR-017).
-- A CI az `npx expo-doctor`-t is futtatja (FR-016, WP-APP-017).
+- A CI az `npx expo-doctor`-t is futtatja, rögzített verzióval (1.21.6; az 1.21.7 hibásan jelent meg) (FR-016, WP-APP-017).
 
 ### Biztonság
 
