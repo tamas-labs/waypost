@@ -34,14 +34,38 @@ A formátum a [Keep a Changelog](https://keepachangelog.com/hu/1.1.0/) ajánlás
 - Függőség: `expo-location`, `expo-image-manipulator`, `expo-file-system`, `expo-haptics`, `expo-audio` (és a peer függősége, `expo-asset`); a `waypost-clock` modulban új `getGnssTimeMs` (natív: új development build kell).
 - Fejlesztői módban az API-kliens figyelmeztet, ha a szerver `X-Waypost-Schema` fejléce más `@waypost/schema` major- vagy minorverziót mond, mint amivel az app épült.
 - Függőség: `react-native-quick-crypto` (a `react-native-nitro-modules` és a `react-native-quick-base64` csomaggal; natív: új development build kell).
+- Önálló Android-telepítő Metro és EAS nélkül: `make standalone API_URL=…` (a cím a JS-csomagba égetve; `http://` címnél titkosítatlan forgalom Androidon), `make install-standalone`.
+- Supervisorok a telephely őrei között: lista, PIN-csere, felfüggesztés, új supervisor (név, e-mail-cím, jelszó, PIN) és más telephely supervisorának hozzárendelése (WP-APP-007).
+- Helyi hibanapló: az utolsó 50 háttérhiba a „Telefon beállítása” képernyőn, és a gyökér `ErrorBoundary` (WP-APP-008).
+- Újra-bejelentkezés a supervisor telefonján, ha a szerver a tokent nem fogadja el (401): a fiók adatai és a várakozó módosítások megmaradnak (WP-APP-016).
+- Ha a szerver a push kötegének első bejegyzését `422`-vel elutasítja, a szinkronjelző megmondja, hogy a feltöltés elakadt, és az app bejegyzésenként egyszer diagnosztikát küld (`validation_failed`, legalább 0.9.0-s szervernek), így a jelentés is jelzi (FR-013).
+- A jelentésbeállításokon a havi jelentés lemondásakor az app megmondja, hogy a 62 napos megőrzés még 62 napig érvényes (FR-007, WP-BE-039).
+- Teszt: az app útvonaltáblája (`src/api/endpoints.ts`, `config-calls.ts`) a `@waypost/schema` `endpoints.json`-jával összevetve: metódus, útvonal, kérés- és válaszséma, query, `Idempotency-Key` (FR-005).
+
+### Biztonság
+
+- Az új supervisor jelszava nem kerül a telefon adatbázisába: az outbox-hívás titkos mezőjeként a secure store-ban vár (`…_THIS_DEVICE_ONLY`, nem kerül mentésbe), és a hívás sikere vagy elutasítása után törlődik. Új adatbázis-migráció: `outbox.secret` (FR-012).
+- Androidon `android.allowBackup: false`: az adatbázis és a fotók nem kerülnek a mentésbe (WP-APP-019).
+- A CI az `npm audit --omit=dev --audit-level=high` paranccsal megállítja a high vagy critical hibás függőséget (WP-APP-018).
 
 ### Javítva
 
+- Egy szinkronlépés tartós hibája (pl. egy tartósan elutasított push-köteg, egy fotó 5xx-e) nem állítja meg az outboxot és a pullt; a push `422`-jénél a hibás bejegyzés előtti rész felmegy; a láncíró minden buildben ellenőrzi a bejegyzés sémáját (WP-APP-002).
+- Ébresztések: iOS-en legfeljebb 48, Androidon 192, emlékeztető csak a következő 4 körhöz, így sűrű menetrendnél is több óra fedett (WP-APP-003).
+- Az azonos kezdő- és záróidejű menetrend nem akasztja el az ütemezőt (WP-APP-010).
+- A leolvasás az érintés pillanatáé, nem a helyadat megérkezéséé; a közben érintett másik címke sorba áll, nem vész el (WP-APP-011).
+- A telefon hozzárendelése egy megszakadás után sem veszíti el az eszköztitkot (WP-APP-014).
+- Egy elutasított létrehozás a rá épülő várakozó hívásokat is viszi, egy jelzéssel (WP-APP-015).
+- A push válasza éles buildben is ellenőrzött, türelmesen: az ismeretlen mező és felsorolásérték nem hiba (WP-APP-020).
+- Az első androidos eszközteszt (360 dp) hibái: kétsoros fejléc, a billentyűzet nem takarja az űrlapot, a kilépés kérdése nem rakódik egymásra (és nem omlik össze az útvonal szerkesztése) (2026-11-10).
 - A push válaszában egy ismeretlen elutasítási kód (egy újabb szerver minor bővítése) éles buildben nem állítja meg a láncfeltöltést: a bejegyzés a többi elutasítotthoz hasonlóan kerül kezelésre (FR-002).
 - A lánc írója nem ír meg olyan bejegyzést, amelyben ugyanaz a fotó kétszer szerepel; a szerver ezt elutasítaná (FR-003, `waypost-schema` SCH-016).
 - A tesztek a lánc `normalized` és `invalid` tesztvektorait is futtatják (FR-004).
 
 ### Módosítva
 
-- A `waypost-schema` várt verziója `v0.6.0` (`.waypost-schema-version`).
+- A `waypost-schema` várt verziója `v0.9.0` (`.waypost-schema-version`).
+- A mappák közötti függőségi kör megszűnt (`src/account`, `src/setup`, `src/device/secret.ts`), két új lint-rétegszabállyal (WP-APP-006).
+- Közös nézetelemek (`Sheet`, `SectionTitle`), a nagy képernyők részei a `src/components` alá kerültek (WP-APP-009).
+- 20 csomag az SDK 58 által várt verzióra frissült, köztük a `react-native` 0.88.1: **új development build kell** (WP-APP-017).
 - Az M1 prototípus-képernyői csak fejlesztői buildben érhetők el, a „Fejlesztői eszközök” menüből.

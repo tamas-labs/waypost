@@ -100,7 +100,11 @@ it('opens from the site with the supervisor’s reports, the alert and the reten
   expect(switchOn('Napi összesítő')).toBe(false);
   expect(screen.getByText('Hétfőn 10:00 · HTML e-mail és PDF')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Ha nem jön adat a telephelyről: 2 óra, módosítás' })).toBeOnTheScreen();
-  expect(screen.getByText(/^Nyers adatok megőrzése: 31 nap\. Havi jelentésnél 62 napra nő\./)).toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      /^Nyers adatok megőrzése: 31 nap\. Havi jelentésnél 62 napra nő, és a havi jelentés lemondása után még 62 napig ennyi marad\./,
+    ),
+  ).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Mentés' })).toBeDisabled();
 });
 
@@ -111,6 +115,18 @@ it('another supervisor’s monthly report keeps the data for 62 days', async () 
   await renderRouter(ROUTES, { initialUrl: `/sites/${SITE}/reports` });
   expect(switchOn('Havi összesítő')).toBe(false);
   expect(screen.getByText(/^Nyers adatok megőrzése: 62 nap, mert a telephelyről havi jelentés is megy\./)).toBeOnTheScreen();
+});
+
+it('tells how long the data stays when the supervisor turns off the monthly report', async () => {
+  db.insert(reportSubscriptions)
+    .values({ id: '019a2b3c-4d5e-7f00-8a00-0000000000c4', user_id: ME.id, site_id: SITE, frequency: 'monthly' })
+    .run();
+  await renderRouter(ROUTES, { initialUrl: `/sites/${SITE}/reports` });
+  expect(screen.getByText(/^Nyers adatok megőrzése: 62 nap, mert/)).toBeOnTheScreen();
+  await flip('Havi összesítő', false);
+  expect(
+    screen.getByText(/^Nyers adatok megőrzése: 31 nap\. A havi jelentés lemondása után még 62 napig a 62 napos megőrzés érvényes/),
+  ).toBeOnTheScreen();
 });
 
 it('saves the reports turned on and off and the alert, through the outbox, and goes back', async () => {

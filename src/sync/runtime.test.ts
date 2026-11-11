@@ -1,7 +1,12 @@
 import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import { AppState, type AppStateStatus } from 'react-native';
 
+import { chainVectors } from '@waypost/schema/vectors';
+
 import { emitChainEntries } from '@/chain/events';
+import { shiftStarted } from '@/chain/payloads';
+import { appendChainEntries } from '@/chain/writer';
+import { uuidv7 } from '@/id/uuidv7';
 import { createApiClient } from '@/api/client';
 import { configCalls } from '@/api/config-calls';
 import { ApiError, InvalidResponseError, NetworkError } from '@/api/errors';
@@ -16,6 +21,7 @@ import * as cleanup from './cleanup';
 import { queueAction } from './outbox';
 import { FOREGROUND_SYNC_INTERVAL_MS, requestSync, startSync, stopsSync, syncContext, syncSteps, type SyncContext } from './runtime';
 import { useSyncStatus } from './status';
+import { fakeApi } from './testing';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 
@@ -114,8 +120,47 @@ describe('sync runtime', () => {
     expect(outbox).toHaveBeenCalledTimes(1);
     expect(pulls).toHaveLength(1);
     expect(warn.mock.calls.map(([message]) => message)).toEqual(['Sync failed at push', 'Sync failed at media']);
-    expect(useSyncStatus.getState().lastError).toMatchObject({ kind: 'server', step: 'push', message: 'A megadott adatok hibásak.' });
+    expect(useSyncStatus.getState().lastError).toMatchObject({
+      kind: 'upload_refused',
+      step: 'push',
+      message: 'A megadott adatok hibásak.',
+    });
     expect(useSyncStatus.getState().lastSuccessAt).toBeNull();
+  });
+
+  it('reports a refused first entry in the same sync, and still fails the push', async () => {
+    stop = () => {};
+    const deviceId = uuidv7();
+    setKv(db, 'device.id', deviceId);
+    await appendChainEntries(db, [shiftStarted({ shift_id: uuidv7(), guard_id: uuidv7(), site_id: uuidv7() })], {
+      readClock: () => ({ device_time: '2026-10-27T20:00:00.000Z', uptime_ms: 1000, boot_id: 'android-17' }),
+      readSecret: async () => chainVectors.key_base64,
+    });
+    const { api, requests } = fakeApi((request) =>
+      request.path === '/sync/push'
+        ? [
+            422,
+            { error: { code: 'validation_failed', message: 'Hibás.', details: { 'entries.0.payload.site_id': ['Ismeretlen.'] } } },
+            { 'X-Waypost-Schema': '0.9.0' },
+          ]
+        : { server_time: '2026-10-27T20:00:01.000Z' },
+    );
+    const context: SyncContext = {
+      db,
+      api,
+      token: 'device-token',
+      mode: 'site_phone',
+      deviceId,
+      revoked: false,
+      mediaMissing: new Set(),
+      completed: new Set(),
+    };
+
+    await expect(syncSteps.push(context)).rejects.toMatchObject({ code: 'validation_failed' });
+    expect(requests.map((request) => request.path)).toEqual(['/sync/push', '/devices/diagnostics']);
+    expect(requests[1]?.body).toMatchObject({ code: 'validation_failed', device_id: deviceId, seq: 1, server_last_seq: 0 });
+    expect(getKv(db, 'sync.pending_diagnostic')).toBeNull();
+    expect(context.completed.has('push')).toBe(false);
   });
 
   it('stops the sync when the network fails: the other steps would wait for their timeouts too', async () => {

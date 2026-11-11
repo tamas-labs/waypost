@@ -16,7 +16,7 @@ import { generatePin, type RandomFill } from '@/domain/pin-generate';
 import { schemaErrors } from '@/schema/validation';
 import type { NewId } from '@/domain/state';
 import { uuidv7 } from '@/id/uuidv7';
-import { queueSupervisorAction } from '@/sync/outbox';
+import { queueSupervisorAction, queueSupervisorActionWithSecrets } from '@/sync/outbox';
 import { nowTimestamp } from '@/time/timestamp';
 
 /** The schema's limit of a name. */
@@ -235,8 +235,9 @@ export const validPassword = (password: string) => password.length >= PASSWORD_M
 
 /**
  * A new supervisor of the site, with their login (e-mail address and password, for their own phone) and the PIN shown
- * (for the site phone); returns their ID. The password goes in the outbox call and nowhere else on the phone; the call
- * is deleted once the server has it. A taken e-mail address is the server's 409, told among the refused calls.
+ * (for the site phone); returns their ID. The password is a secret field of the outbox call: in the secure store, not
+ * in the database, and deleted once the server has it or has refused it (FR-012). A taken e-mail address is the
+ * server's 409, told among the refused calls.
  */
 export async function createSupervisor(
   db: Database,
@@ -246,7 +247,7 @@ export async function createSupervisor(
 ): Promise<string> {
   const verifier = await newPinVerifier(pin);
   const id = newId();
-  queueSupervisorAction(db, {
+  await queueSupervisorActionWithSecrets(db, {
     apply: (tx) => {
       tx.insert(users)
         .values({ id, name, role: 'supervisor', ...verifier, active: true, created_at: now, updated_at: now })

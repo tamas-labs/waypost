@@ -119,6 +119,18 @@ export function schemaVersionDiffers(server: string, app: string = SCHEMA_VERSIO
   return majorMinor(server) !== majorMinor(app);
 }
 
+/** Whether the server's schema version is at least the given one (by major, minor and patch). */
+export function schemaVersionAtLeast(server: string, version: string): boolean {
+  const parts = (text: string) => (text.split('-')[0] ?? '').split('.').map(Number);
+  const [have, want] = [parts(server), parts(version)];
+  for (let index = 0; index < want.length; index++) {
+    const difference = (have[index] ?? 0) - (want[index] ?? 0);
+    if (Number.isNaN(difference)) return false;
+    if (difference !== 0) return difference > 0;
+  }
+  return true;
+}
+
 export function createApiClient(options: ApiClientOptions): ApiClient {
   const baseUrl = options.baseUrl.replace(/\/+$/, '');
   if (!/^https?:\/\/[^/]+/.test(baseUrl)) throw new Error(`Invalid API base URL: ${options.baseUrl}`);
@@ -177,7 +189,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     if (!response.ok) {
       if (parsed && isErrorBody(body)) {
         const { code, message, details } = body.error;
-        throw new ApiError(response.status, code, message, details ?? null, retryAfter(response.headers));
+        throw new ApiError(response.status, code, message, details ?? null, retryAfter(response.headers), true, serverSchema);
       }
       throw new ApiError(
         response.status,
@@ -186,6 +198,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         null,
         retryAfter(response.headers),
         false,
+        serverSchema,
       );
     }
 

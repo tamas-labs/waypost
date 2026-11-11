@@ -16,6 +16,8 @@ export class ApiError extends Error {
     readonly retryAfterS: number | null = null,
     /** False if the body was not in the error format (e.g. a proxy page); code then comes from the status. */
     readonly fromServer = true,
+    /** The server's @waypost/schema version (X-Waypost-Schema), if it told one. */
+    readonly serverSchema: string | null = null,
   ) {
     super(message);
   }

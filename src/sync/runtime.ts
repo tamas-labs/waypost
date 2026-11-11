@@ -80,7 +80,13 @@ export const syncSteps: Record<SyncStep, (context: SyncContext) => Promise<void>
     if (deviceId !== null) {
       const send: SendBatch = (entries) =>
         revoked ? pushFinal(api, token, { device_id: deviceId, entries, done: false }) : push(api, token, { device_id: deviceId, entries });
-      await pushChainEntries({ db, deviceId, mediaMissing }, send);
+      try {
+        await pushChainEntries({ db, deviceId, mediaMissing }, send);
+      } catch (error) {
+        // A refused first entry stops the upload: its report goes now, not after the push gets through.
+        if (isApiError(error, 'validation_failed')) await sendPendingDiagnostic(db, api, token);
+        throw error;
+      }
       await sendPendingDiagnostic(db, api, token);
     }
     completed.add('push');
@@ -150,7 +156,7 @@ function finished(db: Database, outcome: SyncOutcome): void {
     const { step, error } = outcome;
     if (__DEV__) for (const failure of outcome.failures) console.warn(`Sync failed at ${failure.step ?? 'context'}`, failure.error);
     const lastError = {
-      kind: syncErrorKind(error),
+      kind: syncErrorKind(error, step),
       step,
       message: error instanceof Error ? error.message : String(error),
       at: nowTimestamp(),

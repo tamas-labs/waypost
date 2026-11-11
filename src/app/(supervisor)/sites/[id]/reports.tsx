@@ -98,7 +98,10 @@ export default function ReportsScreen() {
           </Pressable>
         </Card>
 
-        <InfoBanner variant="info" text={retentionText([...base.others, ...draft.frequencies])} />
+        <InfoBanner
+          variant="info"
+          text={retentionText([...base.others, ...draft.frequencies], [...base.others, ...base.saved.frequencies])}
+        />
 
         {error !== null && (
           <View accessibilityLiveRegion="polite" accessibilityRole="alert">

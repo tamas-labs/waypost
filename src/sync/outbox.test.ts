@@ -24,6 +24,7 @@ import {
   outboxBackoffMs,
   outboxRejections,
   queueAction,
+  queueActionWithSecrets,
   queueSupervisorAction,
   resetOutboxBackoff,
   sendOutbox,
@@ -34,6 +35,8 @@ import { useSyncStatus } from './status';
 import { fakeApi, type FakeAnswer, type RecordedRequest } from './testing';
 
 jest.mock('expo-file-system');
+jest.mock('expo-secure-store');
+const { store: secureStore } = jest.requireMock<typeof import('../../__mocks__/expo-secure-store')>('expo-secure-store');
 const { files: mockedFiles } = jest.requireMock<typeof import('../../__mocks__/expo-file-system')>('expo-file-system');
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 
@@ -499,6 +502,76 @@ describe('sendOutbox', () => {
     clearOutbox(db);
     expect(rows()).toEqual([]);
     expect(getKv(db, 'outbox.rejected')).toBeNull();
+  });
+});
+
+describe("the secret fields of a call (a new supervisor's password, FR-012)", () => {
+  const USER = '019a2b3c-4d5e-7f00-8a00-000000000031';
+  const createSupervisor = configCalls.createUser({
+    id: USER,
+    name: 'Balogh Béla',
+    role: 'supervisor',
+    email: 'balogh.bela@example.com',
+    password: 'jelszo-1234',
+    pin: '482913',
+    active: true,
+    site_ids: [SITE],
+  });
+  const USER_RESPONSE = example<object>('user.response', 'generated-pin');
+  const stored = () => [...secureStore.keys()].filter((key) => key.startsWith('waypost.outbox.'));
+  beforeEach(() => secureStore.clear());
+
+  it('keeps the password out of the database, and sends it with the call', async () => {
+    const [id] = await queueActionWithSecrets(db, { calls: [createSupervisor] }, SUPERVISOR);
+    expect(rows()[0]).toMatchObject({ id, secret: true });
+    expect(JSON.stringify(rows())).not.toContain('jelszo-1234');
+    expect(stored()).toEqual([`waypost.outbox.${id}`]);
+
+    const { api, requests } = server({ 'POST /users': [[201, USER_RESPONSE]] });
+    await sendOutbox({ db, api, token: 'device-token' }, options());
+
+    expect(requests[0]!.body).toMatchObject({ id: USER, email: 'balogh.bela@example.com', password: 'jelszo-1234' });
+    expect(rows()).toEqual([]);
+    await Promise.resolve();
+    expect(stored()).toEqual([]);
+  });
+
+  it('deletes the password with a refused call, and when the outbox is cleared', async () => {
+    await queueActionWithSecrets(db, { calls: [createSupervisor] }, SUPERVISOR);
+    const { api } = server({ 'POST /users': [error(409, 'conflict', 'Ez az e-mail-cím már foglalt.')] });
+    await sendOutbox({ db, api, token: 'device-token' }, options());
+    expect(rows()).toEqual([]);
+    await Promise.resolve();
+    expect(stored()).toEqual([]);
+
+    await queueActionWithSecrets(db, { calls: [createSupervisor] }, SUPERVISOR);
+    clearOutbox(db);
+    await Promise.resolve();
+    expect(stored()).toEqual([]);
+  });
+
+  it('sends the call without a password that is gone, and the server refuses it', async () => {
+    await queueActionWithSecrets(db, { calls: [createSupervisor] }, SUPERVISOR);
+    secureStore.clear();
+    const { api, requests } = fakeApi(() => error(422, 'validation_failed', 'Hibás.', { password: ['Kötelező mező.'] }), {
+      validate: false,
+    });
+    await sendOutbox({ db, api, token: 'device-token' }, options());
+    expect(requests[0]!.body).not.toHaveProperty('password');
+    expect(outboxRejections(db)).toHaveLength(1);
+  });
+
+  it('stores nothing if the action fails, and is not queued the plain way', async () => {
+    const failing = {
+      apply: () => {
+        throw new Error('local');
+      },
+      calls: [createSupervisor],
+    };
+    await expect(queueActionWithSecrets(db, failing, SUPERVISOR)).rejects.toThrow('local');
+    expect(rows()).toEqual([]);
+    expect(stored()).toEqual([]);
+    expect(() => queueAction(db, { calls: [createSupervisor] }, SUPERVISOR)).toThrow('queueActionWithSecrets');
   });
 });
 

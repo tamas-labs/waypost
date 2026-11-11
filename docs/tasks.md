@@ -127,7 +127,7 @@ Cél: migrációk, modellek, telepítő parancsok, login, konfigurációs CRUD P
 
 - [x] **M2-03 Migrációk: konfiguráció** `⚠ Q3`
   - Mit: `users`, `sites`, `site_user`, `devices`, `checkpoints`, `routes`, `route_versions`, `route_version_checkpoints`, `schedules`, `report_subscriptions`, az összes egyedi kulccsal és indexszel. A pull törlési listájához szükséges törlésjelölés minden szinkronizált táblán.
-  - Kész, ha: a migráció MySQL 8-on és PostgreSQL 16-on (vagy legalább SQLite-on a tesztekben és egy valódi motoron kézzel) fut, és vissza is görgethető.
+  - Kész, ha: a migráció MySQL 8.4-en és PostgreSQL 16-on (vagy legalább SQLite-on a tesztekben és egy valódi motoron kézzel) fut, és vissza is görgethető.
   - Spec: Adatbázis.
 
 - [x] **M2-04 Migrációk: eszközadat, kimenő és idempotencia** `⚠ Q4` `⚠ Q14`
@@ -635,6 +635,7 @@ Cél: egy telephely teljesen beállítható csak a telefonról; az offline végz
 
 - [ ] **M7-01 Gazda-alkalmazás telepítése**: Laravel 13 gazda-alkalmazás a szerveren, `composer require waypost/laravel-waypost`, `waypost:install`, queue worker, scheduler (cron), levelezés, privát lemez, HTTPS, `waypost:create-supervisor`.
 - [ ] **M7-02 App terjesztése**: EAS build, belső terjesztés Androidra, TestFlight iOS-re; az éles API-cím beállítása.
+  - Feltétel iOS-re (FR-010, WP-APP-019): iPhone csak akkor kerüljön a próbaidőszakba, ha előtte elkészül egy saját natív modul (az adatbázis és a `media/` mappa `isExcludedFromBackup`-pal, a keychain elemei `…_THIS_DEVICE_ONLY`-val), és egy iOS-eszközteszt ellenőrzi, hogy az iCloud-mentésből visszaállított telefonon nincs eszközazonosság és nincs adatbázis.
 - [ ] **M7-03 Telephely beállítása a telefonról**: címkék felhelyezése, betanítás, menetrend, őrök, telefon-hozzárendelés, ellenőrzőlista zölden.
 - [ ] **M7-04 Hét éjszaka próbaüzem**: napi ellenőrzés (jelentések megérkeztek, `verify_status`, jelölések, elmaradt körök); a hibák vezetése egy hibalistában.
 - [ ] **M7-05 Lezárás**: 7 éjszaka adatvesztés nélkül; minden jelentés megérkezett; a hibalista és a `decisions.md` frissítve; a `device-test.md` utolsó futása Androidon és iPhone-on.

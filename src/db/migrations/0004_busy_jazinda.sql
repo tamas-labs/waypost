@@ -1,0 +1,1 @@
+ALTER TABLE `outbox` ADD `secret` integer DEFAULT false NOT NULL;

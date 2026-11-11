@@ -7,19 +7,26 @@
 // A batch the server refuses as a whole (422 validation_failed: an entry is not valid against its schema) is not
 // stored there at all. The entries before the first invalid one go up in a batch of their own; the invalid one is
 // kept and sent again at every sync, as a fix on the server (e.g. a schema version it should not have had) lets it
-// through. The push step fails meanwhile, but the other steps of the sync still run (controller.ts).
+// through. The push step fails meanwhile, but the other steps of the sync still run (controller.ts). If the invalid
+// entry is the first of the batch, the chain cannot go past it: the upload stops. That is reported once per entry
+// (validation_failed diagnostic, to a server of @waypost/schema 0.9.0 or later), so the supervisor sees it in the
+// report, and the sync indicator tells it (status.ts: upload_refused).
 import type { ChainEntry, SyncPushRequest, SyncPushResponse } from '@waypost/schema';
-import { and, asc, eq, gt, inArray, isNull } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, isNotNull, isNull, max } from 'drizzle-orm';
 
-import type { ApiClient } from '@/api/client';
+import { type ApiClient, schemaVersionAtLeast } from '@/api/client';
 import { reportDiagnostic } from '@/api/endpoints';
 import { ApiError, isApiError } from '@/api/errors';
 import type { Database } from '@/db/database';
 import { deleteKv, getKv, setKv } from '@/db/kv';
 import { chainEntries } from '@/db/schema';
 import { uuidv7 } from '@/id/uuidv7';
+import { nowTimestamp } from '@/time/timestamp';
 
 export const PUSH_BATCH_SIZE = 200;
+
+/** The first @waypost/schema version whose server takes a validation_failed diagnostic. */
+export const REFUSED_UPLOAD_DIAGNOSTIC_SINCE = '0.9.0';
 
 export interface PushContext {
   db: Database;
@@ -106,16 +113,53 @@ function applyResponse(db: Database, deviceId: string, response: SyncPushRespons
 }
 
 /**
- * The index of the first entry of the batch that a validation_failed response names (its details are keyed by the
- * field path, e.g. "entries.3.payload.round_id"); null if the error is not one, or it names no entry.
+ * The indexes of the entries of the batch that a validation_failed response names (its details are keyed by the
+ * field path, e.g. "entries.3.payload.round_id"), in order; empty if the error is not one, or it names no entry.
  */
-export function firstInvalidEntry(error: unknown): number | null {
-  if (!isApiError(error, 'validation_failed') || error.details === null) return null;
+function invalidEntries(error: unknown): number[] {
+  if (!isApiError(error, 'validation_failed') || error.details === null) return [];
   const indexes = Object.keys(error.details).flatMap((path) => {
     const match = /^entries\.(\d+)(?:\.|$)/.exec(path);
     return match?.[1] === undefined ? [] : [Number(match[1])];
   });
-  return indexes.length === 0 ? null : Math.min(...indexes);
+  return [...new Set(indexes)].sort((a, b) => a - b);
+}
+
+/**
+ * The server refused the first entry of the batch: the report of it, once per entry, if the server takes one. A report
+ * of rejected entries that still waits goes first; this one is made at a later sync then.
+ */
+function recordRefusedUpload(db: Database, deviceId: string, entry: ChainEntry, error: ApiError, named: number): void {
+  if (getKv(db, 'sync.refused_entry') === entry.id || getKv(db, 'sync.pending_diagnostic') !== null) return;
+  // An older server refuses the report (422): checked at every sync, as the server may be updated meanwhile.
+  if (error.serverSchema === null || !schemaVersionAtLeast(error.serverSchema, REFUSED_UPLOAD_DIAGNOSTIC_SINCE)) return;
+  const acknowledged = db
+    .select({ seq: max(chainEntries.seq) })
+    .from(chainEntries)
+    .where(and(eq(chainEntries.device_id, deviceId), isNotNull(chainEntries.synced_at)))
+    .get();
+  db.transaction((tx) => {
+    setKv(tx, 'sync.refused_entry', entry.id);
+    setKv(tx, 'sync.pending_diagnostic', {
+      id: uuidv7(),
+      device_id: deviceId,
+      code: 'validation_failed',
+      entry_id: entry.id,
+      seq: entry.seq,
+      expected_seq: null,
+      server_last_seq: acknowledged?.seq ?? 0,
+      rejected_count: Math.min(PUSH_BATCH_SIZE, Math.max(1, named)),
+      occurred_at: nowTimestamp(),
+    });
+  });
+}
+
+/**
+ * The index of the first entry of the batch that a validation_failed response names (its details are keyed by the
+ * field path, e.g. "entries.3.payload.round_id"); null if the error is not one, or it names no entry.
+ */
+export function firstInvalidEntry(error: unknown): number | null {
+  return invalidEntries(error)[0] ?? null;
 }
 
 /** Sends the batches until nothing is left to send. A failed request (network, 5xx, a refused batch …) throws; the next sync goes on from there. */
@@ -132,6 +176,7 @@ export async function pushChainEntries({ db, deviceId, mediaMissing }: PushConte
       response = await send([first, ...rest]);
     } catch (error) {
       const invalid = refused === null ? firstInvalidEntry(error) : null;
+      if (invalid === 0 && error instanceof ApiError) recordRefusedUpload(db, deviceId, first, error, invalidEntries(error).length);
       if (invalid === null || invalid === 0 || invalid >= batch.length) throw error;
       refused = error;
       size = invalid;

@@ -293,6 +293,7 @@
       "unauthenticated": "A szerver nem fogadta el a telefon azonosítását.",
       "device_revoked": "Ezt a telefont egy másik váltotta fel a telephelyen. A rögzített adatok feltöltése folyamatban.",
       "rate_limited": "A szerver túl sok kérést kapott. A szinkron később újra próbálkozik.",
+      "upload_refused": "A szerver nem fogadta el a telefon egyik bejegyzését, ezért a feltöltés elakadt. Az adatok a telefonon megmaradnak. Szólj a supervisornak.",
       "server": "Szerverhiba. A szinkron később újra próbálkozik.",
       "invalid_response": "A szerver váratlan választ adott.",
       "unknown": "Váratlan hiba történt a szinkron közben."
@@ -947,7 +948,8 @@
     "minutes": "{{minutes}} perc",
     "hours": "{{hours}} óra",
     "hoursMinutes": "{{hours}} óra {{minutes}} perc",
-    "retention": "Nyers adatok megőrzése: {{days}} nap. Havi jelentésnél {{monthly}} napra nő. A heti és havi PDF a fotókat bélyegképként tartalmazza.",
+    "retention": "Nyers adatok megőrzése: {{days}} nap. Havi jelentésnél {{monthly}} napra nő, és a havi jelentés lemondása után még {{monthly}} napig ennyi marad. A heti és havi PDF a fotókat bélyegképként tartalmazza.",
+    "retentionCancelled": "Nyers adatok megőrzése: {{days}} nap. A havi jelentés lemondása után még {{kept}} napig a {{kept}} napos megőrzés érvényes: a már rögzített adatok addig megmaradnak. A heti és havi PDF a fotókat bélyegképként tartalmazza.",
     "retentionMonthly": "Nyers adatok megőrzése: {{days}} nap, mert a telephelyről havi jelentés is megy. A heti és havi PDF a fotókat bélyegképként tartalmazza.",
     "saved": "A jelentésbeállítások elmentve",
     "failed": "Nem sikerült menteni: {{message}}"

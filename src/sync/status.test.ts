@@ -15,6 +15,10 @@ describe('sync status', () => {
     expect(syncErrorKind(new ApiError(429, 'rate_limited', 'Túl sok kérés.'))).toBe('rate_limited');
     expect(syncErrorKind(new ApiError(503, 'server_error', 'HTTP 503'))).toBe('server');
     expect(syncErrorKind(new ApiError(422, 'validation_failed', 'Hibás kurzor.'))).toBe('server');
+    // The push refused: the chain upload is stuck, the others are any other refusal.
+    expect(syncErrorKind(new ApiError(422, 'validation_failed', 'Hibás.'), 'push')).toBe('upload_refused');
+    expect(syncErrorKind(new ApiError(422, 'validation_failed', 'Hibás kurzor.'), 'pull')).toBe('server');
+    expect(syncErrorKind(new ApiError(500, 'server_error', 'Hiba.'), 'push')).toBe('server');
     expect(syncErrorKind(new Error('?'))).toBe('unknown');
   });
 

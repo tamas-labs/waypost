@@ -2,7 +2,7 @@ import { SCHEMA_VERSION, type MediaUploadRequest, type SyncPullResponse } from '
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { createApiClient, SCHEMA_VERSION_HEADER, schemaVersionDiffers } from './client';
+import { createApiClient, SCHEMA_VERSION_HEADER, schemaVersionAtLeast, schemaVersionDiffers } from './client';
 import { enrollDevice, login, pull, push, pushFinal, uploadMedia } from './endpoints';
 import { ApiError, InvalidResponseError, isApiError, NetworkError } from './errors';
 
@@ -254,6 +254,25 @@ describe('API client', () => {
     expect(schemaVersionDiffers('0.5.0', '0.6.0')).toBe(true);
     expect(schemaVersionDiffers('1.6.0', '0.6.0')).toBe(true);
     expect(schemaVersionDiffers(SCHEMA_VERSION)).toBe(false);
+  });
+
+  it("tells whether the server's schema version is at least one, and gives it with an error", async () => {
+    expect(schemaVersionAtLeast('0.9.0', '0.9.0')).toBe(true);
+    expect(schemaVersionAtLeast('0.10.0', '0.9.0')).toBe(true);
+    expect(schemaVersionAtLeast('1.0.0', '0.9.0')).toBe(true);
+    expect(schemaVersionAtLeast('0.8.9', '0.9.0')).toBe(false);
+    expect(schemaVersionAtLeast('0.9.0-rc.1', '0.9.0')).toBe(true);
+    expect(schemaVersionAtLeast('next', '0.9.0')).toBe(false);
+
+    const refused = respond(
+      422,
+      { error: { code: 'validation_failed', message: 'Hibás.', details: { '': ['Hibás.'] } } },
+      {
+        [SCHEMA_VERSION_HEADER]: '0.9.0',
+      },
+    );
+    const error = await pull(createApiClient({ baseUrl: BASE_URL, fetch: refused, validate: false }), 't', null).catch((e: unknown) => e);
+    expect(error).toMatchObject({ code: 'validation_failed', serverSchema: '0.9.0' });
   });
 
   it('warns once in development mode if the server uses another schema version', async () => {

@@ -21,6 +21,8 @@ import {
 } from './guards';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
+jest.mock('expo-secure-store');
+const { store: secureStore } = jest.requireMock<typeof import('../../__mocks__/expo-secure-store')>('expo-secure-store');
 
 const AT = '2026-10-27T10:05:12.345Z';
 const LATER = '2026-10-28T09:00:00.000Z';
@@ -233,9 +235,13 @@ describe('the actions', () => {
       {
         method: 'POST',
         path: '/users',
-        body: { id: NEW_ID, name: 'Balogh Béla', role: 'supervisor', ...login, pin: '482913', active: true, site_ids: [SITE] },
+        body: { id: NEW_ID, name: 'Balogh Béla', role: 'supervisor', email: login.email, pin: '482913', active: true, site_ids: [SITE] },
       },
     ]);
+    // The password is not in the database: it waits in the secure store with the call (FR-012).
+    const [call] = db.select({ id: outbox.id, secret: outbox.secret }).from(outbox).all();
+    expect(call?.secret).toBe(true);
+    expect(JSON.parse(secureStore.get(`waypost.outbox.${call!.id}`)!)).toEqual({ password: login.password });
   });
 
   test('the e-mail address and the password of a new supervisor, as the server takes them', () => {

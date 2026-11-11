@@ -24,9 +24,15 @@ export function alertDelayText(minutes: number): string {
   return t('reports.hoursMinutes', { hours, minutes: rest });
 }
 
-/** The retention with the reports of everyone on the site: "31 nap", growing with a monthly one, or 62 because of one. */
-export function retentionText(frequencies: Iterable<ReportFrequency>): string {
+/**
+ * The retention with the reports of everyone on the site: "31 nap", growing with a monthly one, or 62 because of one.
+ * With what is saved now (saved): if the draft cancels the report that made it longer, the server keeps that longer
+ * retention for as long again after the cancellation (WP-BE-039), so that is told instead.
+ */
+export function retentionText(frequencies: Iterable<ReportFrequency>, saved: Iterable<ReportFrequency> = []): string {
   const days = retentionDays(frequencies);
+  const kept = retentionDays(saved);
+  if (kept > days) return t('reports.retentionCancelled', { days, kept });
   return days === MIN_RETENTION_DAYS
     ? t('reports.retention', { days, monthly: retentionDays(['monthly']) })
     : t('reports.retentionMonthly', { days });

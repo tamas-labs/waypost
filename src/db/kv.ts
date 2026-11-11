@@ -71,6 +71,8 @@ export interface KvValues {
   'sync.last_success_at': string;
   /** The highest seq the server has rejected (sync/push.ts): the entries up to it are not sent again. */
   'sync.rejected_through_seq': number;
+  /** The entry whose refusal (422, the first of a batch) has been reported already (sync/push.ts). */
+  'sync.refused_entry': string;
   /** The report of the rejected entries until the server has it (sync/push.ts). */
   'sync.pending_diagnostic': DeviceDiagnosticRequest;
   /** The records the server confirmed lately, which a full state does not delete yet (sync/pull.ts). */
@@ -114,6 +116,13 @@ export function deleteKv(db: Database, key: KvKey): void {
 
 /** Deletes what the sync keeps about the phone's enrollment: the next device, or none, starts over. */
 export function deleteDeviceSyncState(db: Database): void {
-  const keys: KvKey[] = ['device.revoked', 'sync.cursor', 'sync.confirmed', 'sync.rejected_through_seq', 'sync.pending_diagnostic'];
+  const keys: KvKey[] = [
+    'device.revoked',
+    'sync.cursor',
+    'sync.confirmed',
+    'sync.rejected_through_seq',
+    'sync.refused_entry',
+    'sync.pending_diagnostic',
+  ];
   for (const key of keys) deleteKv(db, key);
 }

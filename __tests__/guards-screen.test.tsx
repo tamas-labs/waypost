@@ -188,7 +188,6 @@ it('a new supervisor: the name, the login checked, the PIN shown once, saved wit
         name: 'Balogh Béla',
         role: 'supervisor',
         email: 'balogh.bela@example.com',
-        password: 'jelszo-1234',
         pin,
         active: true,
         site_ids: [SITE],

@@ -10,6 +10,8 @@
 //   becomes the server's again.
 // The photo of a checkpoint goes through here too (multipart, the file from photo/files.ts), right before the
 // checkpoint call that refers to it, in the name of the supervisor who took it.
+// A call's secret fields (a new supervisor's password) are not in the database but in the secure store, until the
+// call is done or dropped (outbox-secrets.ts, FR-012).
 import type { MediaUploadResponse, SchemaTypes, SyncPullResponse, Timestamp } from '@waypost/schema';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 
@@ -27,6 +29,7 @@ import { photoFile } from '@/photo/files';
 import { nowTimestamp, toTimestamp } from '@/time/timestamp';
 
 import { emitOutboxQueued } from './events';
+import { forgetOutboxSecrets, readOutboxSecrets, storeOutboxSecrets } from './outbox-secrets';
 import { rememberConfirmed } from './confirmed';
 import { storeServerRecords } from './pull';
 import { useSyncStatus } from './status';
@@ -68,11 +71,16 @@ export function queueAction(
   action: SupervisorAction,
   actingUserId: string | null,
   now: Timestamp = nowTimestamp(),
+  /** The IDs of the calls, given by queueActionWithSecrets; new ones otherwise. */
+  callIds?: readonly string[],
 ): string[] {
+  if (callIds === undefined && action.calls.some((call) => call.secrets !== undefined)) {
+    throw new Error('A call with secret fields is queued with queueActionWithSecrets');
+  }
   const ids = db.transaction((tx) => {
     action.apply?.(tx);
-    return action.calls.map((call) => {
-      const id = uuidv7();
+    return action.calls.map((call, index) => {
+      const id = callIds?.[index] ?? uuidv7();
       tx.insert(outbox)
         .values({
           id,
@@ -85,6 +93,7 @@ export function queueAction(
           idempotency_key: uuidv7(),
           acting_user_id: actingUserId,
           media_id: call.mediaId ?? null,
+          secret: call.secrets !== undefined,
           created_at: now,
         })
         .run();
@@ -98,6 +107,38 @@ export function queueAction(
 /** Queues an action of the supervisor using the phone now, in their name (auth/session.ts, actingUserId). */
 export function queueSupervisorAction(db: Database, action: SupervisorAction): string[] {
   return queueAction(db, action, actingUserId(useSession.getState()));
+}
+
+/**
+ * queueAction for calls with secret fields: those go to the secure store first, under the IDs the calls get, so a sync
+ * never meets a call whose fields are not there yet. If the action fails, they are deleted again.
+ */
+export async function queueActionWithSecrets(
+  db: Database,
+  action: SupervisorAction,
+  actingUserId: string | null,
+  now: Timestamp = nowTimestamp(),
+): Promise<string[]> {
+  const callIds = action.calls.map(() => uuidv7());
+  const stored = action.calls.flatMap((call, index) => (call.secrets === undefined ? [] : [{ id: callIds[index]!, fields: call.secrets }]));
+  await Promise.all(stored.map(({ id, fields }) => storeOutboxSecrets(id, fields)));
+  try {
+    return queueAction(db, action, actingUserId, now, callIds);
+  } catch (error) {
+    await forgetOutboxSecrets(stored.map(({ id }) => id));
+    throw error;
+  }
+}
+
+/** queueActionWithSecrets in the name of the supervisor using the phone now. */
+export function queueSupervisorActionWithSecrets(db: Database, action: SupervisorAction): Promise<string[]> {
+  return queueActionWithSecrets(db, action, actingUserId(useSession.getState()));
+}
+
+/** The secret fields of the calls gone from the outbox (done or dropped) are deleted too. */
+function forgetSecretsOf(rows: readonly Pick<OutboxRow, 'id' | 'secret'>[]): void {
+  const ids = rows.filter((row) => row.secret).map((row) => row.id);
+  if (ids.length > 0) void forgetOutboxSecrets(ids);
 }
 
 // --- Sending ---
@@ -158,6 +199,7 @@ function succeeded(db: Database, row: OutboxRow, data: unknown): void {
     }
     rememberConfirmed(tx, row.record_ids, (data as { server_time: Timestamp }).server_time);
   });
+  forgetSecretsOf([row]);
 }
 
 function retryLater(db: Database, row: OutboxRow, delayMs: number, error: unknown, nowMs: number): void {
@@ -257,6 +299,7 @@ function rejected(db: Database, row: OutboxRow, error: ApiError, nowMs: number):
     // An incremental pull would not bring a record the server did not change.
     deleteKv(tx, 'sync.cursor');
   });
+  forgetSecretsOf([row, ...dependents]);
   useSyncStatus.setState({ rejectedCalls: rejections });
 }
 
@@ -288,13 +331,16 @@ export async function sendOutbox(
       rejected(db, row, new ApiError(404, 'not_found', t('sync.photoFileMissing'), null, null, false), now());
       continue;
     }
+    // Missing (another phone restored from a backup): sent without them, the server refuses it, the supervisor is told.
+    const secrets = row.secret ? await readOutboxSecrets(row.id) : null;
+    const body = secrets === null ? (row.body ?? undefined) : { ...(row.body as object), ...secrets };
     let data: unknown;
     try {
       ({ data } = await api.request({
         method: row.method,
         path: row.path,
         ...(file === null
-          ? { body: row.body ?? undefined }
+          ? { body }
           : { form: { fields: { ...(row.body as Record<string, string>) }, file }, timeoutMs: MEDIA_UPLOAD_TIMEOUT_MS }),
         bodySchema: row.body_schema ?? undefined,
         responseSchema: row.response_schema,
@@ -328,6 +374,7 @@ export async function sendOutbox(
           tx.delete(outbox).where(eq(outbox.id, row!.id)).run();
           deleteKv(tx, 'sync.cursor');
         });
+        forgetSecretsOf([row]);
         throw error;
       }
       retryLater(db, row, outboxBackoffMs(row.attempts + 1, random), error, now());
@@ -367,6 +414,7 @@ export function dismissOutboxRejection(db: Database, callId: string): void {
  * photos not uploaded go with them: only a call could send them (their files: the cleanup's orphans).
  */
 export function clearOutbox(tx: Database): void {
+  forgetSecretsOf(tx.select({ id: outbox.id, secret: outbox.secret }).from(outbox).all());
   tx.delete(outbox).run();
   deleteKv(tx, 'outbox.rejected');
   tx.delete(media)

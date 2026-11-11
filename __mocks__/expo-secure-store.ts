@@ -1,5 +1,6 @@
 // In-memory secure store for Jest (used automatically: a mock of a node module next to node_modules).
 export const AFTER_FIRST_UNLOCK = 0;
+export const AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY = 1;
 export const WHEN_UNLOCKED = 5;
 
 /** The stored values; tests may read and clear it. */

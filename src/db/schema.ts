@@ -282,6 +282,8 @@ export const outbox = sqliteTable('outbox', {
   acting_user_id: text(),
   /** A multipart upload of this photo (media.id, the file: photo/files.ts), body holding its text fields; null: JSON. */
   media_id: text(),
+  /** Some fields of the body (a new supervisor's password) are in the secure store, not here (sync/outbox-secrets.ts). */
+  secret: bool().notNull().default(false),
   created_at: timestamp().notNull(),
   attempts: integer().notNull().default(0),
   /** Not sent before this time (device wall clock); null: at the next sync. */

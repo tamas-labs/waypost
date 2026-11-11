@@ -89,7 +89,7 @@ A csomag szabályai:
 | Fotó | expo-image-picker vagy expo-camera, expo-image-manipulator | tömörítés: hosszabbik oldal 1600 px, JPEG 0,7 |
 | Állapotkezelés | Zustand a UI-állapothoz; az igazság forrása a SQLite |  |
 | App tesztek | Jest a `src/domain`, `src/chain`, `src/sync` modulokra |  |
-| Backend | Laravel 13 csomag, PHP 8.4; a gazda-alkalmazás MySQL 8 vagy PostgreSQL 16 adatbázisát használja |  |
+| Backend | Laravel 13 csomag, PHP 8.4; a gazda-alkalmazás MySQL 8.4 (LTS) vagy PostgreSQL 16 adatbázisát használja |  |
 | API-azonosítás | Laravel Sanctum, kétféle token: supervisor és eszköz |  |
 | Háttérfeladatok | Laravel queue (database driver induláskor), scheduler |  |
 | PDF | barryvdh/laravel-dompdf |  |
@@ -188,7 +188,7 @@ Háromféle belépés van: a supervisor fiókja e-mail-címmel és jelszóval (o
 
 ## API-szerződés
 
-REST, JSON, `/v1` előtag, Bearer token. Minden válasz tartalmazza a `server_time` mezőt (ISO 8601, UTC). Minden író kérés `Idempotency-Key` fejlécet visz (UUID); ugyanarra a kulcsra a szerver 24 órán át ugyanazt a választ adja vissza. A pontos sémák a `waypost-schema` repo `schemas/api/` könyvtárában vannak; ez a szakasz a kötelező minimum, amelyből a sémák készülnek. Az előtag a backend csomag konfigurációjától függ, alapértelmezésben `/api/waypost/v1`.
+REST, JSON, `/v1` előtag, Bearer token. Minden válasz tartalmazza a `server_time` mezőt (ISO 8601, UTC). Minden író kérés `Idempotency-Key` fejlécet visz (UUID); ugyanarra a kulcsra a szerver 24 órán át ugyanazt a választ adja vissza. Ha egy kulcshoz az első kérése után 5 percen belül nem tárolódott válasz (a kérés összeomlott, túllépte az időkorlátot vagy a folyamata leállt), a kulcs elhagyott, és a következő próbálkozás ugyanazzal a kulccsal újra lefuttatja a kérést. Amíg az első kérés még fut, az ismétlése `409 conflict` + `Retry-After`. A pontos sémák a `waypost-schema` repo `schemas/api/` könyvtárában vannak; ez a szakasz a kötelező minimum, amelyből a sémák készülnek. Az előtag a backend csomag konfigurációjától függ, alapértelmezésben `/api/waypost/v1`.
 
 | Módszer és útvonal | Token | Mire való |
 | --- | --- | --- |
@@ -198,7 +198,7 @@ REST, JSON, `/v1` előtag, Bearer token. Minden válasz tartalmazza a `server_ti
 | `GET /sync/pull?cursor=` | device vagy supervisor | konfigurációs változások a kurzor óta |
 | `POST /sync/push` | device | láncbejegyzések feltöltése kötegben |
 | `POST /sync/push-final` | visszavont device | utolsó feltöltés visszavonás után |
-| `PUT /media/{id}` | device vagy supervisor | fotó feltöltése (multipart, sha256 mezővel) |
+| `PUT /media/{id}` | device vagy supervisor | fotó feltöltése (multipart, sha256 mezővel); képméretkorlát nincs: a láncban hivatkozott fotót a szerver nem utasítja el a mérete miatt |
 | `GET/POST/PATCH/DELETE /sites`, `/sites/{id}/users`, `/checkpoints`, `/routes`, `/routes/{id}/versions`, `/schedules`, `/users`, `/report-subscriptions` | supervisor, vagy device + `X-Acting-User` | beállítások |
 | `GET /reports?site_id=` | supervisor | jelentésarchívum (aláírt letöltési URL-ekkel) |
 
@@ -279,6 +279,7 @@ Egyszerre csak egy szinkron futhat (mutex). A sorrend mindig: push, média felt�
 - Nyugtázáskor az app beállítja a `synced_at` mezőt. Nyugtázott bejegyzés 7 nap után törölhető, de a lánc utolsó eleme (a `last_hash`) mindig megmarad.
 - A fotók a bejegyzések után mennek fel, egyesével, a `media_missing` lista és a helyi feltöltetlen lista alapján. A szerver ellenőrzi a sha256 lenyomatot.
 - Ha a válaszban `chain_gap` vagy `chain_fork` szerepel, az app nem próbálja újra ugyanazt, hanem egy diagnosztikai eseményt küld, és a supervisor látja a jelentésben. Ilyen csak hibánál vagy manipulációnál fordulhat elő.
+- Ha a szerver a köteget `422 validation_failed`-del utasítja el, és a köteg első bejegyzését nevezi meg, a lánc nem léphet tovább (bejegyzés nem hagyható ki): a feltöltés elakad, amíg a szerver el nem fogadja. Az app ezt bejegyzésenként egyszer diagnosztikai eseményként (`validation_failed`) jelenti, a szinkronjelző megmutatja, és a jelentés a „nem teljes adat” okai között jelzi.
 
 ### Outbox (supervisor műveletek)
 
@@ -471,6 +472,7 @@ Egy 15 percenként futó job telephelyenként megnézi: ha az utolsó várt kör
 ### Adatmegőrzés
 
 - Megőrzési idő telephelyenként: `max(31, 2 × leghosszabb előfizetett időszak napokban)`, ahol műszak = 1, napi = 1, heti = 7, havi = 31 nap. Havi jelentésnél tehát 62 nap, minden más esetben 31 nap.
+- Egy lemondott előfizetés a lemondás után még a saját megőrzési idejéig számít: a havi jelentés lemondása után 62 napig a 62 napos megőrzés érvényes, utána a többi előfizetésé. Így a futása alatt rögzített adat annyi ideig marad meg, amennyit ígért. Az app a beállításoldalon ezt mutatja.
 - Egy naponta futó job törli az ennél régebbi láncbejegyzéseket, vetületrekordokat, médiafájlokat és tárolt PDF-eket. A `devices.last_seq` és `last_hash` megmarad, így a lánc folytonossága törlés után is ellenőrizhető.
 - A konfigurációs adatok (pontok, útvonalverziók, menetrendek) nem törlődnek automatikusan.
 - A telefon a nyugtázott láncbejegyzéseket és fotókat 7 nap után törli.

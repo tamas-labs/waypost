@@ -16,6 +16,8 @@ export type SyncErrorKind =
   /** The site phone was replaced by another one (M4-11). */
   | 'device_revoked'
   | 'rate_limited'
+  /** The server refused an entry of the chain upload (422 validation_failed of the push): the upload is stuck. */
+  | 'upload_refused'
   /** Any other error response of the server (5xx, 4xx). */
   | 'server'
   /** A response that is not what the contract says. */
@@ -66,10 +68,11 @@ export const useSyncStatus = create<SyncStatus>(() => ({
   syncNow: () => syncNowHandler(),
 }));
 
-export function syncErrorKind(error: unknown): SyncErrorKind {
+export function syncErrorKind(error: unknown, step: SyncStep | null = null): SyncErrorKind {
   if (error instanceof NetworkError) return 'network';
   if (error instanceof InvalidResponseError) return 'invalid_response';
   if (error instanceof ApiError) {
+    if (step === 'push' && error.code === 'validation_failed') return 'upload_refused';
     switch (error.code) {
       case 'unauthenticated':
       case 'device_revoked':

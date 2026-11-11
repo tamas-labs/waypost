@@ -44,6 +44,11 @@ export interface ConfigCall {
   recordIds: string[];
   /** A multipart upload: body holds its text fields, and the file is the photo of this media ID (photo/files.ts). */
   mediaId?: string;
+  /**
+   * Fields of the body kept out of the database (a new supervisor's password): in the secure store until the call is
+   * done, added to the body when it is sent (sync/outbox-secrets.ts). Queued with queueActionWithSecrets only.
+   */
+  secrets?: Record<string, string>;
 }
 
 type WithId<T> = T & { id: string };
@@ -95,8 +100,14 @@ export const configCalls = {
     recordIds: [userId],
   }),
 
-  /** With the PIN the app generated: a repeated create does not return a PIN the server generated (M5-02). */
-  createUser: (body: WithId<UserCreateRequest>) => create('/users', body, 'api/user-create.request', 'api/user.response'),
+  /**
+   * With the PIN the app generated: a repeated create does not return a PIN the server generated (M5-02). A
+   * supervisor's password is a secret field of the call (FR-012).
+   */
+  createUser: ({ password, ...body }: WithId<UserCreateRequest>): ConfigCall => ({
+    ...create('/users', body, 'api/user-create.request', 'api/user.response'),
+    ...(password !== undefined && { secrets: { password } }),
+  }),
   updateUser: (id: string, body: UserUpdateRequest) => update('/users', id, body, 'api/user-update.request', 'api/user.response'),
   setUserPin: (id: string, body: UserPinRequest): ConfigCall => ({
     method: 'PUT',

@@ -6,7 +6,7 @@ import { push } from '@/api/endpoints';
 import { appendChainEntries } from '@/chain/writer';
 import { shiftStarted } from '@/chain/payloads';
 import type { Database } from '@/db/database';
-import { getKv, setKv } from '@/db/kv';
+import { deleteKv, getKv, setKv } from '@/db/kv';
 import { chainEntries } from '@/db/schema';
 import { createTestDatabase } from '@/db/testing';
 import { uuidv7 } from '@/id/uuidv7';
@@ -15,6 +15,7 @@ import type { ClockReading } from '@/time/clock';
 import { fakeApi, type FakeAnswer } from './testing';
 import { firstInvalidEntry, PUSH_BATCH_SIZE, pushChainEntries, sendPendingDiagnostic } from './push';
 import { ApiError } from '@/api/errors';
+import { schemaErrors } from '@/schema/validation';
 
 jest.mock('@modules/waypost-clock', () => ({ getUptimeMs: () => 5_000_000, getBootId: () => 'android-boot:12' }));
 
@@ -194,6 +195,74 @@ describe('push', () => {
       await expect(done).rejects.toMatchObject({ code: 'validation_failed' });
       expect(requests).toHaveLength(1);
       expect(synced().every((row) => row.synced_at === null)).toBe(true);
+    });
+
+    describe('the report of a refused first entry (the upload is stuck)', () => {
+      const fromServer = ([status, body]: FakeAnswer & [number, unknown], version: string): FakeAnswer => [
+        status,
+        body,
+        { 'X-Waypost-Schema': version },
+      ];
+      const refusedFirst = (version: string) => fromServer(invalidAt(0, 1) as [number, unknown], version);
+
+      // The client warns of a server with another minor version.
+      beforeEach(() => jest.spyOn(console, 'warn').mockImplementation(() => {}));
+      afterEach(() => jest.restoreAllMocks());
+
+      it('is made once per entry, with what the phone knows of the server', async () => {
+        await writeEntries(3);
+        await run(acceptAll).done;
+        const written = await writeEntries(2);
+
+        await expect(run(() => refusedFirst('0.9.0')).done).rejects.toMatchObject({ code: 'validation_failed' });
+
+        const report = getKv(db, 'sync.pending_diagnostic');
+        expect(report).toMatchObject({
+          device_id: DEVICE,
+          code: 'validation_failed',
+          entry_id: written[0]!.id,
+          seq: 4,
+          expected_seq: null,
+          server_last_seq: 3,
+          rejected_count: 2,
+        });
+        expect(schemaErrors('api/device-diagnostic.request', report)).toEqual([]);
+
+        // Sent; the next sync meets the same refusal and makes no new report.
+        deleteKv(db, 'sync.pending_diagnostic');
+        await expect(run(() => refusedFirst('0.9.0')).done).rejects.toMatchObject({ code: 'validation_failed' });
+        expect(getKv(db, 'sync.pending_diagnostic')).toBeNull();
+      });
+
+      it('waits for a server that takes it', async () => {
+        await writeEntries(2);
+        await expect(run(() => refusedFirst('0.8.1')).done).rejects.toMatchObject({ code: 'validation_failed' });
+        expect(getKv(db, 'sync.pending_diagnostic')).toBeNull();
+        await expect(run(() => invalidAt(0)).done).rejects.toMatchObject({ code: 'validation_failed' });
+        expect(getKv(db, 'sync.pending_diagnostic')).toBeNull();
+
+        await expect(run(() => refusedFirst('0.10.0')).done).rejects.toMatchObject({ code: 'validation_failed' });
+        expect(getKv(db, 'sync.pending_diagnostic')).toMatchObject({ code: 'validation_failed', seq: 1, server_last_seq: 0 });
+      });
+
+      it('does not replace a report of rejected entries that still waits', async () => {
+        await writeEntries(2);
+        const waiting = {
+          id: uuidv7(),
+          device_id: DEVICE,
+          code: 'chain_gap',
+          entry_id: uuidv7(),
+          seq: 7,
+          expected_seq: 5,
+          server_last_seq: 4,
+          rejected_count: 1,
+          occurred_at: SERVER_TIME,
+        } as const;
+        setKv(db, 'sync.pending_diagnostic', waiting);
+        await expect(run(() => refusedFirst('0.9.0')).done).rejects.toMatchObject({ code: 'validation_failed' });
+        expect(getKv(db, 'sync.pending_diagnostic')).toEqual(waiting);
+        expect(getKv(db, 'sync.refused_entry')).toBeNull();
+      });
     });
 
     it('reads the first entry from the details', () => {
